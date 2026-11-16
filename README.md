@@ -61,6 +61,8 @@ flowchart LR
 Follow it in order. Do not skip **Break it**: operating skill comes from failures. Tick modules off as you finish them and keep notes on what broke.
 
 ## Start here: guided mode (easiest)
+**Windows: just double-click `lab.cmd`.** It checks Docker and opens the lab in its own Git Bash window.
+
 The lab teaches you **inside your terminal**. It explains each step, runs the commands for you, gives you hands-on tasks and **checks your work**.
 ```bash
 export MSYS_NO_PATHCONV=1     # Windows Git Bash only, once per terminal
