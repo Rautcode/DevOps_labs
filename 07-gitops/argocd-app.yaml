@@ -10,7 +10,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/Rautcode/devops-cloud-lab.git
+    repoURL: https://github.com/Rautcode/DevOps_labs.git
     targetRevision: main
     path: 06-kubernetes/overlays/dev
   destination: { server: https://kubernetes.default.svc, namespace: devlab-dev }
