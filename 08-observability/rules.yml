@@ -1,0 +1,35 @@
+# SLO: 99.5% availability over 30 days  ->  error budget 0.5%.
+# Multi-window, multi-burn-rate alerts (Google SRE Workbook ch.5).
+groups:
+  - name: slo-availability
+    rules:
+      - record: slo:error_ratio:rate5m
+        expr: 1 - avg_over_time(probe_success{instance="http://web:8080/healthz"}[5m])
+      - record: slo:error_ratio:rate1h
+        expr: 1 - avg_over_time(probe_success{instance="http://web:8080/healthz"}[1h])
+      - record: slo:error_ratio:rate6h
+        expr: 1 - avg_over_time(probe_success{instance="http://web:8080/healthz"}[6h])
+      - alert: ErrorBudgetFastBurn        # 14.4x burn: budget gone in ~2 days -> page
+        expr: slo:error_ratio:rate1h > (14.4 * 0.005) and slo:error_ratio:rate5m > (14.4 * 0.005)
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "Burning error budget 14x too fast"
+          runbook: "10-sre/runbooks/api-down.md"
+      - alert: ErrorBudgetSlowBurn        # 6x burn over 6h -> ticket
+        expr: slo:error_ratio:rate6h > (6 * 0.005) and slo:error_ratio:rate1h > (6 * 0.005)
+        for: 15m
+        labels: { severity: ticket }
+        annotations: { summary: "Slow error-budget burn" }
+      - alert: EndpointDown
+        expr: probe_success == 0
+        for: 1m
+        labels: { severity: page }
+        annotations:
+          summary: "{{ $labels.instance }} is failing probes"
+          runbook: "10-sre/runbooks/api-down.md"
+      - alert: SlowResponses
+        expr: probe_duration_seconds{instance="http://web:8080/"} > 0.5
+        for: 5m
+        labels: { severity: ticket }
+        annotations: { summary: "Homepage probe slower than 500ms for 5m" }

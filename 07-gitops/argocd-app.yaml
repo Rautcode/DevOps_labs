@@ -1,0 +1,19 @@
+# Install Argo CD, then: kubectl apply -f 07-gitops/argocd-app.yaml
+# Git is the source of truth: Argo CD continuously makes the cluster match overlays/dev.
+# Change replicas in git -> the cluster follows. kubectl edit a live object -> Argo reverts it (selfHeal).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devlab-dev
+  namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Rautcode/devops-cloud-lab.git
+    targetRevision: main
+    path: 06-kubernetes/overlays/dev
+  destination: { server: https://kubernetes.default.svc, namespace: devlab-dev }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

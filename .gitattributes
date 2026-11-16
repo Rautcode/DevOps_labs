@@ -1,0 +1,8 @@
+# Keep LF so scripts and Dockerfiles run in Git Bash, Docker and Linux CI
+*.sh text eol=lf
+Dockerfile* text eol=lf
+*.template text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.tf text eol=lf
+*.hcl text eol=lf

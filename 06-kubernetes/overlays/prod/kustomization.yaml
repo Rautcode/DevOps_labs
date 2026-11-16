@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: devlab-prod
+resources: [../../base, namespace.yaml]
+# Prod differences: pinned image tags (digests in real life), more replicas, bigger disk.
+images:
+  - { name: devlab-api, newName: ghcr.io/rautcode/devlab-api, newTag: v1.0.0 }
+  - { name: devlab-web, newName: ghcr.io/rautcode/devlab-web, newTag: v1.0.0 }
+patches:
+  - target: { kind: Deployment, name: devlab-web }
+    patch: |-
+      - { op: replace, path: /spec/replicas, value: 3 }
+  - target: { kind: StatefulSet, name: devlab-api }
+    patch: |-
+      - { op: replace, path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage, value: 10Gi }
+# devlab-secrets is NOT defined here on purpose: it must come from your secret manager.

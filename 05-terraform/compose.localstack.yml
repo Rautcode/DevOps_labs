@@ -1,0 +1,7 @@
+# Free, token-less LocalStack. Pinned to 4.12: newer images require an account/auth token.
+# (Floci and MinIO+moto are alternatives. See 05-terraform/README.md)
+services:
+  localstack:
+    image: localstack/localstack:4.12
+    ports: ["4566:4566"]
+    environment: { SERVICES: "s3,sqs,iam,sts,dynamodb" }

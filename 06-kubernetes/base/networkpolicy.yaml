@@ -1,0 +1,23 @@
+# Zero-trust: deny everything, then allow only web -> api and the world -> web.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny }
+spec: { podSelector: {}, policyTypes: [Ingress] }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-web-ingress }
+spec:
+  podSelector: { matchLabels: { app.kubernetes.io/name: devlab-web } }
+  policyTypes: [Ingress]
+  ingress: [{ ports: [{ port: 8080 }] }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-web-to-api }
+spec:
+  podSelector: { matchLabels: { app.kubernetes.io/name: devlab-api } }
+  policyTypes: [Ingress]
+  ingress:
+    - from: [{ podSelector: { matchLabels: { app.kubernetes.io/name: devlab-web } } }]
+      ports: [{ port: 5000 }]

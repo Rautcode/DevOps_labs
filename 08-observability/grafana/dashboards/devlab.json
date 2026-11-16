@@ -1,0 +1,16 @@
+{
+  "title": "DevLab: availability & latency", "uid": "devlab-slo", "schemaVersion": 39, "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    { "type": "stat", "title": "Up (1 = healthy)", "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "targets": [{ "expr": "probe_success", "legendFormat": "{{instance}}" }] },
+    { "type": "timeseries", "title": "Probe latency (s)", "gridPos": { "h": 6, "w": 18, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "targets": [{ "expr": "probe_duration_seconds", "legendFormat": "{{instance}}" }] },
+    { "type": "timeseries", "title": "Error ratio (5m) vs budget 0.5%", "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "targets": [{ "expr": "slo:error_ratio:rate5m", "legendFormat": "error ratio" },
+                  { "expr": "vector(0.005)", "legendFormat": "SLO budget" }] }
+  ]
+}
