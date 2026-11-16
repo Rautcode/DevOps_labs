@@ -11,3 +11,6 @@ Dockerfile* text eol=lf
 *.html text eol=lf
 *.js text eol=lf
 *.cmd text eol=crlf
+
+# Everything else: LF too (nginx/alloy/ansible configs break on stray CR characters in containers)
+* text=auto eol=lf
