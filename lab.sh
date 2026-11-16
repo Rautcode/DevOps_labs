@@ -93,7 +93,7 @@ menu() {
     mark=" "; grep -qx "$id" "$PROGRESS" 2>/dev/null && mark="${G}✔${N}"
     printf '  [%s] %s  %s\n' "$mark" "$id" "$(lesson_title "$f")"
   done
-  printf '\n  Start one:  bash lab.sh 01      Stop everything:  bash lab.sh down\n'
+  printf '\n  Start one:  bash lab.sh 01 (it continues to the next lesson by itself)\n  Resume:     bash lab.sh next        Stop everything:  bash lab.sh down\n'
 }
 
 run_lesson() {
@@ -104,17 +104,51 @@ run_lesson() {
   # shellcheck disable=SC1090
   . "$f"
   finish "$1"
-  [ "$FAIL" -eq 0 ]
+  [ "$FAIL" -eq 0 ] && [ "$SKIP" -eq 0 ]
+}
+
+first_incomplete() {
+  local f id
+  for f in lessons/*.sh; do id=$(basename "$f" | cut -c1-2); grep -qx "$id" "$PROGRESS" 2>/dev/null || { echo "$id"; return; }; done
+}
+
+# Run a lesson, then move straight on to the next one (stay in this terminal until you quit).
+flow() {
+  local id="$1" nxt a
+  while [ -n "$(lesson_file "$id")" ]; do
+    if run_lesson "$id"; then
+      nxt=$(printf '%02d' "$((10#$id + 1))")
+      if [ -z "$(lesson_file "$nxt")" ]; then
+        printf '\n%s🎉 You finished every lesson. Run  bash lab.sh down  to stop everything.%s\n' "$G$B" "$N"; return
+      fi
+      [ -n "$AUTO" ] && return
+      printf '\n%s➜ Lesson %s done! %sPress Enter to start lesson %s (type q to quit): ' "$G$B" "$id" "$N" "$nxt"
+      read -r a <&3; [ "$a" = q ] && return
+      id="$nxt"
+    else
+      [ -n "$AUTO" ] && return
+      printf '\n%sLesson %s is not finished yet.%s Press Enter to try it again (type q to quit): ' "$Y" "$id" "$N"
+      read -r a <&3; [ "$a" = q ] && return
+    fi
+  done
 }
 
 case "${1:-menu}" in
   menu|list) menu
-    if [ -z "$AUTO" ]; then printf '%s' $'\n  Lesson number to start (Enter to quit): '; read -r n <&3; if [[ "$n" =~ ^[0-9]+$ ]]; then run_lesson "$(printf '%02d' "$((10#$n))")"; elif [ -n "$n" ]; then echo "Please type a lesson number like 1 or 01."; fi; fi ;;
+    if [ -z "$AUTO" ]; then
+      nxt=$(first_incomplete); [ -z "$nxt" ] && nxt=01
+      printf '\n  Type a lesson number, or press Enter to continue with lesson %s (q to quit): ' "$nxt"; read -r n <&3
+      if [ "$n" = q ]; then :
+      elif [ -z "$n" ]; then flow "$nxt"
+      elif [[ "$n" =~ ^[0-9]+$ ]]; then flow "$(printf '%02d' "$((10#$n))")"
+      else echo "Please type a lesson number like 1 or 01."; fi
+    fi ;;
   status) menu ;;
   down)
     $DCO down 2>&1 | tail -2; docker rm -f evio-k3s lab-api >/dev/null 2>&1; docker rm -f devlab-k3s >/dev/null 2>&1
     bash 06-kubernetes/cluster.sh down 2>/dev/null; docker compose -f 05-terraform/compose.localstack.yml down 2>&1 | tail -1 ;;
   reset) rm -f "$PROGRESS"; echo "progress cleared" ;;
-  [0-9]*) run_lesson "$(printf '%02d' "$((10#$1))")" ;;
+  [0-9]*) if [ -n "$AUTO" ]; then run_lesson "$(printf '%02d' "$((10#$1))")"; else flow "$(printf '%02d' "$((10#$1))")"; fi ;;
+  next|continue) nxt=$(first_incomplete); [ -z "$nxt" ] && { echo "All lessons are done."; exit 0; }; flow "$nxt" ;;
   *) echo "usage: bash lab.sh [menu|NN|status|down|reset]"; exit 1 ;;
 esac
