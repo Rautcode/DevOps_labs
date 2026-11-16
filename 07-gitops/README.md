@@ -1,5 +1,7 @@
 # 07 · GitOps with Argo CD (Advanced, ~4h)
 
+> **Guided version:** run `bash lab.sh 07` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+
 **Goal:** git becomes the only way to change the cluster. A controller continuously reconciles the cluster to what is in git, reverting any manual change.
 
 | File | Purpose |
@@ -11,7 +13,7 @@
 ## Do it
 You need your repo pushed to GitHub (the `repoURL` in the file points to this repo; change it if you forked).
 ```bash
-bash 06-kubernetes/cluster.sh up && export KUBECONFIG=$PWD/.kube/config
+bash 06-kubernetes/cluster.sh up && export KUBECONFIG="$(pwd -W 2>/dev/null || pwd)/.kube/config"
 kubectl create namespace argocd
 kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl -n argocd rollout status deploy/argocd-server

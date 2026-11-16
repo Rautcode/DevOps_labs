@@ -5,3 +5,6 @@
 *.tfplan
 backups/
 .kube/
+.progress
+playground/
+node_modules/

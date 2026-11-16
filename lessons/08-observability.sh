@@ -1,0 +1,39 @@
+# Observability: monitoring, dashboards and alerts (about 2h)
+title "Module 08 · Observability"
+explain "Monitoring tells you the site is broken BEFORE your users do. Prometheus checks the site every 15 seconds, Grafana draws graphs, and alert rules notify you when the error budget is burning too fast."
+
+part "PART A · Start monitoring"
+step "Start the app plus Prometheus, Grafana and a probe" "Containers Started: blackbox, prometheus, grafana (plus api and web)." <<'CMD'
+$DCO up -d 2>&1 | tail -5
+CMD
+step "Wait for the first checks, then ask: is the site up?" "Two results with value 1 = up (one for the homepage, one for /healthz). 0 would mean down." <<'CMD'
+sleep 45; curl -s 'localhost:9090/api/v1/query?query=probe_success' | grep -o '"instance":"[^"]*"\|"value":\[[^]]*\]'
+CMD
+step "Validate the monitoring config" "SUCCESS ... 7 rules found" <<'CMD'
+docker run --rm --entrypoint promtool -v "$PWD/08-observability:/etc/prometheus:ro" prom/prometheus:v2.55.1 check config /etc/prometheus/prometheus.yml 2>&1 | grep -E "SUCCESS|FAILED"
+CMD
+step "List the alerts that exist" "EndpointDown, ErrorBudgetFastBurn, ErrorBudgetSlowBurn, SlowResponses" <<'CMD'
+curl -s localhost:9090/api/v1/rules | grep -o '"name":"[A-Z][A-Za-z]*"' | sort -u
+CMD
+step "Find the dashboard" "A dashboard titled 'DevLab: availability & latency'. Open http://localhost:3000 in your browser and look at it (no login needed in this lab)." <<'CMD'
+curl -s 'localhost:3000/api/search?query=DevLab' | grep -o '"title":"[^"]*"'
+CMD
+
+part "PART B · Hands-on: trigger an alert"
+explain "Now break the site on purpose and watch the monitoring notice. Open http://localhost:9090/alerts in your browser first."
+task "Stop the API and wait for the EndpointDown alert" "In another terminal run: docker stop devlab-api-1   Then refresh http://localhost:9090/alerts every 15 seconds. EndpointDown goes to PENDING, then to FIRING after a minute. Come back here and press Enter when you see it." "It can take up to 2 minutes. Prometheus checks every 15 seconds and the alert waits 1 minute before firing, to avoid false alarms." <<'X'
+curl -s localhost:9090/api/v1/alerts | grep -q EndpointDown
+---
+docker stop devlab-api-1 >/dev/null; for i in $(seq 1 40); do curl -s localhost:9090/api/v1/alerts | grep -q EndpointDown && exit 0; sleep 5; done; exit 1
+X
+step "Fix it: start the API again" '{"ok":true}. The alert will resolve by itself soon.' <<'CMD'
+docker start devlab-api-1 >/dev/null; sleep 12; curl -s localhost:8080/healthz
+CMD
+quiz "Why alert on 'error budget burn rate' instead of 'CPU above 80%'?" "user|symptom|noise|page|impact|budget|false|matter|customer" "Burn-rate alerts fire when users are actually affected and the SLO is at risk. CPU alerts fire often without any user impact and cause alert fatigue."
+
+part "PART C · Tidy up"
+step "Stop the monitoring tools (the app keeps running)" "prometheus, grafana and blackbox stopped." <<'CMD'
+$DCO stop prometheus grafana blackbox 2>&1 | tail -3
+CMD
+
+explain "Done! Next: bash lab.sh 09"

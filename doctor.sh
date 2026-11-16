@@ -17,4 +17,7 @@ command -v helm >/dev/null      && ok "helm"      || opt "helm" "only for the He
 if [ -f .env ]; then ok ".env exists"; else cp .env.example .env && ok "created .env from example"; fi
 gb=$(docker info --format '{{.MemTotal}}' 2>/dev/null | awk '{printf "%d", $1/1073741824}')
 if [ "${gb:-0}" -ge 6 ]; then ok "Docker has ${gb}GB RAM"; else bad "Docker memory ${gb:-?}GB" "give Docker >= 6GB (modules 06-08 run many containers)"; fi
+case "${OSTYPE:-}" in msys*|cygwin*) [ -z "${MSYS_NO_PATHCONV:-}" ] && printf '  [33m![0m Windows Git Bash tip: run  export MSYS_NO_PATHCONV=1  (once per terminal) so Docker paths like /data are not rewritten.
+' ;; esac
+echo; echo "Next: bash lab.sh"
 exit $miss

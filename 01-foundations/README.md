@@ -1,5 +1,7 @@
 # 01 · Foundations (Beginner, ~3h)
 
+> **Guided version:** run `bash lab.sh 01` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+
 **Goal:** be comfortable in a Linux shell, Git and HTTP before touching any tooling. Everything is done against the small sample app in [app/](../app) (a Node API with SQLite behind an nginx-served web page).
 
 **You are done when** you can explain what a process, port and environment variable are, what common HTTP status codes mean, and how to undo a bad commit.
@@ -83,8 +85,9 @@ The last loop shows **rate limiting** (you will see 429s). Behind a proxy the se
 ```bash
 git switch -c practice
 git log --oneline --graph -10
-git commit --allow-empty -m "feat: practice commit"   # Conventional Commits: feat / fix / docs / chore
-git revert HEAD                                       # safe undo, history preserved
+echo hello > practice.txt && git add practice.txt     # a revert needs a real change to undo
+git commit -m "feat: practice commit"                 # Conventional Commits: feat / fix / docs / chore
+git revert --no-edit HEAD                             # safe undo, history preserved
 git reflog                                            # the safety net: almost nothing is truly lost
 git switch main && git branch -D practice
 ```

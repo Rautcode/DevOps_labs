@@ -22,18 +22,36 @@ A personal, hands-on path from **zero to production-grade** DevOps and cloud ski
 
 Follow it in order. Do not skip **Break it**: operating skill comes from failures. Tick modules off as you finish them and keep notes on what broke.
 
-## Quick start (10 minutes)
+## Start here: guided mode (easiest)
+The lab teaches you **inside your terminal**. It explains each step, runs the commands for you, gives you hands-on tasks and **checks your work**.
 ```bash
-bash doctor.sh                           # checks Docker, kubectl, memory; creates .env
+export MSYS_NO_PATHCONV=1     # Windows Git Bash only, once per terminal
+bash doctor.sh                # checks your machine (Docker, kubectl, memory)
+bash lab.sh                   # menu: pick a lesson number
+bash lab.sh 01                # or start lesson 01 directly
+```
+How a lesson works:
+- **▶ Step**: it shows the command and what it does, you press Enter, it runs, and it tells you **what to look for**.
+- **✋ Your turn**: a hands-on task. Do it in a second terminal, press Enter, and the lab checks it (`h` shows the answer, `s` skips).
+- **❓ Quiz**: a short question, then the model answer.
+
+Other commands: `bash lab.sh status` (your progress), `bash lab.sh down` (stop everything the labs started), `bash lab.sh reset`.
+Your own files go in `playground/` (git-ignored). The written guides in each module folder have the same content plus background reading.
+
+Requires Docker Desktop (give it 6GB+ RAM), `kubectl`, Git, Node 24+. Terraform, kind and helm are **optional**: wrapper scripts run them in Docker.
+
+## Quick start without the guide (10 minutes)
+```bash
 C="docker compose -f 03-compose/docker-compose.yml --env-file .env"
 $C up --build -d                         # builds both images and starts the site
 curl localhost:8080/healthz              # {"ok":true}   (site: http://localhost:8080)
 $C down                                  # stop (data volume is kept)
 ```
-Requires Docker Desktop (give it 6GB+ RAM), `kubectl`, Git, Node 24+. Terraform, kind and helm are **optional**: wrapper scripts run them in Docker.
 
 ## Map
 ```
+lab.sh  lessons/   guided runner and one lesson script per module (bash lab.sh 01 ...)
+playground/        your own files from the hands-on tasks (git-ignored)
 app/api/   sample API: Express + SQLite, health, auth, rate limit, tests   (npm test)
 app/web/   sample static site with a form that calls the API
 01-foundations/ 02-containers/ 03-compose/ 04-ci-cd/ 05-terraform/ 06-kubernetes/

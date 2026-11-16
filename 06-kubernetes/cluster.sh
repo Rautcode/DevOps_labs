@@ -2,7 +2,7 @@
 # Local Kubernetes with zero installs beyond Docker + kubectl (k3s in a container).
 #   bash 06-kubernetes/cluster.sh up     start cluster, load images, write .kube/config
 #   bash 06-kubernetes/cluster.sh down   delete everything
-# Then: export KUBECONFIG=$PWD/.kube/config
+# Then: export KUBECONFIG="$(pwd -W 2>/dev/null || pwd)/.kube/config"
 # (Prefer kind/minikube? Fine: the manifests are identical. See kind-config.yaml.)
 set -euo pipefail
 export MSYS_NO_PATHCONV=1
@@ -19,7 +19,7 @@ case "${1:-}" in
       docker image inspect $i >/dev/null 2>&1 || { echo "build $i first (module 02/03)"; exit 1; }
       docker save $i | docker exec -i $N ctr images import - >/dev/null
     done
-    echo "cluster ready. export KUBECONFIG=$PWD/.kube/config"
+    echo "cluster ready. Run: export KUBECONFIG=$(pwd -W 2>/dev/null || pwd)/.kube/config"
     echo "deploy:  kubectl apply -k 06-kubernetes/overlays/dev   ->  http://localhost:30080" ;;
   down) docker rm -f $N >/dev/null 2>&1 || true; rm -rf .kube; echo "cluster removed" ;;
   *) echo "usage: cluster.sh up|down"; exit 1 ;;

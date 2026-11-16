@@ -1,5 +1,7 @@
 # 11 · Capstone: production readiness (Expert, ~10h+)
 
+> **Guided version:** run `bash lab.sh 11` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+
 **Goal:** combine everything into one defensible, production-grade delivery, then prove it.
 
 ## Part A · Disaster recovery drill (verified)

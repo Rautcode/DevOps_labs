@@ -1,5 +1,7 @@
 # 09 · DevSecOps (Advanced, ~4h)
 
+> **Guided version:** run `bash lab.sh 09` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+
 **Goal:** make security automatic: every layer from code to cluster is scanned, and the cluster itself refuses bad workloads.
 
 ```bash

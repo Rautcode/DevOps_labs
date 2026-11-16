@@ -1,5 +1,7 @@
 # 08 · Observability and SLOs (Advanced, ~4h)
 
+> **Guided version:** run `bash lab.sh 08` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+
 **Goal:** know the site is healthy *before* customers tell you. Probes, dashboards, and error-budget alerts.
 
 | File | Purpose |

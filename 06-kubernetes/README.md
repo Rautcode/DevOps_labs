@@ -1,5 +1,7 @@
 # 06 · Kubernetes (Intermediate to Advanced, ~8h)
 
+> **Guided version:** run `bash lab.sh 06` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+
 **Goal:** run the app on a real cluster with probes, limits, autoscaling, zero-downtime rollouts and network isolation.
 
 | Path | What |
@@ -11,7 +13,7 @@
 ## Do it (from the repo root; build images first, modules 02/03)
 ```bash
 bash 06-kubernetes/cluster.sh up
-export KUBECONFIG=$PWD/.kube/config
+export KUBECONFIG="$(pwd -W 2>/dev/null || pwd)/.kube/config"
 kubectl apply -k 06-kubernetes/overlays/dev
 kubectl -n devlab-dev get pods -w                     # wait for Running 1/1, Ctrl-C
 curl localhost:30080/healthz                        # {"ok":true} via the NodePort
