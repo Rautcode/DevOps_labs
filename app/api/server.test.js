@@ -9,7 +9,10 @@ const assert = require('node:assert/strict');
 const app = require('./server');
 
 let server, base;
-test.before(() => new Promise((resolve) => { server = app.listen(0, () => { base = `http://127.0.0.1:${server.address().port}`; resolve(); }); }));
+test.before(async () => {
+  await app.ready;
+  await new Promise((resolve) => { server = app.listen(0, () => { base = `http://127.0.0.1:${server.address().port}`; resolve(); }); });
+});
 test.after(() => server.close());
 
 const post = (p, body, headers = {}) => fetch(base + p, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
@@ -18,6 +21,14 @@ test('health endpoint', async () => {
   const r = await fetch(base + '/healthz');
   assert.equal(r.status, 200);
   assert.deepEqual(await r.json(), { ok: true });
+});
+
+test('readiness endpoint reports the data store', async () => {
+  const r = await fetch(base + '/readyz');
+  assert.equal(r.status, 200);
+  const body = await r.json();
+  assert.equal(body.ready, true);
+  assert.ok(['sqlite', 'postgres'].includes(body.store));
 });
 
 test('admin routes reject anonymous requests', async () => {

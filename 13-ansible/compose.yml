@@ -1,0 +1,9 @@
+# Two practice servers. Start with (from the repo root):
+#   SSH_PUBKEY="$(cat playground/ssh/id_lab.pub)" docker compose -f 13-ansible/compose.yml up -d --build
+name: ansible
+services:
+  web1: &target
+    build: { context: ., dockerfile: Dockerfile.target }
+    image: devlab-ansible-target
+    environment: { SSH_PUBKEY: "${SSH_PUBKEY:-}" }
+  web2: *target

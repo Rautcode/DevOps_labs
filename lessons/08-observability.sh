@@ -33,7 +33,7 @@ quiz "Why alert on 'error budget burn rate' instead of 'CPU above 80%'?" "user|s
 
 part "PART C · Tidy up"
 step "Stop the monitoring tools (the app keeps running)" "prometheus, grafana and blackbox stopped." <<'CMD'
-$DCO stop prometheus grafana blackbox 2>&1 | tail -3
+$DCO rm -sf prometheus grafana blackbox 2>&1 | tail -3
 CMD
 
 explain "Done! Next: bash lab.sh 09"

@@ -1,0 +1,26 @@
+# Defaults. Override with:  --set web.replicas=3   or   -f my-values.yaml
+image:
+  api: { repository: devlab-api, tag: lab }
+  web: { repository: devlab-web, tag: lab }
+  pullPolicy: IfNotPresent
+
+web:
+  replicas: 2
+  resources:
+    requests: { cpu: 50m, memory: 32Mi }
+    limits: { cpu: 500m, memory: 128Mi }
+
+api:
+  storage: 1Gi        # SQLite disk. The API must stay at ONE replica (see module 06 and 16).
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: "1", memory: 512Mi }
+
+service:
+  type: NodePort
+  nodePort: 30080
+
+# LAB ONLY values. In real life secrets come from a secret manager, never from a values file in git.
+secrets:
+  jwtSecret: lab-only-jwt-secret-change-me-0123456789abcdef
+  adminPassword: lab-admin-password

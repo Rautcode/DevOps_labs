@@ -41,7 +41,7 @@ X
 quiz "In a BLAMELESS postmortem, who do we blame?" "no one|nobody|noone|system|process|not a person|nothing" "No person. People acted sensibly with the information they had; we fix the system, process or alert that allowed the problem."
 
 step "Tidy up: stop the monitoring tools" "Stopped." <<'CMD'
-$DCO stop prometheus grafana blackbox 2>&1 | tail -3
+$DCO rm -sf prometheus grafana blackbox 2>&1 | tail -3
 CMD
 
 explain "Done! Next: bash lab.sh 11"

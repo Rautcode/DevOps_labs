@@ -13,10 +13,12 @@ cd "$(dirname "$0")" || exit 1
 export MSYS_NO_PATHCONV=1
 export DC="docker compose -f 03-compose/docker-compose.yml --env-file .env"
 export DCO="docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml --env-file .env"
+export DCP="docker compose -f 03-compose/docker-compose.yml -f 16-postgres/compose.postgres.yml --env-file .env"
 export KUBECONFIG="$(pwd -W 2>/dev/null || pwd)/.kube/config"
 AUTO="${LAB_AUTO:-}"
 PROGRESS=.progress
 PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=0
+LESSONS=$(ls lessons/*.sh 2>/dev/null | wc -l | tr -d " ")
 W=78
 mkdir -p playground
 # Read keyboard input from the terminal if there is one, otherwise from stdin (lets you pipe answers in).
@@ -54,13 +56,13 @@ banner() {
 ART
   printf '%s%s     C L O U D   L A B  %s·%s  learn by doing, check by running%s\n' "$RST" "$BOLD" "$DIM" "$RST" "$RST"
 }
-rank() { # completed lessons -> title
-  local n=$1
-  if   [ "$n" -ge 11 ]; then echo "SRE Legend"
-  elif [ "$n" -ge 9 ];  then echo "Senior Engineer"
-  elif [ "$n" -ge 6 ];  then echo "Platform Engineer"
-  elif [ "$n" -ge 3 ];  then echo "DevOps Engineer"
-  elif [ "$n" -ge 1 ];  then echo "Junior Operator"
+rank() { # completed lessons -> title (by share of all lessons)
+  local p=$(( $1 * 100 / LESSONS ))
+  if   [ "$p" -ge 100 ]; then echo "SRE Legend"
+  elif [ "$p" -ge 80 ];  then echo "Senior Engineer"
+  elif [ "$p" -ge 50 ];  then echo "Platform Engineer"
+  elif [ "$p" -ge 25 ];  then echo "DevOps Engineer"
+  elif [ "$p" -ge 1 ];   then echo "Junior Operator"
   else echo "Newcomer"; fi
 }
 done_count() { [ -f "$PROGRESS" ] && grep -c '^[0-9][0-9]$' "$PROGRESS" || echo 0; }
@@ -78,17 +80,20 @@ badge()   { CUR=$((CUR+1)); printf '\n%s %s %d/%d %s %s%s%s\n' "$2" "$1" "$CUR" 
 pass()    { PASS=$((PASS+1)); printf '  %s ✔ PASS %s\n' "$BG_G" "$RST"; }
 fail()    { FAIL=$((FAIL+1)); printf '  %s ✘ FAIL %s %s\n' "$BG_R" "$RST" "${1:-}"; }
 
-# step "what this does" "what to look for" [fail] <<'CMD' ... CMD
+# step "what this does" "what to look for" [ok|fail] ["regex the output must match (checked in auto mode)"] <<'CMD' ... CMD
 step() {
   local cmd rc; cmd=$(cat)
   badge "STEP" "$BG_B" "$1"
   printf '%s%s%s\n' "$DIM$CYN" "$(printf '%s' "$cmd" | sed 's/^/  ❯ /')" "$RST"
   ask "  ${DIM}press Enter to run it ▸ ${RST}"
-  ( eval "$cmd" ) 2>&1 | sed "s/^/  ${DIM}│${RST} /"; rc=${PIPESTATUS[0]}
+  local out; out=$( ( eval "$cmd" ) 2>&1; echo "::rc=$?" ); rc=${out##*::rc=}; out=${out%::rc=*}
+  printf '%s' "$out" | sed "s/^/  ${DIM}│${RST} /"; [ -n "$out" ] && [ "${out: -1}" != $'\n' ] && echo
   [ -n "${2:-}" ] && printf '  %s➜ Look for:%s %s\n' "$YEL" "$RST" "$2"
   if [ -n "$AUTO" ]; then
     if [ "${3:-ok}" = fail ]; then [ "$rc" -ne 0 ] && pass || fail "(expected this command to fail)"
-    else [ "$rc" -eq 0 ] && pass || fail "(command exited $rc)"; fi
+    elif [ "$rc" -ne 0 ]; then fail "(command exited $rc)"
+    elif [ -n "${4:-}" ] && ! printf '%s' "$out" | grep -Eq "$4"; then fail "(output did not match: $4)"
+    else pass; fi
   fi
 }
 
@@ -96,9 +101,11 @@ step() {
 task() {
   local all check sol a; all=$(cat)
   check=${all%%$'\n---\n'*}; sol=${all#*$'\n---\n'}
-  badge "YOUR TURN" "$BG_Y" "$1"
+  # OPT=1 task ...  = optional task (for example one that needs a real cloud account): skipping it never blocks the lesson
+  if [ -n "${OPT:-}" ]; then badge "OPTIONAL" "$BG_C" "$1"; else badge "YOUR TURN" "$BG_Y" "$1"; fi
   explain "$2"
   if [ -n "$AUTO" ]; then
+    if [ -n "${OPT:-}" ]; then printf '  %s○ optional task, not run in auto mode%s\n' "$YEL" "$RST"; return; fi
     [ "$AUTO" = solve ] && ( eval "$sol" ) >/dev/null 2>&1
     if ( eval "$check" ) >/dev/null 2>&1; then pass; else fail "(task check)"; fi
     return
@@ -107,7 +114,7 @@ task() {
     printf '  %sDo it in ANOTHER terminal, then press Enter to check  (s = skip, h = show answer) ▸ %s' "$YEL" "$RST"
     read -r a <&3
     case "$a" in
-      s) SKIP=$((SKIP+1)); printf '  %s○ skipped%s\n' "$YEL" "$RST"; return ;;
+      s) [ -z "${OPT:-}" ] && SKIP=$((SKIP+1)); printf '  %s○ skipped%s\n' "$YEL" "$RST"; return ;;
       h) printf '  %sAnswer:%s\n%s\n' "$YEL" "$RST" "$(printf '%s' "$sol" | sed "s/^/    ${DIM}❯${RST} /")"; continue ;;
     esac
     if ( eval "$check" ) >/dev/null 2>&1; then pass; return; fi
@@ -134,7 +141,7 @@ finish() {
   printf '\n'
   box "$c" "$msg"
   printf '  %s lesson summary:%s %s%d passed%s   %s%d failed%s   %s%d skipped%s\n' "$BOLD$1" "$RST" "$GRN" "$PASS" "$RST" "$RED" "$FAIL" "$RST" "$YEL" "$SKIP" "$RST"
-  printf '  Overall  %s  %d/11 lessons   Rank: %s%s%s\n' "$(bar "$n" 11)" "$n" "$BOLD" "$(rank "$n")" "$RST"
+  printf '  Overall  %s  %d/%d lessons   Rank: %s%s%s\n' "$(bar "$n" "$LESSONS")" "$n" "$LESSONS" "$BOLD" "$(rank "$n")" "$RST"
   [ "$SKIP" -gt 0 ] && printf '  %sRun  bash lab.sh %s  again to finish the skipped tasks and earn the tick.%s\n' "$YEL" "$1" "$RST"
 }
 
@@ -149,7 +156,7 @@ menu() {
     if grep -qx "$id" "$PROGRESS" 2>/dev/null; then mark="${GRN}✔${RST}"; else mark="${DIM}○${RST}"; fi
     printf '   %s  %s%s%s  %s\n' "$mark" "$BOLD" "$id" "$RST" "$(lesson_title "$f")"
   done
-  printf '\n   Progress  %s  %d/11      Rank: %s%s%s\n' "$(bar "$n" 11 30)" "$n" "$BOLD$CYN" "$(rank "$n")" "$RST"
+  printf '\n   Progress  %s  %d/%d      Rank: %s%s%s\n' "$(bar "$n" "$LESSONS" 30)" "$n" "$LESSONS" "$BOLD$CYN" "$(rank "$n")" "$RST"
   printf '\n   %sbash lab.sh 01%s start (continues by itself)   %sbash lab.sh next%s resume   %sbash lab.sh down%s stop all\n' "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST"
 }
 
@@ -157,7 +164,7 @@ run_lesson() {
   local f; f=$(lesson_file "$1")
   [ -z "$f" ] && { echo "No lesson '$1'. Try: bash lab.sh"; exit 1; }
   [ -f .env ] || cp .env.example .env
-  PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(step|task|quiz) ' "$f")
+  PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(OPT=1 )?(step|task|quiz) ' "$f")
   # shellcheck disable=SC1090
   . "$f"
   finish "$1"
@@ -176,7 +183,7 @@ flow() {
     if run_lesson "$id"; then
       nxt=$(printf '%02d' "$((10#$id + 1))")
       if [ -z "$(lesson_file "$nxt")" ]; then
-        printf '\n'; box "$BOLD$GRN" "★ YOU FINISHED EVERY LESSON ★   Rank: $(rank 11)"
+        printf '\n'; box "$BOLD$GRN" "★ YOU FINISHED EVERY LESSON ★   Rank: $(rank "$LESSONS")"
         printf '  Run  bash lab.sh down  to stop everything.\n'; return
       fi
       [ -n "$AUTO" ] && return
@@ -203,8 +210,12 @@ case "${1:-menu}" in
     fi ;;
   status) menu ;;
   down)
-    $DCO down 2>&1 | tail -2; docker rm -f evio-k3s lab-api >/dev/null 2>&1; docker rm -f devlab-k3s >/dev/null 2>&1
-    bash 06-kubernetes/cluster.sh down 2>/dev/null; docker compose -f 05-terraform/compose.localstack.yml down 2>&1 | tail -1 ;;
+    # one 'down' that knows every compose file used by the lessons (app, monitoring, logging, postgres)
+    docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml -f 15-logging/compose.logging.yml -f 16-postgres/compose.postgres.yml --env-file .env down --remove-orphans 2>&1 | tail -3
+    docker rm -f lab-api lab-tls lab-a lab-b lab-lb >/dev/null 2>&1; docker network rm lab-net >/dev/null 2>&1
+    bash 06-kubernetes/cluster.sh down 2>/dev/null
+    docker compose -f 05-terraform/compose.localstack.yml down 2>&1 | tail -1
+    docker compose -f 13-ansible/compose.yml down 2>&1 | tail -1 ;;
   reset) rm -f "$PROGRESS"; echo "progress cleared" ;;
   next|continue) nxt=$(first_incomplete); [ -z "$nxt" ] && { echo "All lessons are done."; exit 0; }; flow "$nxt" ;;
   [0-9]*) if [ -n "$AUTO" ]; then run_lesson "$(printf '%02d' "$((10#$1))")"; else flow "$(printf '%02d' "$((10#$1))")"; fi ;;

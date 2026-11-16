@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-web
+  labels: { app.kubernetes.io/name: {{ .Release.Name }}-web, app.kubernetes.io/managed-by: {{ .Release.Service }} }
+spec:
+  replicas: {{ .Values.web.replicas }}
+  strategy: { rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } }   # zero-downtime deploys
+  selector:
+    matchLabels: { app.kubernetes.io/name: {{ .Release.Name }}-web }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: {{ .Release.Name }}-web }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 101, runAsGroup: 101, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: web
+          image: "{{ .Values.image.web.repository }}:{{ .Values.image.web.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports: [{ name: http, containerPort: 8080 }]
+          env:
+            # nginx's resolver ignores Kubernetes search domains, so use the full name of the API service.
+            - { name: API_UPSTREAM, value: "{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:5000" }
+          readinessProbe: { httpGet: { path: /nginx-health, port: http }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /nginx-health, port: http }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources: {{ toYaml .Values.web.resources | nindent 12 }}
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: cache, mountPath: /var/cache/nginx }
+            - { name: conf, mountPath: /etc/nginx/conf.d }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+        - { name: cache, emptyDir: {} }
+        - { name: conf, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-web
+spec:
+  type: {{ .Values.service.type }}
+  selector: { app.kubernetes.io/name: {{ .Release.Name }}-web }
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      {{- if eq .Values.service.type "NodePort" }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}

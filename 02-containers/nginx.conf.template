@@ -27,6 +27,7 @@ server {
     client_max_body_size 12m;
   }
   location = /healthz { proxy_pass $api; }
+  location = /readyz  { proxy_pass $api; }
 
   # Hashed build assets: cache forever. Everything else: SPA fallback, never cached.
   location /assets/ { expires 1y; add_header Cache-Control "public, immutable"; try_files $uri =404; }

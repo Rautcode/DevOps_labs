@@ -34,6 +34,18 @@ This curriculum was designed after surveying popular GitHub repos, hands-on plat
 - Official docs: Kubernetes, Terraform, Prometheus, Argo CD, GitHub Actions, SLSA (slsa.dev).
 - Books: *The Phoenix Project* (why), *Accelerate* (evidence), *Kubernetes in Action* (depth), *Terraform: Up & Running* (IaC).
 
+## Specialist modules (12-17): primary documentation
+| Topic | Read |
+|---|---|
+| Networking | `man curl`, `openssl s_client`, the nginx docs for `upstream`, `proxy_pass` and `ssl`; *High Performance Browser Networking* (free online) |
+| Ansible | docs.ansible.com (playbooks, roles, Vault); `ansible-lint`; *Ansible for DevOps* |
+| Helm and RBAC | helm.sh/docs (charts, values, hooks); kubernetes.io RBAC guide; `kubectl auth can-i --list` |
+| Logging and tracing | grafana.com/docs/loki (LogQL), grafana.com/docs/alloy, opentelemetry.io, jaegertracing.io |
+| Postgres | postgresql.org/docs (backup and restore, WAL archiving); managed offerings (RDS, Cloud SQL) |
+| AWS | AWS Well-Architected Framework, AWS Budgets docs, IAM Identity Center, GitHub OIDC for AWS; Checkov policy index |
+
+Note: Promtail reached end of life in 2026, so the logging module uses Grafana Alloy. LocalStack's latest image needs an account token, so module 05 pins the last tokenless version (4.12).
+
 ## Where to go after this lab
 1. **Cloud:** pick one provider and do its free-tier path; redo module 05 against the real API. Certifications worth the effort: AWS Solutions Architect Associate or Azure AZ-104, then CKA / CKAD (Kubernetes) and HashiCorp Terraform Associate.
 2. **Specialise:** *SRE* (SLOs, incident command), *Platform engineering* (Backstage, golden paths), or *DevSecOps* (supply chain, policy).

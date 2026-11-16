@@ -17,8 +17,8 @@ A personal, hands-on path from **zero to production-grade** DevOps and cloud ski
 ```mermaid
 flowchart LR
   U([You / browser]) -->|:8080| W["web: nginx<br/>static page + reverse proxy"]
-  W -->|/api, /healthz| A["api: Node + Express<br/>auth, rate limit, leads"]
-  A --> D[("SQLite on a volume")]
+  W -->|/api, /healthz, /readyz| A["api: Node + Express<br/>auth, rate limit, JSON logs"]
+  A --> D[("SQLite on a volume<br/>or Postgres (module 16)")]
   P["Prometheus + Grafana<br/>probes and SLO alerts"] -.->|checks| W
 ```
 
@@ -37,9 +37,13 @@ flowchart LR
   subgraph Expert
     X[11 Capstone]
   end
+  subgraph Specialist["Specialist tracks"]
+    N[12 Networking] --> AN[13 Ansible] --> H[14 Helm and RBAC] --> L[15 Logging and tracing] --> PG[16 Postgres] --> AW[17 Real cloud: AWS]
+  end
   M --> CI
   K --> G
   R --> X
+  X --> N
 ```
 
 ## Learning path
@@ -57,8 +61,14 @@ flowchart LR
 | | [09](09-security/README.md) | DevSecOps | shift-left scanning, admission policy, supply chain | 4h |
 | | [10](10-sre/README.md) | SRE | SLOs, runbooks, game days, postmortems | 4h |
 | **Expert** | [11](11-capstone/README.md) | Capstone | DR drill, release end to end, DORA, readiness review | 10h+ |
+| **Specialist** | [12](12-networking/README.md) | Networking | DNS, ports, TLS certificates, load balancing and failover | 2h |
+| | [13](13-ansible/README.md) | Ansible | configuration management, idempotence, drift repair | 2h |
+| | [14](14-helm/README.md) | Helm and RBAC | chart install/upgrade/rollback, least-privilege access | 2.5h |
+| | [15](15-logging/README.md) | Logging and tracing | Loki + Alloy, LogQL, Jaeger traces | 2h |
+| | [16](16-postgres/README.md) | Postgres | real database, scaling the API, pg_dump backup | 2h |
+| | [17](17-aws/README.md) | Real cloud (AWS) | budget alarms, cloud security scanning, safe real-account apply | 2h |
 
-Follow it in order. Do not skip **Break it**: operating skill comes from failures. Tick modules off as you finish them and keep notes on what broke.
+Follow it in order; the lab moves on to the next lesson automatically. The core path is 01-11, the **specialist tracks** 12-17 go deeper. Do not skip **Break it**: operating skill comes from failures. Tick modules off as you finish them and keep notes on what broke.
 
 ## Start here: guided mode (easiest)
 **Windows: just double-click `lab.cmd`.** It checks Docker and opens the lab in its own Git Bash window.
@@ -91,7 +101,7 @@ What it looks like in your terminal:
  YOUR TURN 9/12  Build an image from your own Dockerfile
  QUIZ 10/12  Why is package.json copied BEFORE the rest of the source?
 
-  Overall  ████████░░░░░░░░░░░░░░░░  3/11 lessons   Rank: DevOps Engineer
+  Overall  ████████░░░░░░░░░░░░░░░░  4/17 lessons   Rank: DevOps Engineer
 ```
 You earn a rank as you go: Newcomer, Junior Operator, DevOps Engineer, Platform Engineer, Senior Engineer, SRE Legend.
 
@@ -112,10 +122,11 @@ $C down                                  # stop (data volume is kept)
 ```
 lab.sh  lessons/   guided runner and one lesson script per module (bash lab.sh 01 ...)
 playground/        your own files from the hands-on tasks (git-ignored)
-app/api/   sample API: Express + SQLite, health, auth, rate limit, tests   (npm test)
+app/api/   sample API: Express, SQLite or Postgres, health + readiness, auth, rate limit, JSON logs, tests   (npm test)
 app/web/   sample static site with a form that calls the API
 01-foundations/ 02-containers/ 03-compose/ 04-ci-cd/ 05-terraform/ 06-kubernetes/
 07-gitops/ 08-observability/ 09-security/ 10-sre/ 11-capstone/
+12-networking/ 13-ansible/ 14-helm/ 15-logging/ 16-postgres/ 17-aws/      (specialist tracks)
 doctor.sh  .env.example  RESOURCES.md
 ```
 Change the app freely (add endpoints, break it, swap SQLite for Postgres): it exists to be operated.
@@ -138,7 +149,18 @@ Change the app freely (add endpoints, break it, swap SQLite for Postgres): it ex
 | Containers crash after sleep / low RAM | raise Docker memory, `docker compose ... up -d` |
 
 ## What was verified
-Run on Docker Desktop (Windows) while building this repo: API tests, compose stack, nginx proxy, Prometheus probes + 7 alert rules (`promtool`), Grafana provisioning, Terraform fmt/validate/**2 tests** and a real apply/destroy on LocalStack, Kustomize rendering + schema validation + **deployment to a real k3s cluster** (pods, PVC, NodePort, NetworkPolicy block, zero-downtime rollout), both GitHub workflows (`actionlint`), hadolint, Trivy, Checkov, gitleaks, and a **backup → destroy → restore** drill.
-**Not run:** the GitHub Actions workflows on GitHub itself, Argo CD install/sync, Kyverno install, and anything on a real cloud account.
+Run on Docker Desktop (Windows) while building this repo, **every lesson was executed end to end in an automatic mode that performs each hands-on task and checks the result** (the newer lessons also check the actual output, not just that a command exited cleanly):
+- **01-03:** API tests, compose stack, nginx proxy, persistence, overrides, Git exercise.
+- **04-05:** both workflows pass `actionlint`; Terraform fmt/validate/**2 tests**; real apply/drift-heal/destroy on LocalStack.
+- **06-07:** Kustomize + schema validation; deployment to a **real k3s cluster** (self-healing with data kept, rolling restart, NetworkPolicy block, the SQLite scaling mistake).
+- **08-11:** Prometheus probes and 7 alert rules, a real alert firing, five security scanners, a game day, and a **backup, destroy, restore** drill.
+- **12 Networking:** DNS lookups, port clash, a self-signed TLS 1.3 server, a load balancer with failover.
+- **13 Ansible:** two SSH-managed servers, idempotent playbook (`changed=0` on re-run), drift repaired on one server only.
+- **14 Helm and RBAC:** chart lint, install, upgrade, rollback on the cluster; RBAC allow/deny checks.
+- **15 Logging and tracing:** Loki + Alloy ingesting container logs, LogQL queries, a trace read back from Jaeger.
+- **16 Postgres:** API switched to Postgres, scaled to 3 copies over one database, `pg_dump` restore.
+- **17 AWS:** Terraform validate, Checkov (49 pass), and the risky-file fix exercise.
+
+**Not run:** the GitHub Actions workflows on GitHub itself, the Argo CD and Kyverno installs, and anything that applies to a real AWS account (the lesson explains the checks and guardrails; those steps are optional).
 
 See [RESOURCES.md](RESOURCES.md) for the research behind this curriculum and where to go next.

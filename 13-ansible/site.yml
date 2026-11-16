@@ -1,0 +1,39 @@
+# A playbook: the DESIRED STATE of the web servers. Ansible only changes what differs (idempotent).
+- name: Configure the web servers
+  hosts: web
+  become: true                 # run as root through sudo
+  vars:
+    app_name: devlab
+    greeting: Hello from Ansible
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        name: [curl, htop]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create the application directory
+      ansible.builtin.file:
+        path: "/opt/{{ app_name }}"
+        state: directory
+        mode: "0755"
+
+    - name: Render the config file from a template
+      ansible.builtin.template:
+        src: app.conf.j2
+        dest: "/opt/{{ app_name }}/app.conf"
+        mode: "0644"
+      notify: Announce config change
+
+    - name: Make sure the message of the day says who manages this server
+      ansible.builtin.lineinfile:
+        path: /etc/motd
+        line: "Managed by Ansible"
+        create: true
+        mode: "0644"
+
+  handlers:                    # run only when a task that notifies them actually changed something
+    - name: Announce config change
+      ansible.builtin.debug:
+        msg: "app.conf changed on {{ inventory_hostname }}"

@@ -1,0 +1,14 @@
+# A tiny "server" for Ansible to configure: Debian + SSH + Python, key-only login.
+# LAB ONLY: a real server image would not run sshd in a container like this.
+FROM debian:12-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssh-server python3 sudo ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd -m -s /bin/bash deploy \
+ && usermod -p '*' deploy \
+ && echo 'deploy ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/deploy \
+ && sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+COPY target-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+EXPOSE 22
+ENTRYPOINT ["/entrypoint.sh"]

@@ -1,0 +1,22 @@
+# Logs (Loki + Alloy) and traces (Jaeger), layered on the app + monitoring stack. From the repo root:
+#   docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml \
+#                  -f 15-logging/compose.logging.yml --env-file .env up -d
+services:
+  loki:
+    image: grafana/loki:3.3.2
+    command: -config.file=/etc/loki/local-config.yaml
+    ports: ["3100:3100"]
+    networks: [backend]
+  alloy:                       # the collector: reads every container's logs and ships them to Loki
+    image: grafana/alloy:v1.5.1
+    command: ["run", "--server.http.listen-addr=0.0.0.0:12345", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy"]
+    volumes:
+      - ../15-logging/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro      # lab only: the docker socket gives broad power
+    depends_on: [loki]
+    networks: [backend]
+  jaeger:                      # trace storage and UI
+    image: jaegertracing/all-in-one:1.62.0
+    environment: { COLLECTOR_OTLP_ENABLED: "true" }
+    ports: ["16686:16686", "4318:4318"]    # UI, OTLP over HTTP
+    networks: [backend]

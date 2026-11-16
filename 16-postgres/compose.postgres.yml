@@ -1,0 +1,25 @@
+# Layer on top of the app stack (from the repo root):
+#   docker compose -f 03-compose/docker-compose.yml -f 16-postgres/compose.postgres.yml --env-file .env up -d --build
+# Setting DATABASE_URL switches the API from SQLite to Postgres.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: devlab
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lab-only-pg-password}   # lab only: use a secret manager in real life
+      POSTGRES_DB: devlab
+    volumes: [pg-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devlab -d devlab"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks: [backend]
+  api:
+    environment:
+      DATABASE_URL: postgres://devlab:${POSTGRES_PASSWORD:-lab-only-pg-password}@postgres:5432/devlab
+    depends_on:
+      postgres: { condition: service_healthy }
+volumes:
+  pg-data:

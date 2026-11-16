@@ -52,3 +52,5 @@ Industry upgrades: schedule backups (cron / Kubernetes `CronJob`), ship them off
 - Chaos engineering: automate [game day](../10-sre/gameday.md) scenarios with Chaos Mesh / Litmus.
 
 You have finished when you can **explain every line of this lab and defend each trade-off**.
+
+**Next:** the specialist tracks, starting with [12 · Networking](../12-networking/README.md) (`bash lab.sh 12`).

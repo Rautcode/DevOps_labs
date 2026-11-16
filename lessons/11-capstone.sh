@@ -46,5 +46,5 @@ explain "  DATA     backups restored in a drill, RPO and RTO known         (this
 explain "  PEOPLE   postmortems and game days                              (module 10)"
 quiz "Which area is your weakest right now, and what is one thing you would do next?" "." "There is no wrong answer. Pick one and turn it into a small task: for example, schedule the backup script, or push this repo and enable the CI workflow."
 
-part "PART C · You finished the labs"
-explain "Stretch goals: enable the GitHub workflows, install Argo CD, replace SQLite with Postgres, deploy the Terraform module to a real cloud account (set a billing alert first!). When you are done for the day, run:  bash lab.sh down"
+part "PART C · Core path complete: what next?"
+explain "You finished the core path (lessons 01-11). The SPECIALIST modules go deeper and continue automatically: 12 Networking, 13 Ansible, 14 Helm and RBAC, 15 Logging and tracing, 16 Postgres, 17 Real cloud (AWS). Press Enter at the next prompt to start 12, or stop here and run:  bash lab.sh down"
