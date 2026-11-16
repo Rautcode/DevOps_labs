@@ -23,7 +23,8 @@ bash 09-security/scan.sh        # needs only Docker; build images first (module 
 | k8s web pod lacked `readOnlyRootFilesystem` | added `emptyDir` mounts | hardening has a cost: you must find what needs to write |
 | SQS queues unencrypted, no multipart-abort rule | fixed in Terraform | IaC scanning catches cloud mistakes pre-deploy |
 | Dockerfile lint warnings | exec-form `CMD`, numeric `USER` | small things matter for signal handling and k8s `runAsNonRoot` |
-| API image had no known npm CVEs | kept the sample API to a single dependency (`express`) | fewer dependencies means a smaller attack surface |
+| API image: 6 HIGH CVEs in `npm`/`corepack` bundled with the Node base image | removed npm, npx and corepack from the runtime stage | the runtime needs no package manager; what you do not ship cannot be exploited |
+| App dependencies: no known CVEs | kept the sample API to a single dependency (`express`) | fewer dependencies means a smaller attack surface |
 | no secrets in 12 commits of history | gitleaks clean | keep it that way: add it to CI (module 04) |
 
 **Your first task:** run the scan and see `ALL GATES PASSED`. Then break it on purpose: `cd app/api && npm install lodash@4.17.20`, rebuild the image, rescan, and watch Trivy and `npm audit` fail. Fix it with `npm audit fix` and watch it go green.
