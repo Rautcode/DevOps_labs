@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Guided lab runner. Walks you through each module: explains, runs commands for you,
 # gives hands-on tasks and checks your work. Run from the repo root in Git Bash:
-#   bash lab.sh            menu
-#   bash lab.sh 01         start lesson 01
+#   bash lab.sh            menu (press Enter to continue where you left off)
+#   bash lab.sh 01         start lesson 01 (continues to the next lesson by itself)
+#   bash lab.sh next       resume at the first unfinished lesson
 #   bash lab.sh status     your progress
 #   bash lab.sh down       stop everything the labs started
 #   bash lab.sh reset      forget progress
@@ -15,27 +16,76 @@ export DCO="docker compose -f 03-compose/docker-compose.yml -f 08-observability/
 export KUBECONFIG="$(pwd -W 2>/dev/null || pwd)/.kube/config"
 AUTO="${LAB_AUTO:-}"
 PROGRESS=.progress
-PASS=0; FAIL=0; SKIP=0
-B=$'\033[1m'; G=$'\033[32m'; R=$'\033[31m'; Y=$'\033[33m'; C=$'\033[36m'; D=$'\033[2m'; N=$'\033[0m'
+PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=0
+W=78
 mkdir -p playground
 # Read keyboard input from the terminal if there is one, otherwise from stdin (lets you pipe answers in).
 if [ -z "$AUTO" ] && ( : </dev/tty ) 2>/dev/null; then exec 3</dev/tty; else exec 3<&0; fi
 
+# ---------- look and feel ----------
+if [ -n "${NO_COLOR:-}" ]; then
+  BOLD=; DIM=; RED=; GRN=; YEL=; BLU=; MAG=; CYN=; RST=; BG_G=; BG_R=; BG_Y=; BG_C=; BG_M=; BG_B=
+else
+  BOLD=$'\033[1m'; DIM=$'\033[2m'; RED=$'\033[31m'; GRN=$'\033[32m'; YEL=$'\033[33m'
+  BLU=$'\033[34m'; MAG=$'\033[35m'; CYN=$'\033[36m'; RST=$'\033[0m'
+  BG_G=$'\033[42;30;1m'; BG_R=$'\033[41;97;1m'; BG_Y=$'\033[43;30;1m'; BG_C=$'\033[46;30;1m'; BG_M=$'\033[45;97;1m'; BG_B=$'\033[44;97;1m'
+fi
+rep()  { local i; for ((i=0; i<$2; i++)); do printf '%s' "$1"; done; }
+rule() { printf '%s%s%s\n' "${2:-$DIM}" "$(rep "${1:-─}" "$W")" "$RST"; }
+bar()  { # bar done total [width]
+  local d=$1 t=$2 w=${3:-24} f; [ "$t" -le 0 ] && t=1; f=$(( d * w / t ))
+  printf '%s%s%s%s%s' "$GRN" "$(rep █ "$f")" "$DIM" "$(rep ░ $((w - f)))" "$RST"
+}
+box()  { # color text  (plain text only)
+  local c="$1" t="$2" len pad
+  # character count that is right for UTF-8 (drops continuation bytes), independent of the locale
+  len=$(printf '%s' "$t" | LC_ALL=C tr -d '\200-\277' | wc -c); pad=$(( W - 4 - len )); [ "$pad" -lt 0 ] && pad=0
+  printf '%s╔%s╗\n║ %s%*s ║\n╚%s╝%s\n' "$c" "$(rep ═ $((W-2)))" "$t" "$pad" '' "$(rep ═ $((W-2)))" "$RST"
+}
+banner() {
+  printf '%s%s' "$BOLD" "$CYN"
+  cat <<'ART'
+    ____             ____
+   |  _ \  _____   _/ __ \ _ __  ___
+   | | | |/ _ \ \ / / | | | '_ \/ __|
+   | |_| |  __/\ V /| |_| | |_) \__ \
+   |____/ \___| \_/  \____/| .__/|___/
+                           |_|
+ART
+  printf '%s%s     C L O U D   L A B  %s·%s  learn by doing, check by running%s\n' "$RST" "$BOLD" "$DIM" "$RST" "$RST"
+}
+rank() { # completed lessons -> title
+  local n=$1
+  if   [ "$n" -ge 11 ]; then echo "SRE Legend"
+  elif [ "$n" -ge 9 ];  then echo "Senior Engineer"
+  elif [ "$n" -ge 6 ];  then echo "Platform Engineer"
+  elif [ "$n" -ge 3 ];  then echo "DevOps Engineer"
+  elif [ "$n" -ge 1 ];  then echo "Junior Operator"
+  else echo "Newcomer"; fi
+}
+done_count() { [ -f "$PROGRESS" ] && grep -c '^[0-9][0-9]$' "$PROGRESS" || echo 0; }
+
 ask()     { [ -n "$AUTO" ] && return 0; printf '%s' "$1"; read -r _ <&3; }
-title()   { printf '\n%s━━ %s ━━%s\n' "$B$C" "$1" "$N"; }
-part()    { printf '\n%s%s%s\n' "$B" "$1" "$N"; }
-explain() { printf '%s\n' "$1" | fold -s -w 88 | sed 's/^/  /'; }
-pass()    { PASS=$((PASS+1)); printf '  %s✔ PASS%s\n' "$G" "$N"; }
-fail()    { FAIL=$((FAIL+1)); printf '  %s✘ FAIL%s %s\n' "$R" "$N" "${1:-}"; }
+title()   { printf '\n'; box "$BOLD$CYN" "$1"; }
+explain() { printf '%s\n' "$1" | fold -s -w $((W-4)) | sed 's/^/  /'; }
+part() {
+  case "$1" in
+    "PART "*) printf '\n%s━━━ %s %s%s\n' "$BOLD$CYN" "$1" "$(rep ━ $((W - 6 - $(printf '%s' "$1" | LC_ALL=C tr -d '\200-\277' | wc -c))))" "$RST" ;;
+    *)        printf '\n%s%s%s\n' "$BOLD" "$1" "$RST" ;;
+  esac
+}
+badge()   { CUR=$((CUR+1)); printf '\n%s %s %d/%d %s %s%s%s\n' "$2" "$1" "$CUR" "$TOTAL" "$RST" "$BOLD" "$3" "$RST"; }
+pass()    { PASS=$((PASS+1)); printf '  %s ✔ PASS %s\n' "$BG_G" "$RST"; }
+fail()    { FAIL=$((FAIL+1)); printf '  %s ✘ FAIL %s %s\n' "$BG_R" "$RST" "${1:-}"; }
 
 # step "what this does" "what to look for" [fail] <<'CMD' ... CMD
 step() {
   local cmd rc; cmd=$(cat)
-  part "▶ $1"
-  printf '%s%s%s\n' "$D" "$(printf '%s' "$cmd" | sed 's/^/  $ /')" "$N"
-  ask "  [Enter = run it] "
-  ( eval "$cmd" ) 2>&1 | sed 's/^/  │ /'; rc=${PIPESTATUS[0]}
-  [ -n "${2:-}" ] && printf '  %sLook for:%s %s\n' "$Y" "$N" "$2"
+  badge "STEP" "$BG_B" "$1"
+  printf '%s%s%s\n' "$DIM$CYN" "$(printf '%s' "$cmd" | sed 's/^/  ❯ /')" "$RST"
+  ask "  ${DIM}press Enter to run it ▸ ${RST}"
+  ( eval "$cmd" ) 2>&1 | sed "s/^/  ${DIM}│${RST} /"; rc=${PIPESTATUS[0]}
+  [ -n "${2:-}" ] && printf '  %s➜ Look for:%s %s\n' "$YEL" "$RST" "$2"
   if [ -n "$AUTO" ]; then
     if [ "${3:-ok}" = fail ]; then [ "$rc" -ne 0 ] && pass || fail "(expected this command to fail)"
     else [ "$rc" -eq 0 ] && pass || fail "(command exited $rc)"; fi
@@ -46,61 +96,68 @@ step() {
 task() {
   local all check sol a; all=$(cat)
   check=${all%%$'\n---\n'*}; sol=${all#*$'\n---\n'}
-  part "✋ YOUR TURN: $1"; explain "$2"
+  badge "YOUR TURN" "$BG_Y" "$1"
+  explain "$2"
   if [ -n "$AUTO" ]; then
     [ "$AUTO" = solve ] && ( eval "$sol" ) >/dev/null 2>&1
     if ( eval "$check" ) >/dev/null 2>&1; then pass; else fail "(task check)"; fi
     return
   fi
   while true; do
-    printf '%s' "  Do it in ANOTHER terminal, then press Enter to check (s = skip, h = show answer): "; read -r a <&3
+    printf '  %sDo it in ANOTHER terminal, then press Enter to check  (s = skip, h = show answer) ▸ %s' "$YEL" "$RST"
+    read -r a <&3
     case "$a" in
-      s) SKIP=$((SKIP+1)); printf '  %sskipped%s\n' "$Y" "$N"; return ;;
-      h) printf '  %sAnswer:%s\n%s\n' "$Y" "$N" "$(printf '%s' "$sol" | sed 's/^/    $ /')"; continue ;;
+      s) SKIP=$((SKIP+1)); printf '  %s○ skipped%s\n' "$YEL" "$RST"; return ;;
+      h) printf '  %sAnswer:%s\n%s\n' "$YEL" "$RST" "$(printf '%s' "$sol" | sed "s/^/    ${DIM}❯${RST} /")"; continue ;;
     esac
     if ( eval "$check" ) >/dev/null 2>&1; then pass; return; fi
-    printf '  %s✘ Not yet.%s Hint: %s\n' "$R" "$N" "${3:-read the instructions again}"
+    printf '  %s ✘ NOT YET %s Hint: %s\n' "$BG_R" "$RST" "${3:-read the instructions again}"
   done
 }
 
 # quiz "question" 'regex of a correct answer' "model answer"
 quiz() {
   [ -n "$AUTO" ] && return 0
-  local a; part "❓ $1"
-  printf '%s' "  Your answer: "; read -r a <&3
-  if printf '%s' "$a" | grep -Eiq "$2"; then printf '  %s✔ Good.%s %s\n' "$G" "$N" "$3"
-  else printf '  %sCompare with this:%s %s\n' "$Y" "$N" "$3"; fi
+  local a; badge "QUIZ" "$BG_M" "$1"
+  printf '  %sYour answer ▸ %s' "$MAG" "$RST"; read -r a <&3
+  if printf '%s' "$a" | grep -Eiq "$2"; then printf '  %s✔ Good.%s %s\n' "$GRN" "$RST" "$3"
+  else printf '  %sCompare with this:%s %s\n' "$YEL" "$RST" "$3"; fi
 }
 
 finish() {
-  printf '\n%s%s lesson summary:%s %s%d passed%s, %s%d failed%s, %d skipped\n' "$B" "$1" "$N" "$G" "$PASS" "$N" "$R" "$FAIL" "$N" "$SKIP"
+  local n msg c; n=$(done_count)
   if [ "$FAIL" -eq 0 ] && [ "$SKIP" -eq 0 ]; then
-    grep -qx "$1" "$PROGRESS" 2>/dev/null || echo "$1" >> "$PROGRESS"
-    printf '%sLesson %s complete.%s\n' "$G" "$1" "$N"
-  elif [ "$SKIP" -gt 0 ]; then
-    printf '%sYou skipped %d task(s). Run  bash lab.sh %s  again to finish them and earn the tick.%s\n' "$Y" "$SKIP" "$1" "$N"
-  fi
+    grep -qx "$1" "$PROGRESS" 2>/dev/null || echo "$1" >> "$PROGRESS"; n=$(done_count)
+    msg="Lesson $1 complete."; c="$BOLD$GRN"
+  elif [ "$FAIL" -gt 0 ]; then msg="Lesson $1 needs more work."; c="$BOLD$RED"
+  else msg="Lesson $1 not finished (tasks skipped)."; c="$BOLD$YEL"; fi
+  printf '\n'
+  box "$c" "$msg"
+  printf '  %s lesson summary:%s %s%d passed%s   %s%d failed%s   %s%d skipped%s\n' "$BOLD$1" "$RST" "$GRN" "$PASS" "$RST" "$RED" "$FAIL" "$RST" "$YEL" "$SKIP" "$RST"
+  printf '  Overall  %s  %d/11 lessons   Rank: %s%s%s\n' "$(bar "$n" 11)" "$n" "$BOLD" "$(rank "$n")" "$RST"
+  [ "$SKIP" -gt 0 ] && printf '  %sRun  bash lab.sh %s  again to finish the skipped tasks and earn the tick.%s\n' "$YEL" "$1" "$RST"
 }
 
-lesson_file() { ls lessons/"$1"-*.sh 2>/dev/null | head -1; }
+lesson_file()  { ls lessons/"$1"-*.sh 2>/dev/null | head -1; }
 lesson_title() { sed -n '1s/^# *//p' "$1"; }
 
 menu() {
-  printf '%s\n  DevOps & Cloud Lab: guided mode%s\n\n' "$B" "$N"
-  local f id mark
+  local f id mark n; n=$(done_count)
+  printf '\n'; banner; printf '\n'
   for f in lessons/*.sh; do
     id=$(basename "$f" | cut -c1-2)
-    mark=" "; grep -qx "$id" "$PROGRESS" 2>/dev/null && mark="${G}✔${N}"
-    printf '  [%s] %s  %s\n' "$mark" "$id" "$(lesson_title "$f")"
+    if grep -qx "$id" "$PROGRESS" 2>/dev/null; then mark="${GRN}✔${RST}"; else mark="${DIM}○${RST}"; fi
+    printf '   %s  %s%s%s  %s\n' "$mark" "$BOLD" "$id" "$RST" "$(lesson_title "$f")"
   done
-  printf '\n  Start one:  bash lab.sh 01 (it continues to the next lesson by itself)\n  Resume:     bash lab.sh next        Stop everything:  bash lab.sh down\n'
+  printf '\n   Progress  %s  %d/11      Rank: %s%s%s\n' "$(bar "$n" 11 30)" "$n" "$BOLD$CYN" "$(rank "$n")" "$RST"
+  printf '\n   %sbash lab.sh 01%s start (continues by itself)   %sbash lab.sh next%s resume   %sbash lab.sh down%s stop all\n' "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST"
 }
 
 run_lesson() {
   local f; f=$(lesson_file "$1")
   [ -z "$f" ] && { echo "No lesson '$1'. Try: bash lab.sh"; exit 1; }
   [ -f .env ] || cp .env.example .env
-  PASS=0; FAIL=0; SKIP=0
+  PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(step|task|quiz) ' "$f")
   # shellcheck disable=SC1090
   . "$f"
   finish "$1"
@@ -119,15 +176,16 @@ flow() {
     if run_lesson "$id"; then
       nxt=$(printf '%02d' "$((10#$id + 1))")
       if [ -z "$(lesson_file "$nxt")" ]; then
-        printf '\n%s🎉 You finished every lesson. Run  bash lab.sh down  to stop everything.%s\n' "$G$B" "$N"; return
+        printf '\n'; box "$BOLD$GRN" "★ YOU FINISHED EVERY LESSON ★   Rank: $(rank 11)"
+        printf '  Run  bash lab.sh down  to stop everything.\n'; return
       fi
       [ -n "$AUTO" ] && return
-      printf '\n%s➜ Lesson %s done! %sPress Enter to start lesson %s (type q to quit): ' "$G$B" "$id" "$N" "$nxt"
+      printf '\n%s➜ Lesson %s done!%s Press Enter to start lesson %s (type q to quit) ▸ ' "$BOLD$GRN" "$id" "$RST" "$nxt"
       read -r a <&3; [ "$a" = q ] && return
       id="$nxt"
     else
       [ -n "$AUTO" ] && return
-      printf '\n%sLesson %s is not finished yet.%s Press Enter to try it again (type q to quit): ' "$Y" "$id" "$N"
+      printf '\n%sLesson %s is not finished yet.%s Press Enter to try it again (type q to quit) ▸ ' "$YEL" "$id" "$RST"
       read -r a <&3; [ "$a" = q ] && return
     fi
   done
@@ -137,7 +195,7 @@ case "${1:-menu}" in
   menu|list) menu
     if [ -z "$AUTO" ]; then
       nxt=$(first_incomplete); [ -z "$nxt" ] && nxt=01
-      printf '\n  Type a lesson number, or press Enter to continue with lesson %s (q to quit): ' "$nxt"; read -r n <&3
+      printf '\n  Type a lesson number, or press Enter to continue with lesson %s (q to quit) ▸ ' "$nxt"; read -r n <&3
       if [ "$n" = q ]; then :
       elif [ -z "$n" ]; then flow "$nxt"
       elif [[ "$n" =~ ^[0-9]+$ ]]; then flow "$(printf '%02d' "$((10#$n))")"
@@ -148,7 +206,7 @@ case "${1:-menu}" in
     $DCO down 2>&1 | tail -2; docker rm -f evio-k3s lab-api >/dev/null 2>&1; docker rm -f devlab-k3s >/dev/null 2>&1
     bash 06-kubernetes/cluster.sh down 2>/dev/null; docker compose -f 05-terraform/compose.localstack.yml down 2>&1 | tail -1 ;;
   reset) rm -f "$PROGRESS"; echo "progress cleared" ;;
-  [0-9]*) if [ -n "$AUTO" ]; then run_lesson "$(printf '%02d' "$((10#$1))")"; else flow "$(printf '%02d' "$((10#$1))")"; fi ;;
   next|continue) nxt=$(first_incomplete); [ -z "$nxt" ] && { echo "All lessons are done."; exit 0; }; flow "$nxt" ;;
-  *) echo "usage: bash lab.sh [menu|NN|status|down|reset]"; exit 1 ;;
+  [0-9]*) if [ -n "$AUTO" ]; then run_lesson "$(printf '%02d' "$((10#$1))")"; else flow "$(printf '%02d' "$((10#$1))")"; fi ;;
+  *) echo "usage: bash lab.sh [menu|NN|next|status|down|reset]"; exit 1 ;;
 esac

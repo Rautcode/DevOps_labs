@@ -1,8 +1,46 @@
 # DevOps and Cloud Lab
 
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-7B42BC?logo=terraform&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?logo=grafana&logoColor=white)
+![Argo CD](https://img.shields.io/badge/Argo%20CD-EF7B4D?logo=argo&logoColor=white)
+![Level](https://img.shields.io/badge/level-beginner%20to%20expert-brightgreen)
+
 A personal, hands-on path from **zero to production-grade** DevOps and cloud skills. You ship, break, fix and operate one small but realistic application (a Node API with SQLite behind an nginx web page). Everything runs **locally and free** with Docker. Real-cloud steps are optional and clearly marked.
 
 > Learn by doing: each module has a goal, exact commands, a **Check** that proves it worked, a **Break it** section, and industry notes. The findings and fixes in the READMEs came from actually running this lab (see [what was verified](#what-was-verified)).
+
+## What you will operate
+```mermaid
+flowchart LR
+  U([You / browser]) -->|:8080| W["web: nginx<br/>static page + reverse proxy"]
+  W -->|/api, /healthz| A["api: Node + Express<br/>auth, rate limit, leads"]
+  A --> D[("SQLite on a volume")]
+  P["Prometheus + Grafana<br/>probes and SLO alerts"] -.->|checks| W
+```
+
+## Your journey
+```mermaid
+flowchart LR
+  subgraph Beginner
+    F[01 Foundations] --> C[02 Containers] --> M[03 Compose]
+  end
+  subgraph Intermediate
+    CI[04 CI/CD] --> T[05 Terraform] --> K[06 Kubernetes]
+  end
+  subgraph Advanced
+    G[07 GitOps] --> O[08 Observability] --> S[09 Security] --> R[10 SRE]
+  end
+  subgraph Expert
+    X[11 Capstone]
+  end
+  M --> CI
+  K --> G
+  R --> X
+```
 
 ## Learning path
 
@@ -34,6 +72,26 @@ How a lesson works:
 - **▶ Step**: it shows the command and what it does, you press Enter, it runs, and it tells you **what to look for**.
 - **✋ Your turn**: a hands-on task. Do it in a second terminal, press Enter, and the lab checks it (`h` shows the answer, `s` skips).
 - **❓ Quiz**: a short question, then the model answer.
+
+What it looks like in your terminal:
+```text
+╔════════════════════════════════════════════════════════════════════════════╗
+║ Module 02 · Containers                                                     ║
+╚════════════════════════════════════════════════════════════════════════════╝
+━━━ PART A · Build the images ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ STEP 1/12  Build the API image
+  ❯ docker build -f 02-containers/Dockerfile.api -t devlab-api:lab app/api
+  │ ... Successfully built ...
+  ➜ Look for: The last lines say the image was built.
+   ✔ PASS
+
+ YOUR TURN 9/12  Build an image from your own Dockerfile
+ QUIZ 10/12  Why is package.json copied BEFORE the rest of the source?
+
+  Overall  ████████░░░░░░░░░░░░░░░░  3/11 lessons   Rank: DevOps Engineer
+```
+You earn a rank as you go: Newcomer, Junior Operator, DevOps Engineer, Platform Engineer, Senior Engineer, SRE Legend.
 
 Other commands: `bash lab.sh status` (your progress), `bash lab.sh down` (stop everything the labs started), `bash lab.sh reset`.
 Your own files go in `playground/` (git-ignored). The written guides in each module folder have the same content plus background reading.
