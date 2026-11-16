@@ -21,7 +21,7 @@ mkdir -p playground
 # Read keyboard input from the terminal if there is one, otherwise from stdin (lets you pipe answers in).
 if [ -z "$AUTO" ] && ( : </dev/tty ) 2>/dev/null; then exec 3</dev/tty; else exec 3<&0; fi
 
-ask()     { [ -n "$AUTO" ] && return 0; read -r -p "$1" _ <&3; }
+ask()     { [ -n "$AUTO" ] && return 0; printf '%s' "$1"; read -r _ <&3; }
 title()   { printf '\n%s━━ %s ━━%s\n' "$B$C" "$1" "$N"; }
 part()    { printf '\n%s%s%s\n' "$B" "$1" "$N"; }
 explain() { printf '%s\n' "$1" | fold -s -w 88 | sed 's/^/  /'; }
@@ -53,7 +53,7 @@ task() {
     return
   fi
   while true; do
-    read -r -p "  Do it in ANOTHER terminal, then press Enter to check (s = skip, h = show answer): " a <&3
+    printf '%s' "  Do it in ANOTHER terminal, then press Enter to check (s = skip, h = show answer): "; read -r a <&3
     case "$a" in
       s) SKIP=$((SKIP+1)); printf '  %sskipped%s\n' "$Y" "$N"; return ;;
       h) printf '  %sAnswer:%s\n%s\n' "$Y" "$N" "$(printf '%s' "$sol" | sed 's/^/    $ /')"; continue ;;
@@ -67,7 +67,7 @@ task() {
 quiz() {
   [ -n "$AUTO" ] && return 0
   local a; part "❓ $1"
-  read -r -p "  Your answer: " a <&3
+  printf '%s' "  Your answer: "; read -r a <&3
   if printf '%s' "$a" | grep -Eiq "$2"; then printf '  %s✔ Good.%s %s\n' "$G" "$N" "$3"
   else printf '  %sCompare with this:%s %s\n' "$Y" "$N" "$3"; fi
 }
@@ -109,7 +109,7 @@ run_lesson() {
 
 case "${1:-menu}" in
   menu|list) menu
-    if [ -z "$AUTO" ]; then read -r -p $'\n  Lesson number to start (Enter to quit): ' n <&3; [ -n "$n" ] && run_lesson "$(printf '%02d' "$((10#$n))")"; fi ;;
+    if [ -z "$AUTO" ]; then printf '%s' $'\n  Lesson number to start (Enter to quit): '; read -r n <&3; if [[ "$n" =~ ^[0-9]+$ ]]; then run_lesson "$(printf '%02d' "$((10#$n))")"; elif [ -n "$n" ]; then echo "Please type a lesson number like 1 or 01."; fi; fi ;;
   status) menu ;;
   down)
     $DCO down 2>&1 | tail -2; docker rm -f evio-k3s lab-api >/dev/null 2>&1; docker rm -f devlab-k3s >/dev/null 2>&1
