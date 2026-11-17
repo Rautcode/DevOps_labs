@@ -43,4 +43,6 @@ $C down -v         # -v deletes the volume: NOW the data is gone. Know the diffe
 - Compose is for dev/test and small single-host setups. Production on multiple hosts means an orchestrator (module 06).
 - Keep one compose file per concern and layer them with `-f` (module 08 adds monitoring this way).
 
+**More practice (second helping on another app):** [two-tier-flask-app](https://github.com/LondheShubham153/two-tier-flask-app). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **Next:** [04 · CI/CD](../04-ci-cd/README.md)

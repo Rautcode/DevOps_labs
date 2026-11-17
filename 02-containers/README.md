@@ -38,4 +38,6 @@ docker rm -f api
 - One process per container, logs to stdout, config from env, no state inside the container.
 - Never put secrets in `ENV`/`ARG`/`COPY`; use runtime injection.
 
+**More practice (second helping on another app):** [two-tier-flask-app](https://github.com/LondheShubham153/two-tier-flask-app), [django-notes-app](https://github.com/LondheShubham153/django-notes-app). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **Next:** [03 · Compose](../03-compose/README.md)

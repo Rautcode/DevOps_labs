@@ -48,4 +48,6 @@ Then check the console for leftovers (Billing → Cost Explorer next day).
 - Turn on CloudTrail, GuardDuty and AWS Config early; they are cheap compared with an incident.
 - Tag policy + cost allocation tags make FinOps possible.
 
+**More practice (second helping on another app):** [aws-zero-to-hero](https://github.com/LondheShubham153/aws-zero-to-hero), [three-tier-eks-iac](https://github.com/LondheShubham153/three-tier-eks-iac). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **You have completed all modules.** Review [11 · Capstone](../11-capstone/README.md)'s readiness checklist against what you now know.

@@ -52,4 +52,6 @@ cosign verify ghcr.io/<you>/devlab-web:1.0.0 --certificate-identity-regexp 'gith
 - Pin third-party actions to a commit SHA in security-sensitive repos (Dependabot keeps them updated).
 - CD to the cluster should be **pull-based GitOps** (module 07), not `kubectl apply` from CI.
 
+**More practice (second helping on another app):** [node-todo-cicd](https://github.com/LondheShubham153/node-todo-cicd), [github-actions-cicd-masterclass](https://github.com/LondheShubham153/github-actions-cicd-masterclass), [django-todo-cicd](https://github.com/LondheShubham153/django-todo-cicd). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **Next:** [05 · Terraform](../05-terraform/README.md)

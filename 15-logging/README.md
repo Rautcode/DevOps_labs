@@ -46,4 +46,6 @@ Open Grafana at http://localhost:3000 → **Explore** → data source **Loki** �
 - Next steps: auto-instrument the API with OpenTelemetry, send traces to Jaeger/Tempo, and link traces to logs in Grafana.
 - The Alloy container mounts the Docker socket, which is powerful. Acceptable for a lab, not for production hosts.
 
+**More practice (second helping on another app):** [observability-for-devops](https://github.com/LondheShubham153/observability-for-devops), [otel-playground](https://github.com/LondheShubham153/otel-playground). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **Next:** [16 · Postgres](../16-postgres/README.md)

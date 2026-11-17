@@ -48,4 +48,6 @@ Then watch `slo:error_ratio:rate5m` rise on the dashboard against the 0.5% budge
 
 Stop everything: `$C down` (add `-v` to also delete data).
 
+**More practice (second helping on another app):** [observability-for-devops](https://github.com/LondheShubham153/observability-for-devops). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **Next:** [09 · Security](../09-security/README.md)

@@ -49,4 +49,6 @@ docker run --rm --entrypoint sh -v "$PWD/05-terraform:/w" -w /w/modules/storage 
 - Pin provider versions (`~> 5.0`) and commit `.terraform.lock.hcl` in real projects.
 - Tag every resource (`app`, `env`, `managed-by`): it powers cost allocation (FinOps).
 
+**More practice (second helping on another app):** [terraform-for-devops](https://github.com/LondheShubham153/terraform-for-devops), [TerraWeek](https://github.com/LondheShubham153/TerraWeek). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **Next:** [06 · Kubernetes](../06-kubernetes/README.md)

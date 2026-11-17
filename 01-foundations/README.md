@@ -104,4 +104,6 @@ Run `docker stop devlab-api-1`, then `curl -i localhost:8080/healthz`. Which lay
 - Anything you do by hand twice should become a script, then a pipeline.
 - Learn to read logs first: `docker logs`, later `kubectl logs`.
 
+**More practice (second helping on another app):** [Shell-Scripting-For-DevOps](https://github.com/LondheShubham153/Shell-Scripting-For-DevOps), [python-masterclass](https://github.com/LondheShubham153/python-masterclass). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **Next:** [02 · Containers](../02-containers/README.md)

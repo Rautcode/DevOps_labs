@@ -61,4 +61,6 @@ kubectl run probe --rm -it --restart=Never --image=busybox:1.36 -- wget -qO- -T3
 - Secrets: External Secrets Operator / Sealed Secrets / SOPS: never literals in git (the dev overlay uses literals **for the lab only**).
 - Use immutable image **digests** in prod and a registry you control.
 
+**More practice (second helping on another app):** [kubestarter](https://github.com/LondheShubham153/kubestarter), [kubernetes-in-one-shot](https://github.com/LondheShubham153/kubernetes-in-one-shot), [k8s-kind-voting-app](https://github.com/LondheShubham153/k8s-kind-voting-app). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **Next:** [07 · GitOps](../07-gitops/README.md)

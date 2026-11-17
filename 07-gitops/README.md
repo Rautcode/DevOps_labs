@@ -35,4 +35,6 @@ Images are local (`devlab-*:lab`), loaded by `cluster.sh`, so the Application ca
 - **Drift detection and self-healing** replace "who changed prod?".
 - **Environments are folders**, promotion is a PR.
 
+**More practice (second helping on another app):** [argocd-in-one-shot](https://github.com/LondheShubham153/argocd-in-one-shot), [argocd-demos](https://github.com/LondheShubham153/argocd-demos). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **Next:** [08 · Observability](../08-observability/README.md)

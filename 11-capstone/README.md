@@ -53,4 +53,6 @@ Industry upgrades: schedule backups (cron / Kubernetes `CronJob`), ship them off
 
 You have finished when you can **explain every line of this lab and defend each trade-off**.
 
+**More practice (second helping on another app):** [SkillPulse](https://github.com/LondheShubham153/SkillPulse), [TWSThreeTierAppChallenge](https://github.com/LondheShubham153/TWSThreeTierAppChallenge). See [RESOURCES.md](../RESOURCES.md) for the full list.
+
 **Next:** the specialist tracks, starting with [12 · Networking](../12-networking/README.md) (`bash lab.sh 12`).

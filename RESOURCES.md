@@ -46,6 +46,35 @@ This curriculum was designed after surveying popular GitHub repos, hands-on plat
 
 Note: Promtail reached end of life in 2026, so the logging module uses Grafana Alloy. LocalStack's latest image needs an account token, so module 05 pins the last tokenless version (4.12).
 
+## More practice: Shubham Londhe (TrainWithShubham) repositories
+Shubham Londhe publishes many hands-on DevOps learning repos on GitHub ([profile](https://github.com/LondheShubham153?tab=repositories), about 210 repositories). The ones below fit this lab's modules and make good **second helpings**: same skills, different sample apps. Star counts are from when this list was made and change over time. Only the repository names and short descriptions on the profile were reviewed, so look at a repo's README before committing time to it.
+
+| Repository | What it is | Practise it after module |
+|---|---|---|
+| [Shell-Scripting-For-DevOps](https://github.com/LondheShubham153/Shell-Scripting-For-DevOps) (~221 stars) | shell scripting for DevOps | 01 Foundations |
+| [python-masterclass](https://github.com/LondheShubham153/python-masterclass) (~108 stars) | code for a Python for DevOps course | 01, 04 |
+| [two-tier-flask-app](https://github.com/LondheShubham153/two-tier-flask-app) (~247 stars) | a Flask app plus database to containerise | 02, 03 |
+| [node-todo-cicd](https://github.com/LondheShubham153/node-todo-cicd) (~283 stars) | a Node to-do app with a CI/CD pipeline | 04 CI/CD |
+| [django-notes-app](https://github.com/LondheShubham153/django-notes-app) (~272 stars) | a Django app to containerise and deploy | 02, 04 |
+| [django-todo-cicd](https://github.com/LondheShubham153/django-todo-cicd) (~105 stars) | deploying a Django to-do app with Jenkins | 04 (a second CI tool) |
+| [github-actions-cicd-masterclass](https://github.com/LondheShubham153/github-actions-cicd-masterclass), [github-actions-practice](https://github.com/LondheShubham153/github-actions-practice), [e-commerce-github-actions](https://github.com/LondheShubham153/e-commerce-github-actions) | GitHub Actions practice material | 04 |
+| [terraform-for-devops](https://github.com/LondheShubham153/terraform-for-devops) (~168 stars) | Terraform for DevOps engineers | 05 Terraform |
+| [TerraWeek](https://github.com/LondheShubham153/TerraWeek) (~95 stars) | a 7-day Terraform challenge | 05 |
+| [kubestarter](https://github.com/LondheShubham153/kubestarter) (~1,000 stars) | starter material for learning Kubernetes | 06 Kubernetes |
+| [kubernetes-in-one-shot](https://github.com/LondheShubham153/kubernetes-in-one-shot) (~141 stars) | Kubernetes in one sitting | 06 |
+| [k8s-kind-voting-app](https://github.com/LondheShubham153/k8s-kind-voting-app) (~103 stars) | a multi-container voting app on a kind cluster | 06 (practise on a new app) |
+| [reddit-clone-k8s-ingress](https://github.com/LondheShubham153/reddit-clone-k8s-ingress) (~43 stars) | learn Kubernetes with an ingress | 06, 12 |
+| [argocd-in-one-shot](https://github.com/LondheShubham153/argocd-in-one-shot) (~99 stars), [argocd-demos](https://github.com/LondheShubham153/argocd-demos) | Argo CD learning material and demos | 07 GitOps |
+| [observability-for-devops](https://github.com/LondheShubham153/observability-for-devops) (~62 stars) | an observability resource for DevOps engineers | 08, 15 |
+| [otel-playground](https://github.com/LondheShubham153/otel-playground) | a sample orders and payments app with OpenTelemetry | 15 Tracing (real instrumentation) |
+| [aws-zero-to-hero](https://github.com/LondheShubham153/aws-zero-to-hero) (~172 stars) | AWS from basics to advanced | 17 Real cloud (AWS) |
+| [elastic-beanstalk-in-one-shot](https://github.com/LondheShubham153/elastic-beanstalk-in-one-shot) | Elastic Beanstalk notes and three projects | 17 |
+| [three-tier-eks-iac](https://github.com/LondheShubham153/three-tier-eks-iac) (~179 stars), [TWSThreeTierAppChallenge](https://github.com/LondheShubham153/TWSThreeTierAppChallenge) (~175 stars) | a three-tier app on EKS with infrastructure as code | 05, 06, 17 (capstone-style) |
+| [SkillPulse](https://github.com/LondheShubham153/SkillPulse) | a Go app behind NGINX deployed with GitHub Actions, Terraform and Kubernetes | 11 Capstone (a full pipeline to compare with yours) |
+| [90DaysOfDevOps](https://github.com/LondheShubham153/90DaysOfDevOps) (a fork of the TrainWithShubham challenge) | a 90-day DevOps plan | the whole path |
+
+**How to use these:** finish a module here first, then repeat the same idea on a different app from the table. Doing the skill twice, on two apps, is what makes it stick.
+
 ## Where to go after this lab
 1. **Cloud:** pick one provider and do its free-tier path; redo module 05 against the real API. Certifications worth the effort: AWS Solutions Architect Associate or Azure AZ-104, then CKA / CKAD (Kubernetes) and HashiCorp Terraform Associate.
 2. **Specialise:** *SRE* (SLOs, incident command), *Platform engineering* (Backstage, golden paths), or *DevSecOps* (supply chain, policy).
