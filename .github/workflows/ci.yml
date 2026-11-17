@@ -34,10 +34,10 @@ jobs:
         with: { dockerfile: 02-containers/Dockerfile.web }
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Build api
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with: { context: app/api, file: 02-containers/Dockerfile.api, load: true, tags: "devlab-api:ci", cache-from: type=gha, cache-to: "type=gha,mode=max" }
       - name: Build web
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with: { context: ., file: 02-containers/Dockerfile.web, load: true, tags: "devlab-web:ci", cache-from: type=gha, cache-to: "type=gha,mode=max" }
       # Trivy is run straight from its container image. (The third-party trivy-action tag we first used
       # disappeared from GitHub and broke the whole job: a good reason to depend on as little as you can,
