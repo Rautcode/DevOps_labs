@@ -211,3 +211,6 @@ Run on Docker Desktop (Windows) while building this repo, **every lesson was exe
 **Not run by the lab author (needs you):** applying to a real AWS account (modules 17 and 22 are validated and scanned, and the apply steps are optional with safety rules), the optional pull-request and release tasks on your own repository, Argo CD and Kyverno installs, and testing with real learners. Tell us how it goes: `bash lab.sh feedback`.
 
 See [RESOURCES.md](RESOURCES.md) for the research behind this curriculum, [JOB-READY.md](JOB-READY.md) for turning the lab into interviews, and [CERTIFICATIONS.md](CERTIFICATIONS.md) for exam planning.
+
+## License
+MIT: see [LICENSE](LICENSE). Use it, copy it, teach with it. Third-party tools and images used by the lab keep their own licenses.
