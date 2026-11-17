@@ -3,6 +3,7 @@ title "Module 05 · Terraform (Infrastructure as Code)"
 explain "Terraform lets you describe cloud resources (storage, queues, permissions) in files, review them like code, and create or delete them with one command. You practise on a free local copy of AWS called LocalStack, so there is no cost and no risk."
 
 part "PART A · Test the module (no cloud needed)"
+learn "Infrastructure as code" "Instead of clicking in a cloud console, you describe the infrastructure in files. Terraform compares the files with reality and changes only what differs. Modules are reusable building blocks, and tests catch mistakes before anything is created."
 step "Run the module's built-in tests" "2 passed, 0 failed. The tests check the bucket is private and versioned." <<'CMD'
 docker run --rm --entrypoint sh -v "$PWD/05-terraform:/w" -w /w/modules/storage hashicorp/terraform:1.9 -c "terraform init -backend=false >/dev/null && terraform test" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tail -4
 CMD
@@ -11,6 +12,7 @@ docker compose -f 05-terraform/compose.localstack.yml up -d 2>&1 | tail -2; slee
 CMD
 
 part "PART B · Plan, apply, inspect"
+learn "The Terraform workflow" "The loop is init (download plugins), plan (preview), apply (create), destroy (remove). ALWAYS read the plan before applying. Terraform remembers what it created in a state file, which maps your code to real resources and must be protected."
 step "terraform init: download the AWS plugin" "Terraform has been successfully initialized" <<'CMD'
 bash 05-terraform/tf.sh init 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tail -3
 CMD

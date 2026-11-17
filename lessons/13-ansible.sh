@@ -3,6 +3,7 @@ title "Module 13 · Ansible"
 explain "Terraform creates infrastructure. Ansible CONFIGURES it: packages, files, users, services. You describe the desired state in a 'playbook' and Ansible makes each server match, over SSH, without installing anything on the servers. Running it twice changes nothing the second time (idempotent). You will manage two practice servers."
 
 part "PART A · Build the practice servers"
+learn "Configuration management" "Terraform creates machines; Ansible configures what runs on them. The inventory lists your servers, modules do one job each (install a package, copy a file), and a playbook is a list of tasks describing the DESIRED STATE. Ansible logs in over SSH and needs nothing installed on the servers."
 step "Build the Ansible control image (first time takes a minute or two)" "Successfully built, or the image devlab-ansible is listed." ok 'devlab-ansible' <<'CMD'
 docker build -q -f 13-ansible/Dockerfile.controller -t devlab-ansible 13-ansible >/dev/null && docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab-ansible
 CMD
@@ -15,6 +16,7 @@ CMD
 quiz "Why does Ansible use SSH keys instead of passwords?" "secur|safe|password|guess|automat|steal|no prompt|brute" "Keys cannot be guessed like passwords and let automation log in without a human typing anything. Only the matching private key opens the door."
 
 part "PART B · Talk to the servers"
+learn "Ad-hoc commands and playbooks" "An ad-hoc command runs one module on many servers right now, good for quick checks. A playbook is saved, repeatable and reviewable, which is what you want for real changes."
 step "Ad-hoc command: are the servers reachable? (ansible -m ping)" "web1 | SUCCESS and web2 | SUCCESS, each with \"ping\": \"pong\". Ansible reached both over SSH." ok 'pong' <<'CMD'
 lab-ansible ansible web -m ping
 CMD
@@ -29,6 +31,7 @@ part "PART C · A playbook: desired state"
 step "Read the playbook" "Tasks: install packages, create a directory, render a template, add a motd line, plus a handler that runs only on change." ok 'Install packages' <<'CMD'
 cat 13-ansible/site.yml
 CMD
+learn "Idempotence" "A task says what state you want (package present), not which command to run. Ansible checks first and changes only if needed. So running the playbook twice gives the same result, and the second run reports changed=0. That makes re-running always safe."
 step "Run the playbook (first run: apt downloads packages, about a minute)" "PLAY RECAP with changed=3 or 4 and failed=0 for web1 and web2. Yellow 'changed' tasks mean Ansible fixed something." ok 'failed=0' <<'CMD'
 lab-ansible ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^TASK|^PLAY RECAP|changed=|RUNNING HANDLER"
 CMD
@@ -42,6 +45,7 @@ quiz "What does 'idempotent' mean for a configuration tool?" "same|again|twice|r
 
 part "PART D · Drift and variables"
 explain "Drift = someone changes a server by hand. Ansible notices on the next run and puts it back."
+learn "Drift" "Drift is when a server no longer matches its desired state, usually because someone changed it by hand. Re-running the playbook finds the difference and repairs it. The managed file says do not edit by hand for exactly this reason."
 step "Someone edits the config by hand on web1 (drift)" "The file now has an extra 'hacked' line." ok 'hacked' <<'CMD'
 ac exec -T web1 sh -c 'echo "hacked by hand" >> /opt/devlab/app.conf'; ac exec -T web1 cat /opt/devlab/app.conf
 CMD

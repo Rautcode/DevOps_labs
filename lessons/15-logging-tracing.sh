@@ -3,6 +3,7 @@ title "Module 15 · Logging and tracing"
 explain "Metrics tell you THAT something is wrong. Logs tell you WHAT happened. Traces tell you WHERE the time went across services. Together they are called observability. You will collect every container's logs into Loki, query them like a database, and look at a trace in Jaeger."
 
 part "PART A · Logs"
+learn "Logs, metrics and traces" "Metrics are numbers over time, logs are events, and traces follow one request through the system. Loki stores logs and indexes only their labels, which keeps it cheap. Alloy is the collector that reads every container's output and ships it to Loki. LogQL is the query language."
 step "Start the app plus Loki (log storage), Alloy (the collector) and Jaeger (traces)" "loki, alloy and jaeger Started." ok 'alloy' <<'CMD'
 dcl rm -sf loki alloy jaeger >/dev/null 2>&1; dcl up -d 2>&1 | grep -E "loki|alloy|jaeger"
 CMD
@@ -30,6 +31,7 @@ quiz "Why does the API write logs as JSON instead of plain sentences?" "search|m
 
 part "PART B · Traces"
 explain "A trace follows ONE request through the system as a tree of 'spans': each span is one step with a start time and a duration. Real apps create spans with an OpenTelemetry library. Here you will send one by hand so you can see exactly what a trace is."
+learn "Traces and spans" "A trace is the journey of one request. It is made of spans: each span is one step with a start time and a duration, and a child span sits inside its parent. A trace view shows where the time went. Real apps create spans with OpenTelemetry libraries."
 step "Send a trace with two spans (a parent and a child)" "sent trace <id> (HTTP 200)" ok 'HTTP 200' <<'CMD'
 bash 15-logging/send-trace.sh devlab-checkout "GET /checkout"
 CMD

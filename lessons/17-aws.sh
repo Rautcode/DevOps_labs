@@ -15,6 +15,7 @@ aws sts get-caller-identity --output json 2>/dev/null | grep -E '"Account"' || e
 CMD
 
 part "PART B · Read and validate the real-AWS Terraform (no account needed)"
+learn "Same code, different target" "The storage module is exactly the one you tested on LocalStack. Only the provider changes. That is the value of practising locally first. On a real account every resource can cost money, so safety habits come first."
 step "The real environment reuses the module you tested in module 05" "source = \"../../../05-terraform/modules/storage\": the SAME module. Only the provider (real AWS instead of LocalStack) changes." ok 'modules/storage' <<'CMD'
 grep -n "source\|budget" 17-aws/envs/aws/main.tf | head -8
 CMD
@@ -30,6 +31,7 @@ CMD
 
 part "PART C · Find and fix cloud security mistakes"
 explain "17-aws/exercises/risky.tf has three of the most common real-world cloud mistakes: a storage bucket that could be public, SSH open to the whole internet, and an admin policy that allows everything."
+learn "Policy as code" "Security scanners read your infrastructure code and flag dangerous settings before anything exists: a public bucket, SSH open to the whole internet, an admin policy that allows everything. A fix is a small code change, reviewed like any other."
 step "Scan the risky file" "4 failed checks: SSH open to 0.0.0.0/0, a policy with '*' actions, a policy with '*' resources, and a bucket with no public access block. This is exactly what a security reviewer looks for." fail 'Failed checks: 4' <<'CMD'
 docker run --rm -v "$PWD:/tf:ro" bridgecrew/checkov:latest -d /tf/17-aws/exercises --framework terraform --compact --quiet --check CKV_AWS_24,CKV2_AWS_6,CKV_AWS_355,CKV_AWS_63 2>&1 | grep -E "Failed checks|Check:"; exit 1
 CMD

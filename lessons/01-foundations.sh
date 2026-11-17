@@ -3,6 +3,7 @@ title "Module 01 · Foundations"
 explain "You will look inside a running app, talk to it over HTTP, use Git safely, and write a small script. Everything runs on a practice app on your own computer. Read each step, TYPE the command it shows, and read the output. Nothing here can harm your computer."
 
 part "PART A · Start the practice app"
+learn "Containers in one minute" "A container is a small, isolated Linux system that runs one program. Docker builds and runs containers, and Docker Compose starts several together. The shortcut dc stands for docker compose with this lab's settings. dc up -d means: create and start everything, and run it in the background (-d)."
 step "Start the app (first time takes about a minute)" "Containers show Started / Healthy" <<'CMD'
 dc up --build -d 2>&1 | tail -4
 CMD
@@ -12,6 +13,7 @@ CMD
 
 part "PART B · Linux: look inside the container"
 explain "A container is a tiny, isolated Linux system. We use 'docker exec' to run one command inside it. WINDOWS TIP: in your own Git Bash terminal run   export MSYS_NO_PATHCONV=1   (once per terminal). Without it Git Bash rewrites paths like /data into C:/Program Files/Git/data and Docker commands fail."
+learn "Look inside a running container" "docker exec runs ONE command inside a running container, like opening a window into it. Every Linux process runs as some user. root can do anything; a normal user is limited. Well-built apps run as a normal user, so a hacked app cannot take over the machine."
 step "1. Who is the app running as?" "uid=1000(node). A normal user, NOT root. If hacked, the attacker has less power." <<'CMD'
 docker exec devlab-api-1 id
 CMD
@@ -35,6 +37,7 @@ quiz "Why does the data survive when the app restarts?" "volume|disk|outside|sep
 
 part "PART C · HTTP: talk to the API"
 explain "HTTP is how browsers and apps talk. Every answer starts with a status code: 200 = OK, 401 = who are you?, 429 = slow down, 502 = the server behind the proxy is down."
+learn "HTTP in 60 seconds" "A web request has a method (GET to read, POST to send data), a path, headers and sometimes a body. The answer starts with a status code: 2xx worked, 4xx you made a mistake, 5xx the server has a problem. curl is the command line tool that sends requests, so you can see exactly what a browser would see."
 step "7. Read a full HTTP response" "First line 'HTTP/1.1 200 OK', then headers, then the body." <<'CMD'
 curl -i -s localhost:8080/healthz
 CMD
@@ -57,6 +60,7 @@ quiz "What is the difference between 401 and 403?" "401.*(login|auth|who)|(not|n
 
 part "PART D · Git: work safely"
 explain "Git records every change so you can undo mistakes. We practise on a throwaway branch."
+learn "Git keeps you safe" "A commit is a saved snapshot. A branch is a separate line of work, so experiments never touch main. git revert makes a NEW commit that undoes an old one, which is safe even if others already have the old commit. git reflog lists everywhere your HEAD has been, so almost nothing is ever lost."
 task "Make a branch, commit, and undo it safely" "Type these 5 commands one by one at the lab prompt (you are already in the right folder): git switch -c lab/practice ; echo hello > practice.txt ; git add practice.txt ; git commit -m 'feat: practice' ; git revert --no-edit HEAD ." "You need to be on branch lab/practice and the latest commit message must start with Revert." <<'X'
 [ "$(git branch --show-current)" = "lab/practice" ] && git log -1 --pretty=%s | grep -q '^Revert'
 ---
@@ -74,6 +78,7 @@ CMD
 
 part "PART E · Shell scripting"
 explain "A script is a saved list of commands. Good scripts stop on errors and tell you what happened."
+learn "Scripts and exit codes" "Every command ends with an exit code: 0 means success and anything else means failure. The shell uses it: A && B runs B only if A worked, A || B runs B only if A failed, and a script's own exit code is the code of its last command. Loops plus exit codes are how scripts wait for something to become healthy."
 task "Write a health-wait script" "Create the file playground/healthwait.sh. It must: poll http://localhost:8080/healthz every 2 seconds, exit 0 as soon as it answers, and exit 1 after 60 seconds. Hints: 'set -euo pipefail', a for loop, 'curl -fsS', 'sleep 2'." "Use: for i in \$(seq 1 30); do curl -fsS URL >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1" <<'X'
 [ -f playground/healthwait.sh ] && bash playground/healthwait.sh
 ---
@@ -82,6 +87,7 @@ X
 
 part "PART F · Break it, then fix it"
 explain "Operating skill comes from failures. Stop the API and see how it looks from the outside."
+learn "Debug by layers" "When something is broken, ask WHICH LAYER failed: name lookup (DNS), network, the proxy, the app, or the database. A 502 from a proxy means the proxy is fine but the service behind it is not. Naming the layer first saves hours of guessing."
 step "Stop the API" "The container stops." <<'CMD'
 docker stop devlab-api-1
 CMD

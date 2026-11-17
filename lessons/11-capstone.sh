@@ -3,6 +3,7 @@ title "Module 11 · Capstone"
 explain "Backups that were never restored are not backups. In this capstone you run a real disaster-recovery drill: lose data on purpose, then bring it back. Then you review the whole system like a production-readiness reviewer."
 
 part "PART A · The disaster-recovery drill"
+learn "Backups and recovery" "A backup you never restored is only a hope. RPO is how much data you can afford to lose (time since the last backup). RTO is how long recovery may take. An online backup copies the database while the app keeps running, and a restore drill proves the backup really works."
 step "Make sure the app is running" '{"ok":true}' <<'CMD'
 dc up -d 2>&1 | tail -1; sleep 12; curl -s localhost:8080/healthz
 CMD

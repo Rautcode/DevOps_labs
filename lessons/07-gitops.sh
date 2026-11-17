@@ -3,6 +3,7 @@ title "Module 07 · GitOps"
 explain "GitOps: you never change the cluster by hand. You change files in git, and a controller (Argo CD) makes the cluster match. Every change is reviewed, recorded, and can be undone with git revert. This lesson shows the pieces locally; the optional last part installs Argo CD itself."
 
 part "PART A · Environments are just folders"
+learn "Kustomize: base plus overlays" "A base holds what all environments share. An overlay for dev or prod patches only the differences (namespace, image tags, replicas). kubectl kustomize renders the final YAML so you can review it and validate it before anything is applied."
 step "Render the DEV environment and count what it contains" "A list of resource kinds (Deployment, StatefulSet, Service, NetworkPolicy...). Kustomize combines the base plus the dev changes." <<'CMD'
 kubectl kustomize 06-kubernetes/overlays/dev | grep "^kind:" | sort | uniq -c
 CMD
@@ -14,12 +15,14 @@ kubectl kustomize 06-kubernetes/overlays/dev | docker run --rm -i ghcr.io/yannh/
 CMD
 
 part "PART B · The Argo CD application"
+learn "Argo CD" "Argo CD runs inside the cluster and watches a git repository. When git changes it applies the change (pull model, so CI needs no cluster password). With selfHeal on it undoes manual changes, and with prune on it removes things you deleted from git."
 step "Read the file that tells Argo CD what to watch" "repoURL (your GitHub repo), path (06-kubernetes/overlays/dev), and syncPolicy with prune and selfHeal." <<'CMD'
 cat 07-gitops/argocd-app.yaml
 CMD
 quiz "With selfHeal on, what does Argo CD do if someone runs 'kubectl scale' by hand?" "revert|undo|heal|reset|overwrit|back|match|git" "It reverts the change, because the cluster must match what is in git. Manual changes do not stick."
 
 part "PART C · Hands-on: make a change the GitOps way"
+learn "Changes go through git" "In GitOps nobody edits the live cluster. You change files, open a pull request, a colleague reviews, the merge happens, and the cluster follows. Rolling back is git revert. Your git history becomes the audit log."
 task "Create an overlay that runs 5 web replicas" "Create playground/overlay-test/kustomization.yaml that uses the base (resources: ../../06-kubernetes/base) and sets the devlab-web replicas to 5 using a 'replicas:' list (name: devlab-web, count: 5). Check it with: kubectl kustomize playground/overlay-test | grep replicas" "Format:  replicas:  then  - name: devlab-web  then  count: 5" <<'X'
 kubectl kustomize playground/overlay-test | grep -q "replicas: 5"
 ---

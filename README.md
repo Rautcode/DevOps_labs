@@ -78,13 +78,22 @@ The lab teaches you **inside your terminal**. It explains each step, has you typ
 export MSYS_NO_PATHCONV=1     # Windows Git Bash only, once per terminal
 bash doctor.sh                # checks your machine (Docker, kubectl, memory)
 bash lab.sh                   # menu: pick a lesson number
-bash lab.sh 01                # or start lesson 01 directly
+bash lab.sh 01                # or start module 01 directly (it continues by itself)
 ```
-How a lesson works (you do the typing, the lab guides and checks):
-- **STEP**: it explains what you are about to do and shows the command. **You type it** at the `▸` prompt and press Enter. The lab runs it, shows the output, and tells you **what to look for**. Type something different and it still runs (explore!), but the step is only done when you run the right command.
-  - `?` = hint, `run` = let the lab type it for you (for long commands), `skip`, `shortcuts`, `quit`.
-- **YOUR TURN**: a hands-on task. You work **right there** at a `lab ▸` prompt (no second window): type any commands, use `edit FILE` to open the nano editor, then type `check`. `hint`, `answer` and `skip` are there if you are stuck.
-- **QUIZ**: a short question in your own words, then the model answer.
+Every module follows the same path, and **the next module stays locked until you pass this one**:
+```mermaid
+flowchart LR
+  L["LEARN a little<br/>(short note)"] --> D["DO it<br/>(you type)"] --> L2["LEARN<br/>next idea"] --> D2["DO it"] --> I["INTERVIEW<br/>hands-on questions"] --> F["MODULE FINAL<br/>exam, no step-by-step"] --> U(["Next module unlocks"])
+```
+- **LEARN**: a short teaching note (plain words, a few sentences). Read it, press Enter.
+- **STEP** (do): the lab shows a command, **you type it** at the `▸` prompt. It runs it, shows the output, and tells you what to look for. A different command still runs (explore!) but only the right one completes the step. `?` = hint, `run` = let the lab type it for you, `skip`, `shortcuts`, `quit`.
+- **YOUR TURN** (do): a hands-on task at a `lab ▸` prompt right in the lab (no second window): type commands, `edit FILE` opens nano, then `check`.
+- **QUIZ**: a question in your own words, then the model answer.
+- **INTERVIEW**: after the lessons the lab becomes an interviewer. It sets up a real situation (a broken site, a bad commit, a crash loop) and asks you to **show** the fix. No step-by-step help, hints only.
+- **MODULE FINAL**: an exam of 3 hands-on challenges for the whole module. You get the objective, not the commands. Every item is checked against the real result, and all must pass to unlock the next module.
+
+Menu symbols: `✔` module complete, `◐` lessons done but interview/final pending, `🔒` locked until the previous module is passed.
+Failed an exam item? Retake only the exam with `bash lab.sh final 05` (change 05 to the module number).
 
 Prefer to just watch? `LAB_MODE=watch bash lab.sh 01` runs the commands for you (press Enter at each step).
 
@@ -108,7 +117,7 @@ What it looks like in your terminal:
 ```
 You earn a rank as you go: Newcomer, Junior Operator, DevOps Engineer, Platform Engineer, Senior Engineer, SRE Legend.
 
-Other commands: `bash lab.sh status` (your progress), `bash lab.sh down` (stop everything the labs started), `bash lab.sh reset`.
+Other commands: `bash lab.sh status` (your progress), `bash lab.sh final NN` (retake a module exam), `bash lab.sh next` (resume), `bash lab.sh down` (stop everything the labs started), `bash lab.sh reset`.
 Your own files go in `playground/` (git-ignored). The written guides in each module folder have the same content plus background reading.
 
 Requires Docker Desktop (give it 6GB+ RAM), `kubectl`, Git, Node 24+. Terraform, kind and helm are **optional**: wrapper scripts run them in Docker.
@@ -153,6 +162,7 @@ Change the app freely (add endpoints, break it, swap SQLite for Postgres): it ex
 
 ## What was verified
 Run on Docker Desktop (Windows) while building this repo, **every lesson was executed end to end in an automatic mode that performs each hands-on task and checks the result** (the newer lessons also check the actual output, not just that a command exited cleanly):
+- **Interviews and finals:** all 85 exam items (5 per module) were run the same way: the lab sets up the scenario (it breaks things on purpose), applies a reference solution, and the real check must pass.
 - **01-03:** API tests, compose stack, nginx proxy, persistence, overrides, Git exercise.
 - **04-05:** both workflows pass `actionlint`; Terraform fmt/validate/**2 tests**; real apply/drift-heal/destroy on LocalStack.
 - **06-07:** Kustomize + schema validation; deployment to a **real k3s cluster** (self-healing with data kept, rolling restart, NetworkPolicy block, the SQLite scaling mistake).

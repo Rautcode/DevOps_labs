@@ -3,6 +3,7 @@ title "Module 09 · DevSecOps"
 explain "Security checks should run automatically, early and often. Five scanners look at your secrets, Dockerfiles, container images, Terraform and Kubernetes files. You will run them all, then break one on purpose to see it fail."
 
 part "PART A · Run the security gate"
+learn "Shift left" "Shift left means finding security problems as early as possible, when they are cheap to fix. Five different scanners look at five different things: secrets in git, Dockerfile mistakes, vulnerabilities in images, misconfigured cloud code, and insecure Kubernetes manifests."
 step "Make sure both images exist" "devlab-api:lab and devlab-web:lab are listed." <<'CMD'
 docker image inspect devlab-api:lab devlab-web:lab >/dev/null 2>&1 || dc build 2>&1 | tail -2; docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab
 CMD
@@ -19,6 +20,7 @@ quiz "Why scan for secrets in git history, not only in the current files?" "hist
 
 part "PART B · Hands-on: break the gate and fix it"
 explain "Dependencies are a common way vulnerabilities get in. You will install an old, vulnerable library into a COPY of the API (your real code is untouched), watch the audit fail, then fix it."
+learn "Dependencies are risk" "Every library you add also adds its bugs. npm audit compares your dependencies with a database of known vulnerabilities. The usual fix is to upgrade to a patched version, and the best habit is to keep the dependency list short."
 task "Add a vulnerable library, see the audit fail, then fix it" "Type these commands one by one at the lab prompt: mkdir -p playground/api-copy && cp app/api/package*.json app/api/server.js playground/api-copy/ && cd playground/api-copy && npm install lodash@4.17.20 . Then run: npm audit --omit=dev --audit-level=high   (it FAILS, listing lodash). Then fix it with: npm audit fix   and run the audit again (it passes)." "The check passes when the audit is clean AND lodash is newer than 4.17.20." <<'X'
 cd playground/api-copy && npm audit --omit=dev --audit-level=high >/dev/null 2>&1 && ! node -p "require('./node_modules/lodash/package.json').version" | grep -qx '4.17.20'
 ---

@@ -3,6 +3,7 @@ title "Module 16 · Postgres"
 explain "Until now the API kept its data in a SQLite file, so you could run only ONE copy of it. A real database server (Postgres) holds the data separately. Then the API itself has no state and you can run many copies. This is the single biggest step from 'works on my machine' to 'production-shaped'."
 
 part "PART A · Switch the API to Postgres"
+learn "Stateless apps and a shared database" "SQLite keeps data in a file next to one process. A database server such as Postgres holds the data separately and many programs can use it at once. When the data lives in one shared place, the API itself keeps no state, so you can run, replace and scale copies freely."
 step "Start the stack with Postgres added (the API gets a DATABASE_URL)" "postgres Started and Healthy, then the api and web restart." <<'CMD'
 dcp up -d --build 2>&1 | tail -6
 CMD
@@ -18,6 +19,7 @@ CMD
 quiz "What is the difference between /healthz and /readyz?" "database|dependen|ready|serve|traffic|process|alive|up" "/healthz = the process is alive (liveness). /readyz = it can actually serve traffic, because its database is reachable (readiness). Orchestrators use them for different decisions."
 
 part "PART B · Scale the API: many copies, one database"
+learn "Scaling out" "Horizontal scaling means more copies instead of a bigger machine. It only works when every copy sees the same data, which is why the shared database matters. The proxy spreads requests between the copies."
 step "Run TWO copies of the API" "Two api containers. The web proxy spreads requests between them." <<'CMD'
 dcp up -d --scale api=2 --no-recreate 2>&1 | tail -3; sleep 12; dcp ps api --format 'table {{.Name}}\t{{.Status}}'
 CMD
@@ -35,6 +37,7 @@ X
 quiz "Why could the API be scaled to 3 copies now but not when it used SQLite?" "state|shared|database|separate|file|own|single|same" "The data now lives in one shared database server, so every API copy sees the same data. With SQLite each copy had its own file, so leads would be split."
 
 part "PART C · Back up and restore Postgres"
+learn "Logical backups" "pg_dump writes the database as SQL commands you can replay. It is simple and portable. For production you also want continuous archiving so you can restore to any moment, and you must test restores regularly."
 step "BACKUP with pg_dump" "A backup file of a few KB in backups/." ok 'pg-lab.sql' <<'CMD'
 mkdir -p backups; dcp exec -T postgres pg_dump -U devlab -d devlab --clean --if-exists > backups/pg-lab.sql; ls -l backups/pg-lab.sql
 CMD

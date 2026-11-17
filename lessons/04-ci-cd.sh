@@ -3,6 +3,7 @@ title "Module 04 · CI/CD"
 explain "CI/CD means every change is automatically tested, scanned and built, so mistakes are caught in minutes instead of in production. GitHub runs these 'workflows' from YAML files. Here you will check and run the same steps on your own computer."
 
 part "PART A · Read the pipeline"
+learn "What CI/CD means" "CI (continuous integration) means every change is automatically built and tested. CD (continuous delivery) means passing changes are automatically released. A GitHub Actions workflow lives in .github/workflows and has jobs; each job runs steps on a fresh machine, so results never depend on one person's laptop."
 step "List the jobs in the CI workflow" "Jobs: app, docker, security, infra. Each is a group of steps that can run in parallel." <<'CMD'
 grep -nE "^  [a-z]+:$" 04-ci-cd/workflows/ci.yml
 CMD
@@ -14,6 +15,7 @@ grep -n -A1 "^permissions" 04-ci-cd/workflows/ci.yml
 CMD
 
 part "PART B · Run the CI steps locally"
+learn "Reproducible builds" "npm ci installs exactly the versions in the lock file, so CI and your laptop agree. The pipeline then runs the tests and a vulnerability audit on every change. If anything fails, the change is blocked before it reaches production."
 step "Install the API's dependencies exactly as locked" "added N packages. 'npm ci' is the strict, reproducible install CI uses." <<'CMD'
 cd app/api && npm ci --silent && echo "dependencies installed"
 CMD
@@ -26,6 +28,7 @@ CMD
 quiz "Why does the pipeline give the token only 'contents: read' permission?" "least|privilege|minimal|only|damage|compromis|limit|secur" "Least privilege: if a step is compromised it can only read code, not push, publish or delete."
 
 part "PART C · Hands-on: write your own workflow"
+learn "Anatomy of a workflow" "name is a label, on says what triggers it, permissions limits what the pipeline token may do, jobs holds the work, runs-on picks the machine, and steps are the commands. A step either reuses a ready-made action (uses) or runs a shell command (run). The linter catches typos before you push."
 task "Write a valid workflow" "Create playground/hello.yml. It needs: name: hello  /  on: [push]  /  permissions: contents: read  /  one job called hello that runs-on: ubuntu-latest and has one step: run: echo hello. Then lint it: docker run --rm -v \"\$PWD/playground:/w\" -w /w rhysd/actionlint:latest -color=false /w/hello.yml" "Indent with 2 spaces. Steps start with a dash:  - run: echo hello" <<'X'
 docker run --rm -v "$PWD/playground:/w" -w /w rhysd/actionlint:latest -color=false /w/hello.yml
 ---

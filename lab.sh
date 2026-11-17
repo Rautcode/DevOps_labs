@@ -35,6 +35,8 @@ lab-tf-aws()  { bash 17-aws/tf-aws.sh "$@"; }
 awsl()   { AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test aws --no-cli-pager --endpoint-url=http://localhost:4566 --region ap-south-1 "$@"; }
 leads()  { dc exec -T api node -e "const {DatabaseSync}=require('node:sqlite');console.log('leads in database:',new DatabaseSync('/data/database.sqlite').prepare('select count(*) c from leads').get().c)"; }
 kleads() { kubectl -n devlab-dev exec devlab-api-0 -- node -e "const {DatabaseSync}=require('node:sqlite');console.log('leads in database:',new DatabaseSync('/data/database.sqlite').prepare('select count(*) c from leads').get().c)"; }
+leadsfor()  { dc exec -T api node -e "const {DatabaseSync}=require('node:sqlite');console.log(new DatabaseSync('/data/database.sqlite').prepare('select count(*) c from leads where email=?').get('$1').c)" | tr -d '\r\n '; }
+kleadsfor() { kubectl -n devlab-dev exec devlab-api-0 -- node -e "const {DatabaseSync}=require('node:sqlite');console.log(new DatabaseSync('/data/database.sqlite').prepare('select count(*) c from leads where email=?').get('$1').c)" | tr -d '\r\n '; }
 edit()   { local f="$1"; mkdir -p "$(dirname "$f")"; if command -v nano >/dev/null 2>&1; then nano "$f"; else notepad "$(cygpath -w "$f" 2>/dev/null || echo "$f")"; fi; }
 shortcuts() {
   printf '  %sShortcuts defined by this lab%s\n' "$BOLD" "$RST"
@@ -54,11 +56,11 @@ if [ -z "$AUTO" ] && ( : </dev/tty ) 2>/dev/null; then exec 3</dev/tty; else exe
 
 # ---------- look and feel ----------
 if [ -n "${NO_COLOR:-}" ]; then
-  BOLD=; DIM=; RED=; GRN=; YEL=; BLU=; MAG=; CYN=; RST=; BG_G=; BG_R=; BG_Y=; BG_C=; BG_M=; BG_B=
+  BOLD=; DIM=; RED=; GRN=; YEL=; BLU=; MAG=; CYN=; RST=; BG_G=; BG_R=; BG_Y=; BG_C=; BG_M=; BG_B=; BG_W=
 else
   BOLD=$'\033[1m'; DIM=$'\033[2m'; RED=$'\033[31m'; GRN=$'\033[32m'; YEL=$'\033[33m'
   BLU=$'\033[34m'; MAG=$'\033[35m'; CYN=$'\033[36m'; RST=$'\033[0m'
-  BG_G=$'\033[42;30;1m'; BG_R=$'\033[41;97;1m'; BG_Y=$'\033[43;30;1m'; BG_C=$'\033[46;30;1m'; BG_M=$'\033[45;97;1m'; BG_B=$'\033[44;97;1m'
+  BG_G=$'\033[42;30;1m'; BG_R=$'\033[41;97;1m'; BG_Y=$'\033[43;30;1m'; BG_C=$'\033[46;30;1m'; BG_M=$'\033[45;97;1m'; BG_B=$'\033[44;97;1m'; BG_W=$'\033[47;30;1m'
 fi
 rep()  { local i; for ((i=0; i<$2; i++)); do printf '%s' "$1"; done; }
 rule() { printf '%s%s%s\n' "${2:-$DIM}" "$(rep "${1:-─}" "$W")" "$RST"; }
@@ -221,6 +223,54 @@ task_type() {
 step() { if [ -n "$AUTO" ] || [ "$MODE" = watch ]; then step_watch "$@"; else step_type "$@"; fi; }
 task() { if [ -n "$AUTO" ] || [ "$MODE" = watch ]; then task_watch "$@"; else task_type "$@"; fi; }
 
+# learn "title" "text": a short teaching block. In typing mode the student reads it and presses Enter.
+learn() {
+  printf '\n%s LEARN %s %s%s%s\n' "$BG_C" "$RST" "$BOLD" "$1" "$RST"
+  explain "$2"
+  if [ -z "$AUTO" ] && [ "$MODE" = type ]; then printf '  %s(read it, then press Enter to continue) ▸ %s' "$DIM" "$RST"; read -r _ <&3 || exit 0; fi
+}
+
+# exam KIND COLOR "title" "scenario" "hint" <<'X' setup --- check --- solution [--- cleanup] X
+# Used by interview (hands-on interview questions) and final (module exam). The lab sets up a scenario,
+# the student fixes or builds it at the lab prompt, and `check` verifies the real result. No 'answer' key: it is an exam.
+exam() {
+  local kind="$1" color="$2" title="$3" details="$4" hint="${5:-}" all setup check sol clean rest line out
+  all=$(cat)
+  setup=${all%%$'\n---\n'*}; rest=${all#*$'\n---\n'}
+  check=${rest%%$'\n---\n'*}; rest=${rest#*$'\n---\n'}
+  if [[ "$rest" == *$'\n---\n'* ]]; then sol=${rest%%$'\n---\n'*}; clean=${rest#*$'\n---\n'}; else sol=$rest; clean=true; fi
+  badge "$kind" "$color" "$title"
+  ( eval "$setup" ) >/dev/null 2>&1
+  explain "$details"
+  if [ -n "$AUTO" ]; then
+    [ "$AUTO" = solve ] && ( eval "$sol" ) >/dev/null 2>&1
+    if ( eval "$check" ) >/dev/null 2>&1; then pass; else fail "($kind check)"; fi
+    ( eval "$clean" ) >/dev/null 2>&1
+    return
+  fi
+  printf '  %sType your commands right here. Type  check  when you are done.%s  %shint | skip | shortcuts | edit FILE | quit%s\n' "$BOLD" "$RST" "$DIM" "$RST"
+  while true; do
+    printf '  %slab ▸%s ' "$YEL$BOLD" "$RST"
+    read -r line <&3 || { echo; exit 0; }
+    case "$line" in
+      '') continue ;;
+      check) if ( eval "$check" ) >/dev/null 2>&1; then
+               pass; [ "$kind" = INTERVIEW ] && printf '  %s🎤 Interviewer:%s "Good. That is exactly what I wanted to see."\n' "$BOLD" "$RST"
+               ( eval "$clean" ) >/dev/null 2>&1; return
+             fi
+             printf '  %s ✘ NOT YET %s%s\n' "$BG_R" "$RST" "${hint:+ Hint: $hint}" ;;
+      hint|'?') printf '  %s➜ %s%s\n' "$YEL" "${hint:-Re-read the question and look at what the check could be testing.}" "$RST" ;;
+      skip|s) SKIP=$((SKIP+1)); printf '  %s○ skipped (this counts as not passed)%s\n' "$YEL" "$RST"; ( eval "$clean" ) >/dev/null 2>&1; return ;;
+      shortcuts) shortcuts ;;
+      quit|q|exit) ( eval "$clean" ) >/dev/null 2>&1; printf '  bye! Continue later with: bash lab.sh next\n'; exit 0 ;;
+      edit\ *|nano\ *|vi\ *|vim\ *) ( eval "$line" ) <&3 ;;
+      *) out=$( ( eval "$line" ) <&3 2>&1 ); show_out "$out" ;;
+    esac
+  done
+}
+interview() { exam INTERVIEW "$BG_M" "$@"; }
+final()     { exam FINAL "$BG_W" "$@"; }
+
 # quiz "question" 'regex of a correct answer' "model answer"
 quiz() {
   [ -n "$AUTO" ] && return 0
@@ -230,18 +280,20 @@ quiz() {
   else printf '  %sCompare with this:%s %s\n' "$YEL" "$RST" "$3"; fi
 }
 
-finish() {
+mark() { grep -qx "$1" "$PROGRESS" 2>/dev/null || echo "$1" >> "$PROGRESS"; }
+has()  { grep -qx "$1" "$PROGRESS" 2>/dev/null; }
+
+# part_summary ID "label": prints the result box for one part (lessons, or interview + final)
+part_summary() {
   local n msg c; n=$(done_count)
-  if [ "$FAIL" -eq 0 ] && [ "$SKIP" -eq 0 ]; then
-    grep -qx "$1" "$PROGRESS" 2>/dev/null || echo "$1" >> "$PROGRESS"; n=$(done_count)
-    msg="Lesson $1 complete."; c="$BOLD$GRN"
-  elif [ "$FAIL" -gt 0 ]; then msg="Lesson $1 needs more work."; c="$BOLD$RED"
-  else msg="Lesson $1 not finished (tasks skipped)."; c="$BOLD$YEL"; fi
-  printf '\n'
-  box "$c" "$msg"
-  printf '  %s lesson summary:%s %s%d passed%s   %s%d failed%s   %s%d skipped%s\n' "$BOLD$1" "$RST" "$GRN" "$PASS" "$RST" "$RED" "$FAIL" "$RST" "$YEL" "$SKIP" "$RST"
-  printf '  Overall  %s  %d/%d lessons   Rank: %s%s%s\n' "$(bar "$n" "$LESSONS")" "$n" "$LESSONS" "$BOLD" "$(rank "$n")" "$RST"
-  [ "$SKIP" -gt 0 ] && printf '  %sRun  bash lab.sh %s  again to finish the skipped tasks and earn the tick.%s\n' "$YEL" "$1" "$RST"
+  if [ "$FAIL" -eq 0 ] && [ "$SKIP" -eq 0 ]; then msg="$2 complete."; c="$BOLD$GRN"
+  elif [ "$FAIL" -gt 0 ]; then msg="$2: needs more work."; c="$BOLD$RED"
+  else msg="$2 not finished (items skipped)."; c="$BOLD$YEL"; fi
+  printf '\n'; box "$c" "Module $1 · $msg"
+  printf '  %s%s summary:%s %s%d passed%s   %s%d failed%s   %s%d skipped%s\n' "$BOLD" "$1" "$RST" "$GRN" "$PASS" "$RST" "$RED" "$FAIL" "$RST" "$YEL" "$SKIP" "$RST"
+  printf '  Overall  %s  %d/%d modules   Rank: %s%s%s\n' "$(bar "$n" "$LESSONS")" "$n" "$LESSONS" "$BOLD" "$(rank "$n")" "$RST"
+  [ "$SKIP" -gt 0 ] && printf '  %sSkipped items do not count. Run  bash lab.sh %s  again to finish them.%s\n' "$YEL" "$1" "$RST"
+  return 0
 }
 
 lesson_file()  { ls lessons/"$1"-*.sh 2>/dev/null | head -1; }
@@ -252,23 +304,63 @@ menu() {
   printf '\n'; banner; printf '\n'
   for f in lessons/*.sh; do
     id=$(basename "$f" | cut -c1-2)
-    if grep -qx "$id" "$PROGRESS" 2>/dev/null; then mark="${GRN}✔${RST}"; else mark="${DIM}○${RST}"; fi
+    if has "$id"; then mark="${GRN}✔${RST}"
+    elif has "$id.learn"; then mark="${YEL}◐${RST}"
+    elif ! gate_ok "$id"; then mark="${DIM}🔒${RST}"
+    else mark="${DIM}○${RST}"; fi
     printf '   %s  %s%s%s  %s\n' "$mark" "$BOLD" "$id" "$RST" "$(lesson_title "$f")"
   done
   printf '\n   Progress  %s  %d/%d      Rank: %s%s%s\n' "$(bar "$n" "$LESSONS" 30)" "$n" "$LESSONS" "$BOLD$CYN" "$(rank "$n")" "$RST"
-  printf '\n   %sbash lab.sh 01%s start (continues by itself)   %sbash lab.sh next%s resume   %sbash lab.sh down%s stop all\n' "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST"
+  printf '\n   %s✔ complete   ◐ lessons done, exam pending   🔒 locked until the previous module is passed%s\n' "$DIM" "$RST"
+  printf '   %sbash lab.sh 01%s start (continues by itself)   %sbash lab.sh next%s resume   %sbash lab.sh final 05%s retake an exam   %sbash lab.sh down%s stop all\n' "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST"
+}
+
+gate_ok() { # a module unlocks when the previous one is complete (not enforced in auto-test mode)
+  [ -n "$AUTO" ] || [ -n "${LAB_SKIPGATE:-}" ] && return 0
+  [ "$((10#$1))" -le 1 ] && return 0
+  has "$(printf '%02d' "$((10#$1 - 1))")"
 }
 
 run_lesson() {
-  local f; f=$(lesson_file "$1")
-  [ -z "$f" ] && { echo "No lesson '$1'. Try: bash lab.sh"; exit 1; }
+  local id="$1" f ff ok
+  f=$(lesson_file "$id"); ff="finals/$id.sh"
+  [ -z "$f" ] && { echo "No lesson '$id'. Try: bash lab.sh"; exit 1; }
+  if ! gate_ok "$id"; then
+    printf '\n  %s🔒 Module %s is locked.%s Pass module %s (lessons, interview and final) first:  bash lab.sh %s\n' "$BOLD" "$id" "$RST" "$(printf '%02d' "$((10#$id - 1))")" "$(printf '%02d' "$((10#$id - 1))")"
+    return 1
+  fi
   [ -f .env ] || cp .env.example .env
-  PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(OPT=1 )?(step|task|quiz) ' "$f")
-  if [ -z "$AUTO" ] && [ "$MODE" = type ]; then printf '\n  %sHow this works:%s you TYPE each command.  ?=hint   run=let the lab run it   skip   shortcuts   quit\n' "$BOLD" "$RST"; fi
-  # shellcheck disable=SC1090
-  . "$f"
-  finish "$1"
-  [ "$FAIL" -eq 0 ] && [ "$SKIP" -eq 0 ]
+  if [ -z "$AUTO" ] && [ "$MODE" = type ]; then printf '\n  %sHow this works:%s you LEARN a little, then DO it (you type). ?=hint  run=let the lab run it  skip  shortcuts  quit\n' "$BOLD" "$RST"; fi
+
+  # ---- part 1: the lessons (learn, do, learn, do ...) ----
+  if [ -z "${ONLY_FINAL:-}" ] && { [ -n "$AUTO" ] || ! has "$id.learn"; }; then
+    PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(OPT=1 )?(step|task|quiz) ' "$f")
+    # shellcheck disable=SC1090
+    . "$f"
+    part_summary "$id" "Lessons"
+    if [ "$FAIL" -eq 0 ] && [ "$SKIP" -eq 0 ]; then mark "$id.learn"; else return 1; fi
+  elif [ -z "${ONLY_FINAL:-}" ]; then
+    printf '\n  %s✔ The lessons of module %s are already done.%s Going straight to the interview and final.\n' "$GRN" "$id" "$RST"
+  fi
+
+  # ---- part 2: interview + module final ----
+  ok=1
+  if [ -f "$ff" ]; then
+    PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(interview|final) ' "$ff")
+    printf '\n'; box "$BOLD$MAG" "Module $id · INTERVIEW and FINAL: show me, do not just tell me"
+    explain "No more step-by-step help. The interviewer describes a situation, you fix or build it at the lab prompt, then type check. There is no answer key and every item must pass to unlock the next module. You may use  hint  and look things up."
+    # shellcheck disable=SC1090
+    . "$ff"
+    part_summary "$id" "Interview and final"
+    if [ "$FAIL" -eq 0 ] && [ "$SKIP" -eq 0 ]; then mark "$id.final"; else ok=0; fi
+  else
+    mark "$id.final"
+  fi
+  [ "$ok" -eq 1 ] || return 1
+  mark "$id"
+  printf '\n'; box "$BOLD$GRN" "★ MODULE $id COMPLETE ★  Rank: $(rank "$(done_count)")"
+  [ -z "$AUTO" ] && [ "$(done_count)" -lt "$LESSONS" ] && printf '  %sThe next module is now unlocked.%s\n' "$GRN" "$RST"
+  return 0
 }
 
 first_incomplete() {
@@ -292,7 +384,8 @@ flow() {
       id="$nxt"
     else
       [ -n "$AUTO" ] && return
-      printf '\n%sLesson %s is not finished yet.%s Press Enter to try it again (type q to quit) ▸ ' "$YEL" "$id" "$RST"
+      gate_ok "$id" || return
+      printf '\n%sModule %s is not passed yet.%s Press Enter to try it again (type q to quit) ▸ ' "$YEL" "$id" "$RST"
       read -r a <&3; [ "$a" = q ] && return
     fi
   done
@@ -317,7 +410,8 @@ case "${1:-menu}" in
     docker compose -f 05-terraform/compose.localstack.yml down 2>&1 | tail -1
     docker compose -f 13-ansible/compose.yml down 2>&1 | tail -1 ;;
   reset) rm -f "$PROGRESS"; echo "progress cleared" ;;
+  final) ONLY_FINAL=1 run_lesson "$(printf '%02d' "$((10#${2:-1}))")" ;;
   next|continue) nxt=$(first_incomplete); [ -z "$nxt" ] && { echo "All lessons are done."; exit 0; }; flow "$nxt" ;;
   [0-9]*) if [ -n "$AUTO" ]; then run_lesson "$(printf '%02d' "$((10#$1))")"; else flow "$(printf '%02d' "$((10#$1))")"; fi ;;
-  *) echo "usage: bash lab.sh [menu|NN|next|status|down|reset]"; exit 1 ;;
+  *) echo "usage: bash lab.sh [menu|NN|next|final NN|status|down|reset]"; exit 1 ;;
 esac

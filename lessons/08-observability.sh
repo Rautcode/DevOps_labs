@@ -3,6 +3,7 @@ title "Module 08 · Observability"
 explain "Monitoring tells you the site is broken BEFORE your users do. Prometheus checks the site every 15 seconds, Grafana draws graphs, and alert rules notify you when the error budget is burning too fast."
 
 part "PART A · Start monitoring"
+learn "Monitoring basics" "Prometheus checks targets every 15 seconds and stores the results as time series. Grafana draws graphs from them, and alert rules are queries that raise an alert when they are true for long enough. Probing the site from outside measures what a real visitor experiences."
 step "Start the app plus Prometheus, Grafana and a probe" "Containers Started: blackbox, prometheus, grafana (plus api and web)." <<'CMD'
 dco up -d 2>&1 | tail -5
 CMD
@@ -21,6 +22,7 @@ CMD
 
 part "PART B · Hands-on: trigger an alert"
 explain "Now break the site on purpose and watch the monitoring notice. Open http://localhost:9090/alerts in your browser first."
+learn "Alerts and burn rate" "A good alert fires when users are affected, not when a machine is merely busy. The for: 1m setting makes an alert wait a minute before firing, which avoids false alarms from short blips. Burn-rate alerts fire when the error budget is being used up too fast."
 task "Stop the API and wait for the EndpointDown alert" "Type:  docker stop devlab-api-1   Then open http://localhost:9090/alerts in your browser and refresh it every 15 seconds. EndpointDown goes to PENDING, then to FIRING after a minute. When you can see it, type  check  here." "It can take up to 2 minutes. Prometheus checks every 15 seconds and the alert waits 1 minute before firing, to avoid false alarms." <<'X'
 curl -s localhost:9090/api/v1/alerts | grep -q EndpointDown
 ---
