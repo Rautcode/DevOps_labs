@@ -39,12 +39,15 @@ jobs:
       - name: Build web
         uses: docker/build-push-action@v6
         with: { context: ., file: 02-containers/Dockerfile.web, load: true, tags: "devlab-web:ci", cache-from: type=gha, cache-to: "type=gha,mode=max" }
-      - name: Scan api image (fail on fixable HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
-        with: { image-ref: "devlab-api:ci", severity: "HIGH,CRITICAL", ignore-unfixed: true, exit-code: "1" }
-      - name: Scan web image (fail on fixable HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
-        with: { image-ref: "devlab-web:ci", severity: "HIGH,CRITICAL", ignore-unfixed: true, exit-code: "1" }
+      # Trivy is run straight from its container image. (The third-party trivy-action tag we first used
+      # disappeared from GitHub and broke the whole job: a good reason to depend on as little as you can,
+      # and to pin what you do use.)
+      - name: Scan the images (fail on fixable HIGH/CRITICAL)
+        run: |
+          for i in api web; do
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.58.0 image \
+              --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --quiet "devlab-$i:ci"
+          done
 
   security:
     runs-on: ubuntu-latest
