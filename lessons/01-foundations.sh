@@ -1,6 +1,6 @@
 # Foundations: Linux, HTTP, Git, shell (about 1.5h)
 title "Module 01 · Foundations"
-explain "You will look inside a running app, talk to it over HTTP, use Git safely, and write a small script. Everything runs on a practice app on your own computer. Read each step, press Enter to run it, and read the output. Nothing here can harm your computer."
+explain "You will look inside a running app, talk to it over HTTP, use Git safely, and write a small script. Everything runs on a practice app on your own computer. Read each step, TYPE the command it shows, and read the output. Nothing here can harm your computer."
 
 part "PART A · Start the practice app"
 step "Start the app (first time takes about a minute)" "Containers show Started / Healthy" <<'CMD'
