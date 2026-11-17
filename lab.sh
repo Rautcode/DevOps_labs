@@ -14,7 +14,7 @@ export MSYS_NO_PATHCONV=1
 export DC="docker compose -f 03-compose/docker-compose.yml --env-file .env"
 export DCO="docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml --env-file .env"
 export DCP="docker compose -f 03-compose/docker-compose.yml -f 16-postgres/compose.postgres.yml --env-file .env"
-export KUBECONFIG="$(pwd -W 2>/dev/null || pwd)/.kube/config"
+KUBECONFIG="$(pwd -W 2>/dev/null || pwd)/.kube/config"; export KUBECONFIG
 AUTO="${LAB_AUTO:-}"
 MODE="${LAB_MODE:-type}"     # type = YOU type each command (default) | watch = the lab runs them, you press Enter
 PROGRESS=.progress
@@ -66,10 +66,10 @@ if [ -z "$AUTO" ] && ( : </dev/tty ) 2>/dev/null; then exec 3</dev/tty; else exe
 
 # ---------- look and feel ----------
 if [ -n "${NO_COLOR:-}" ]; then
-  BOLD=; DIM=; RED=; GRN=; YEL=; BLU=; MAG=; CYN=; RST=; BG_G=; BG_R=; BG_Y=; BG_C=; BG_M=; BG_B=; BG_W=
+  BOLD=; DIM=; RED=; GRN=; YEL=; MAG=; CYN=; RST=; BG_G=; BG_R=; BG_Y=; BG_C=; BG_M=; BG_B=; BG_W=
 else
   BOLD=$'\033[1m'; DIM=$'\033[2m'; RED=$'\033[31m'; GRN=$'\033[32m'; YEL=$'\033[33m'
-  BLU=$'\033[34m'; MAG=$'\033[35m'; CYN=$'\033[36m'; RST=$'\033[0m'
+  MAG=$'\033[35m'; CYN=$'\033[36m'; RST=$'\033[0m'
   BG_G=$'\033[42;30;1m'; BG_R=$'\033[41;97;1m'; BG_Y=$'\033[43;30;1m'; BG_C=$'\033[46;30;1m'; BG_M=$'\033[45;97;1m'; BG_B=$'\033[44;97;1m'; BG_W=$'\033[47;30;1m'
 fi
 rep()  { local i; for ((i=0; i<$2; i++)); do printf '%s' "$1"; done; }
@@ -165,7 +165,16 @@ task_watch() {
 # ---- typing mode: YOU type the commands ----
 norm() { printf '%s' "$1" | tr '\n' ' ' | sed -E "s/[\"']//g; s/[[:space:]]+/ /g; s/^ //; s/ $//"; }
 trim_tail() { printf '%s' "$1" | sed -E 's/ *2>&1 *\| *(tail|head)[^|;]*$//; s/ *2>&1 *$//; s/ *\| *(tail|head)[^|;]*$//; s/ *>\/dev\/null( 2>&1)?$//'; }
-same_cmd() { local a b; a=$(norm "$1"); b=$(norm "$2"); [ "$a" = "$b" ] || [ "$(norm "$(trim_tail "$1")")" = "$(norm "$(trim_tail "$2")")" ]; }
+# Turn a leading lab shortcut into its long form, so typing the long form counts as the same command.
+expand_sc() {
+  printf '%s' "$1" | sed -E "s#^dc #docker compose -f 03-compose/docker-compose.yml --env-file .env #; s#^dco #docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml --env-file .env #; s#^dcp #docker compose -f 03-compose/docker-compose.yml -f 16-postgres/compose.postgres.yml --env-file .env #; s#^dcl #docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml -f 15-logging/compose.logging.yml --env-file .env #; s#^ac #docker compose -f 13-ansible/compose.yml #"
+}
+same_cmd() {
+  local a b ta tb
+  a=$(norm "$1"); b=$(norm "$2")
+  ta=$(norm "$(trim_tail "$1")"); tb=$(norm "$(trim_tail "$2")")
+  [ "$a" = "$b" ] || [ "$ta" = "$tb" ] || [ "$(norm "$(expand_sc "$ta")")" = "$(norm "$(expand_sc "$tb")")" ]
+}
 show_out() { [ -n "$1" ] && { printf '%s' "$1" | sed "s/^/  ${DIM}│${RST} /"; [ "${1: -1}" != $'\n' ] && echo; }; return 0; }
 
 step_type() {
@@ -174,6 +183,7 @@ step_type() {
   badge "STEP" "$BG_B" "$1"
   printf '  %sType this command%s (type it or copy it, then press Enter):\n' "$BOLD" "$RST"
   printf '%s%s%s\n' "$DIM$CYN" "$(printf '%s' "$cmd" | sed 's/^/    ❯ /')" "$RST"
+  printf '%s' "$cmd" | grep -Eq '\| *(tail|head)' && printf '  %s(the part after | tail or | head only shortens the output: you may leave it off)%s\n' "$DIM" "$RST"
   while true; do
     printf '  %s▸%s ' "$GRN$BOLD" "$RST"
     read -r typed <&3 || { echo; exit 0; }
@@ -200,6 +210,7 @@ step_type() {
     fi
     tries=$((tries+1))
     printf '  %s ✘ NOT YET %s That ran, but this step needs the command shown above.' "$BG_R" "$RST"
+    case "$(norm "$cmd")" in dc\ *|dco\ *|dcl\ *|dcp\ *|ac\ *) case "$(norm "$typed")" in "docker compose"*) printf '\n  %sTip: dc is short for  docker compose -f 03-compose/docker-compose.yml --env-file .env  . Type  shortcuts  to see all of them.%s' "$DIM" "$RST" ;; esac ;; esac
     [ "$tries" -ge 2 ] && printf '  Stuck? Type  run  and I will run it for you.'
     printf '\n'
   done
@@ -292,8 +303,8 @@ qa() {
   fi
   badge "QUESTION" "$BG_M" "$1"
   printf '  %s🎤 Your answer ▸ %s' "$MAG" "$RST"; read -r a <&3 || exit 0
-  if printf '%s' "$a" | grep -Eiq "$2"; then QA_OK=$((QA_OK+1)); PASS=$((PASS+1)); printf '  %s✔ Good.%s  A strong answer also says: %s\n' "$GRN" "$RST" "$3"
-  else printf '  %s✘ Not quite.%s  Model answer: %s\n' "$YEL" "$RST" "$3"; fi
+  if [ "$(printf '%s' "$a" | wc -w | tr -d ' ')" -ge 3 ] && printf '%s' "$a" | grep -Eiq "$2"; then QA_OK=$((QA_OK+1)); PASS=$((PASS+1)); printf '  %s✔ Good.%s  A strong answer also says: %s\n' "$GRN" "$RST" "$3"
+  else printf '  %s✘ Not quite (a one-word answer or a different angle).%s  Model answer: %s\n' "$YEL" "$RST" "$3"; fi
 }
 qa_need() {
   local need="$1"

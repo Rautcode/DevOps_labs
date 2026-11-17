@@ -64,6 +64,8 @@ function makeStore() {
 }
 const store = makeStore();
 
+// NOTE: this is a minimal HMAC-signed token (base64url payload + SHA-256 HMAC), not a standard JWT. It keeps the sample
+// dependency-free. In production use a vetted library (for example jose) and standard JWT claims, key rotation and expiry checks.
 const sign = (payload) => {
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const mac = crypto.createHmac('sha256', JWT_SECRET).update(body).digest('base64url');
@@ -81,6 +83,11 @@ const verify = (token = '') => {
 
 // Minimal in-memory rate limiter (per client IP). ponytail: per instance only; use Redis when scaling out.
 const hits = new Map();
+// Forget clients that have been quiet for 2 minutes so the map cannot grow without bound (a slow memory leak otherwise).
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of hits) if (now - v[v.length - 1] > 120_000) hits.delete(k);
+}, 60_000).unref();
 const limit = (max, windowMs) => (req, res, next) => {
   const key = `${req.path}:${req.ip}`, now = Date.now();
   const recent = (hits.get(key) || []).filter((t) => now - t < windowMs);

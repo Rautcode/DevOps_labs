@@ -13,6 +13,10 @@ CMD
 step "Lint the Dockerfiles (hadolint)" "No output = no problems." <<'CMD'
 docker run --rm -i hadolint/hadolint < 02-containers/Dockerfile.api && docker run --rm -i hadolint/hadolint < 02-containers/Dockerfile.web && echo "Dockerfiles are clean"
 CMD
+learn "Test what the site REALLY sends" "Scanners read your files, but only a request shows what a visitor receives. A classic nginx trap: add_header at the server level is NOT inherited by a location that sets its own add_header, so a page can silently lose its security headers. X-Content-Type-Options stops browsers guessing file types, X-Frame-Options stops other sites framing yours (clickjacking), and Referrer-Policy limits what is leaked in links. This very lab had that bug on its home page until a review found it."
+step "Ask the home page for its headers" "X-Content-Type-Options: nosniff, X-Frame-Options: DENY and Referrer-Policy on the HOME page (/), not only on /healthz." ok 'X-Frame-Options: DENY' <<'CMD'
+dc up -d >/dev/null 2>&1; sleep 10; curl -sI localhost:8080/ | grep -iE "^HTTP|x-content-type|x-frame|referrer"
+CMD
 step "Run the whole gate (all 5 scanners, takes a few minutes the first time)" "ALL GATES PASSED. Trivy: 0 HIGH/CRITICAL. Checkov and kubeconform: no failures." <<'CMD'
 bash 09-security/scan.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "==|no leaks|Total:|Valid:|PASSED|FAILED"
 CMD

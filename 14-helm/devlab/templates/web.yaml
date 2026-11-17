@@ -12,6 +12,7 @@ spec:
     metadata:
       labels: { app.kubernetes.io/name: {{ .Release.Name }}-web }
     spec:
+      automountServiceAccountToken: false
       securityContext: { runAsNonRoot: true, runAsUser: 101, runAsGroup: 101, seccompProfile: { type: RuntimeDefault } }
       containers:
         - name: web

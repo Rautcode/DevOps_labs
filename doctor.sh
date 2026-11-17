@@ -13,7 +13,7 @@ command -v node >/dev/null    && ok "node $(node -v)" || bad "node" "install Nod
 echo "Optional (the lab also runs these inside Docker)"
 command -v terraform >/dev/null && ok "terraform" || opt "terraform" "use 05-terraform/tf.sh"
 command -v kind >/dev/null      && ok "kind"      || opt "kind" "use 06-kubernetes/cluster.sh"
-command -v helm >/dev/null      && ok "helm"      || opt "helm" "only for the Helm exercise in module 06"
+command -v helm >/dev/null      && ok "helm"      || opt "helm" "only for the optional Helm use in module 14 (it runs in Docker by default)"
 if [ -f .env ]; then ok ".env exists"; else cp .env.example .env && ok "created .env from example"; fi
 gb=$(docker info --format '{{.MemTotal}}' 2>/dev/null | awk '{printf "%d", $1/1073741824}')
 if [ "${gb:-0}" -ge 6 ]; then ok "Docker has ${gb}GB RAM"; else bad "Docker memory ${gb:-?}GB" "give Docker >= 6GB (modules 06-08 run many containers)"; fi

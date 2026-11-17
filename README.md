@@ -176,6 +176,24 @@ Change the app freely (add endpoints, break it, swap SQLite for Postgres): it ex
 | Git Bash mangles `/paths` in `docker run` | prefix with `MSYS_NO_PATHCONV=1` (scripts already do) |
 | Containers crash after sleep / low RAM | raise Docker memory, `docker compose ... up -d` |
 
+## Known simplifications: what production would do differently
+This is a learning lab, so some choices are deliberately simple. Knowing them is part of the lesson: say them out loud in an interview.
+| In the lab | In production |
+|---|---|
+| One tiny app with SQLite (modules 01-15) | a managed database and several copies of the API (module 16 shows the step) |
+| The API's token is a small HMAC-signed value, not a standard JWT | a vetted library (for example `jose`), real JWT claims, key rotation |
+| Secrets in `.env.example`, the dev overlay and Helm values (public on purpose) | a secret manager (module 20) and External Secrets or Sealed Secrets |
+| A Deployment has `replicas:` and an HPA | when an HPA owns the count, leave `replicas` out of the manifest, otherwise each apply resets it |
+| NetworkPolicies restrict **ingress** only | add **egress** policies (and allow DNS) so a compromised pod cannot call out anywhere |
+| Base images use moving tags (`node:24-slim`, `nginx stable-alpine`) | pin by digest and rebuild on a schedule with Dependabot |
+| Grafana runs with anonymous admin; Prometheus and Alloy are exposed on your computer | authentication, TLS, private networks; Alloy mounts the Docker socket, which is powerful |
+| Vault in dev mode with a known root token | real storage, unsealing, TLS, auth methods, audit logs |
+| LocalStack pinned to 4.12 (the last tokenless image) | a real account, or a maintained emulator |
+| No TLS on the Kubernetes ingress | cert-manager with automatically renewed certificates |
+| One environment on one computer | separate accounts per environment, approval gates, staged rollouts |
+
+A review of this lab also found and fixed real bugs: the home page was missing its security headers because of how nginx handles `add_header`, the rate limiter never forgot old clients, pods mounted a service-account token they did not need, the CI pipeline pinned actions by tag while lesson 22 taught SHAs, and a third-party action tag vanished. Reviews catch what tests do not.
+
 ## What was verified
 Run on Docker Desktop (Windows) while building this repo, **every lesson was executed end to end in an automatic mode that performs each hands-on task and checks the result**. The interviews and finals (5 items per module, 115 in total) were run the same way: the lab sets up the scenario (it breaks things on purpose), applies a reference solution, and the real check must pass.
 - **01-03:** API tests, compose stack, nginx proxy, persistence, overrides, Git exercise.

@@ -2,7 +2,7 @@
 # One-command security gate. Needs only Docker. Run from repo root: bash 09-security/scan.sh
 # Each tool = one layer of "shift-left" security. Exit code is non-zero if any gate fails.
 set -u
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 export MSYS_NO_PATHCONV=1
 fail=0
 step() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
