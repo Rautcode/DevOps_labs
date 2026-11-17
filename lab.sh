@@ -35,6 +35,12 @@ lab-tf-aws()  { bash 17-aws/tf-aws.sh "$@"; }
 awsl()   { AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test aws --no-cli-pager --endpoint-url=http://localhost:4566 --region ap-south-1 "$@"; }
 leads()  { dc exec -T api node -e "const {DatabaseSync}=require('node:sqlite');console.log('leads in database:',new DatabaseSync('/data/database.sqlite').prepare('select count(*) c from leads').get().c)"; }
 kleads() { kubectl -n devlab-dev exec devlab-api-0 -- node -e "const {DatabaseSync}=require('node:sqlite');console.log('leads in database:',new DatabaseSync('/data/database.sqlite').prepare('select count(*) c from leads').get().c)"; }
+gh_repo() { git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##'; }     # owner/repo of this checkout
+ghget()   { curl -s "https://api.github.com/repos/$(gh_repo)$1"; }                                                          # read-only GitHub API for your repo (public repos need no login)
+ghjobs()  { local id; id=$(ghget '/actions/workflows/ci.yml/runs?status=completed&per_page=1' | grep -m1 '"id"' | grep -o '[0-9]*'); ghget "/actions/runs/$id/jobs" | grep -E '^      "(name|conclusion)"' | sed -E 's/^ +"(name|conclusion)": "?([^",]*)"?,?/\1: \2/'; }   # jobs of the latest finished CI run
+lx()  { docker exec lab-linux "$@"; }                       # run a command inside the Linux practice server (module 18)
+g()   { git -C playground/collab "$@"; }                      # git inside the practice repo (module 19)
+vlt() { local i=; case "$*" in *"policy write"*) i=-i ;; esac; docker exec $i -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN="${VAULT_TOKEN_LAB:-lab-root}" lab-vault vault "$@"; }   # the Vault CLI (module 20); stdin is attached only for "policy write"
 leadsfor()  { dc exec -T api node -e "const {DatabaseSync}=require('node:sqlite');console.log(new DatabaseSync('/data/database.sqlite').prepare('select count(*) c from leads where email=?').get('$1').c)" | tr -d '\r\n '; }
 kleadsfor() { kubectl -n devlab-dev exec devlab-api-0 -- node -e "const {DatabaseSync}=require('node:sqlite');console.log(new DatabaseSync('/data/database.sqlite').prepare('select count(*) c from leads where email=?').get('$1').c)" | tr -d '\r\n '; }
 edit()   { local f="$1"; mkdir -p "$(dirname "$f")"; if command -v nano >/dev/null 2>&1; then nano "$f"; else notepad "$(cygpath -w "$f" 2>/dev/null || echo "$f")"; fi; }
@@ -48,6 +54,10 @@ shortcuts() {
   printf '    lab-ansible / lab-helm / lab-tf-aws   run Ansible, Helm or Terraform-for-AWS in Docker\n'
   printf '    awsl      the AWS CLI pointed at LocalStack (the free fake AWS)\n'
   printf '    leads / kleads   count the leads in the database (compose / Kubernetes)\n'
+  printf '    ghget /PATH   read your repo from the GitHub API, for example ghget /actions/runs   ghjobs  the jobs of the latest CI run\n'
+  printf '    lx CMD    run CMD inside the Linux practice server (module 18)\n'
+  printf '    g CMD     git inside the practice repo playground/collab (module 19)\n'
+  printf '    vlt CMD   the Vault CLI against the practice Vault (module 20)\n'
   printf '    edit FILE open a file in the nano editor (Ctrl+O save, Ctrl+X exit)\n'
   printf '  Type  type dc  to see exactly what a shortcut does.\n'
 }
@@ -271,6 +281,27 @@ exam() {
 interview() { exam INTERVIEW "$BG_M" "$@"; }
 final()     { exam FINAL "$BG_W" "$@"; }
 
+# qa "question" 'regex of a correct answer' "model answer": a scored spoken-interview question.
+# Wrong answers do not block; qa_need N requires at least N correct answers in the block.
+QA_OK=0; QA_N=0
+qa() {
+  local a; QA_N=$((QA_N+1))
+  if [ -n "$AUTO" ]; then
+    if printf '%s' "$3" | grep -Eiq "$2"; then QA_OK=$((QA_OK+1)); pass; else fail "(model answer does not match its own pattern)"; fi
+    return 0
+  fi
+  badge "QUESTION" "$BG_M" "$1"
+  printf '  %s🎤 Your answer ▸ %s' "$MAG" "$RST"; read -r a <&3 || exit 0
+  if printf '%s' "$a" | grep -Eiq "$2"; then QA_OK=$((QA_OK+1)); PASS=$((PASS+1)); printf '  %s✔ Good.%s  A strong answer also says: %s\n' "$GRN" "$RST" "$3"
+  else printf '  %s✘ Not quite.%s  Model answer: %s\n' "$YEL" "$RST" "$3"; fi
+}
+qa_need() {
+  local need="$1"
+  if [ "$QA_OK" -ge "$need" ]; then printf '\n  %s✔ Interview round passed:%s %d of %d answers were strong (needed %d).\n' "$GRN" "$RST" "$QA_OK" "$QA_N" "$need"
+  else FAIL=$((FAIL+1)); printf '\n  %s ✘ NOT YET %s %d of %d answers were strong, you need %d. Re-read the model answers above and retry this module.\n' "$BG_R" "$RST" "$QA_OK" "$QA_N" "$need"; fi
+  QA_OK=0; QA_N=0
+}
+
 # quiz "question" 'regex of a correct answer' "model answer"
 quiz() {
   [ -n "$AUTO" ] && return 0
@@ -311,14 +342,26 @@ menu() {
     printf '   %s  %s%s%s  %s\n' "$mark" "$BOLD" "$id" "$RST" "$(lesson_title "$f")"
   done
   printf '\n   Progress  %s  %d/%d      Rank: %s%s%s\n' "$(bar "$n" "$LESSONS" 30)" "$n" "$LESSONS" "$BOLD$CYN" "$(rank "$n")" "$RST"
-  printf '\n   %s✔ complete   ◐ lessons done, exam pending   🔒 locked until the previous module is passed%s\n' "$DIM" "$RST"
+  printf '\n   %s✔ complete   ◐ lessons done, exam pending   🔒 locked until its prerequisite module is passed%s\n' "$DIM" "$RST"
   printf '   %sbash lab.sh 01%s start (continues by itself)   %sbash lab.sh next%s resume   %sbash lab.sh final 05%s retake an exam   %sbash lab.sh down%s stop all\n' "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST"
 }
 
-gate_ok() { # a module unlocks when the previous one is complete (not enforced in auto-test mode)
+# Which module must be passed before this one unlocks. Core path: the previous number.
+# Extra modules open earlier: Linux admin and Git collaboration after 01, Secrets after 03,
+# Kubernetes advanced after 06, Ship-it-for-real and Interview prep after the core path (11).
+prereq_of() {
+  case "$((10#$1))" in
+    18|19) echo 01 ;;
+    20) echo 03 ;;
+    21) echo 06 ;;
+    22|23) echo 11 ;;
+    *) printf '%02d' "$((10#$1 - 1))" ;;
+  esac
+}
+gate_ok() { # a module unlocks when its prerequisite is complete (not enforced in auto-test mode)
   [ -n "$AUTO" ] || [ -n "${LAB_SKIPGATE:-}" ] && return 0
   [ "$((10#$1))" -le 1 ] && return 0
-  has "$(printf '%02d' "$((10#$1 - 1))")"
+  has "$(prereq_of "$1")"
 }
 
 run_lesson() {
@@ -326,7 +369,7 @@ run_lesson() {
   f=$(lesson_file "$id"); ff="finals/$id.sh"
   [ -z "$f" ] && { echo "No lesson '$id'. Try: bash lab.sh"; exit 1; }
   if ! gate_ok "$id"; then
-    printf '\n  %s🔒 Module %s is locked.%s Pass module %s (lessons, interview and final) first:  bash lab.sh %s\n' "$BOLD" "$id" "$RST" "$(printf '%02d' "$((10#$id - 1))")" "$(printf '%02d' "$((10#$id - 1))")"
+    printf '\n  %s🔒 Module %s is locked.%s Pass module %s (lessons, interview and final) first:  bash lab.sh %s\n' "$BOLD" "$id" "$RST" "$(prereq_of "$id")" "$(prereq_of "$id")"
     return 1
   fi
   [ -f .env ] || cp .env.example .env
@@ -334,7 +377,7 @@ run_lesson() {
 
   # ---- part 1: the lessons (learn, do, learn, do ...) ----
   if [ -z "${ONLY_FINAL:-}" ] && { [ -n "$AUTO" ] || ! has "$id.learn"; }; then
-    PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(OPT=1 )?(step|task|quiz) ' "$f")
+    PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(OPT=1 )?(step|task|quiz|qa) ' "$f")
     # shellcheck disable=SC1090
     . "$f"
     part_summary "$id" "Lessons"
@@ -346,7 +389,7 @@ run_lesson() {
   # ---- part 2: interview + module final ----
   ok=1
   if [ -f "$ff" ]; then
-    PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(interview|final) ' "$ff")
+    PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(interview|final|qa) ' "$ff")
     printf '\n'; box "$BOLD$MAG" "Module $id · INTERVIEW and FINAL: show me, do not just tell me"
     explain "No more step-by-step help. The interviewer describes a situation, you fix or build it at the lab prompt, then type check. There is no answer key and every item must pass to unlock the next module. You may use  hint  and look things up."
     # shellcheck disable=SC1090
@@ -405,13 +448,21 @@ case "${1:-menu}" in
   down)
     # one 'down' that knows every compose file used by the lessons (app, monitoring, logging, postgres)
     docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml -f 15-logging/compose.logging.yml -f 16-postgres/compose.postgres.yml --env-file .env down --remove-orphans 2>&1 | tail -3
-    docker rm -f lab-api lab-tls lab-a lab-b lab-lb >/dev/null 2>&1; docker network rm lab-net >/dev/null 2>&1
+    docker rm -f lab-api lab-tls lab-a lab-b lab-lb lab-linux lab-vault vault-api exam-vault-api exam-api exam-a exam-b exam-db port-squatter >/dev/null 2>&1; docker network rm lab-net exam-net >/dev/null 2>&1
     bash 06-kubernetes/cluster.sh down 2>/dev/null
     docker compose -f 05-terraform/compose.localstack.yml down 2>&1 | tail -1
     docker compose -f 13-ansible/compose.yml down 2>&1 | tail -1 ;;
   reset) rm -f "$PROGRESS"; echo "progress cleared" ;;
+  feedback)
+    printf '\n%sLab feedback%s\n' "$BOLD" "$RST"
+    printf '  Tell us what was confusing, broken, too easy or too hard. It makes the lab better for everyone.\n'
+    printf '  1. Open:  https://github.com/%s/issues/new?template=feedback.yml\n' "$(gh_repo)"
+    printf '  2. Paste this summary of your progress:\n\n'
+    printf '     modules complete: %s of %s\n' "$(done_count)" "$LESSONS"
+    printf '     completed: %s\n' "$(grep -E '^[0-9][0-9]$' "$PROGRESS" 2>/dev/null | tr '\n' ' ')"
+    printf '     computer: %s, docker %s\n\n' "${OSTYPE:-unknown}" "$(docker --version 2>/dev/null | sed 's/Docker version //; s/,.*//')" ;;
   final) ONLY_FINAL=1 run_lesson "$(printf '%02d' "$((10#${2:-1}))")" ;;
   next|continue) nxt=$(first_incomplete); [ -z "$nxt" ] && { echo "All lessons are done."; exit 0; }; flow "$nxt" ;;
   [0-9]*) if [ -n "$AUTO" ]; then run_lesson "$(printf '%02d' "$((10#$1))")"; else flow "$(printf '%02d' "$((10#$1))")"; fi ;;
-  *) echo "usage: bash lab.sh [menu|NN|next|final NN|status|down|reset]"; exit 1 ;;
+  *) echo "usage: bash lab.sh [menu|NN|next|final NN|status|feedback|down|reset]"; exit 1 ;;
 esac

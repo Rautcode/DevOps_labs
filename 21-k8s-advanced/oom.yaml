@@ -1,0 +1,14 @@
+# This pod needs about 100 MB of memory but is only allowed 20 MB: the kernel kills it (OOMKilled).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom-demo
+spec:
+  restartPolicy: Always
+  containers:
+    - name: hog
+      image: python:3.12-alpine
+      command: ["python", "-c", "x = b'a' * (100 * 1024 * 1024); import time; time.sleep(600)"]
+      resources:
+        limits:
+          memory: 20Mi

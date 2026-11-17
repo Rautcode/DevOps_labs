@@ -1,0 +1,24 @@
+diff --git a/app/db.js b/app/db.js
+index 3b1c2aa..9f0e7d4 100644
+--- a/app/db.js
++++ b/app/db.js
+@@ -1,7 +1,11 @@
+ const { Pool } = require('pg');
+
+-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
++// quick fix so I can test locally, will clean up later
++const pool = new Pool({
++  host: 'prod-db.internal',
++  user: 'admin',
++  password: 'hunter2',
++});
+
+ module.exports = pool;
+diff --git a/app/orders.js b/app/orders.js
+index 77d1e02..a5c3319 100644
+--- a/app/orders.js
++++ b/app/orders.js
+@@ -12,6 +12,6 @@ async function cancel(id) {
+-  await pool.query('DELETE FROM orders WHERE id = $1', [id]);
++  await pool.query('DELETE FROM orders WHERE id = ' + id);
+ }

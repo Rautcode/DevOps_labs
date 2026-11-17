@@ -2,7 +2,7 @@
 part "PART · INTERVIEW"
 
 interview "Hunt the leaked secret" "Interviewer: 'A teammate saved a GitHub token in playground/leaky/config.txt. Find it with the secret scanner (gitleaks, scanning the folder without git history), then REMOVE the secret from the file but keep the rest of the file. The scanner must come back clean.'" "docker run --rm -v \"\$PWD/playground/leaky:/src\" zricethezav/gitleaks:latest detect --no-git --source /src --no-banner   shows the finding. Delete just that line, for example with sed -i '/ghp_/d' playground/leaky/config.txt" <<'X'
-rm -rf playground/leaky; mkdir -p playground/leaky; printf 'app=devlab\ngithub_token=ghp_1234567890abcdefghijklmnopqrstuvwxyz\nport=5000\n' > playground/leaky/config.txt
+rm -rf playground/leaky; mkdir -p playground/leaky; printf 'app=devlab\ngithub_token=%s%s\nport=5000\n' ghp_ 1234567890abcdefghijklmnopqrstuvwxyz > playground/leaky/config.txt
 ---
 grep -q 'port=5000' playground/leaky/config.txt && docker run --rm -v "$PWD/playground/leaky:/src" zricethezav/gitleaks:latest detect --no-git --source /src --no-banner >/dev/null 2>&1
 ---

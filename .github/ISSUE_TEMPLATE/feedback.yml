@@ -1,0 +1,42 @@
+name: Lab feedback
+description: Tell us what was confusing, broken, too easy, too hard, or great
+title: "[feedback] "
+labels: [feedback]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you! Real learner feedback is the most valuable thing this lab can get.
+        Run `bash lab.sh feedback` to see your progress and paste it below.
+  - type: input
+    id: where
+    attributes:
+      label: Where were you?
+      description: Module and step, for example "module 06, step 12 (kubectl wait)".
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of feedback?
+      options:
+        - Confusing explanation
+        - A command failed
+        - Too easy
+        - Too hard
+        - Took much longer than the estimate
+        - Great, keep it
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What happened?
+      description: What did you expect, what did you see? Paste the error text if there is one.
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Your computer
+      description: "For example: Windows 11, Docker Desktop 4.x, Git Bash"

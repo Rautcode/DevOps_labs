@@ -1,0 +1,17 @@
+# A CronJob creates a Job on a schedule (same five-field format as cron). Typical use: backups, reports, cleanups.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hello-cron
+spec:
+  schedule: "* * * * *"            # every minute
+  successfulJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: hello
+              image: busybox:1.36
+              command: ["sh", "-c", "date; echo hello from a cronjob"]

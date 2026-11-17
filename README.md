@@ -1,5 +1,6 @@
 # DevOps and Cloud Lab
 
+![CI](https://github.com/Rautcode/DevOps_labs/actions/workflows/ci.yml/badge.svg)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-7B42BC?logo=terraform&logoColor=white)
@@ -40,10 +41,15 @@ flowchart LR
   subgraph Specialist["Specialist tracks"]
     N[12 Networking] --> AN[13 Ansible] --> H[14 Helm and RBAC] --> L[15 Logging and tracing] --> PG[16 Postgres] --> AW[17 Real cloud: AWS]
   end
+  subgraph Extra["Job-ready extras"]
+    LX[18 Linux admin] --- GC[19 Git collaboration] --- SE[20 Secrets] --- KA[21 Kubernetes advanced] --- SH[22 Ship it for real] --- IV[23 Interview prep]
+  end
   M --> CI
   K --> G
   R --> X
   X --> N
+  F --> LX
+  X --> SH
 ```
 
 ## Learning path
@@ -67,8 +73,14 @@ flowchart LR
 | | [15](15-logging/README.md) | Logging and tracing | Loki + Alloy, LogQL, Jaeger traces | 2h |
 | | [16](16-postgres/README.md) | Postgres | real database, scaling the API, pg_dump backup | 2h |
 | | [17](17-aws/README.md) | Real cloud (AWS) | budget alarms, cloud security scanning, safe real-account apply | 2h |
+| **Job-ready extras** | [18](18-linux/README.md) | Linux administration | users, permissions, processes, disk, cron, systemd, SSH keys *(unlocks after 01)* | 3h |
+| | [19](19-git/README.md) | Git collaboration | conflicts, rebase, reflog recovery, bisect, code review *(after 01)* | 2.5h |
+| | [20](20-secrets/README.md) | Secrets management | HashiCorp Vault, policies, rotation, revocation *(after 03)* | 2h |
+| | [21](21-k8s-advanced/README.md) | Kubernetes advanced | Jobs, ConfigMaps, OOMKilled, autoscaling, ingress *(after 06)* | 3h |
+| | [22](22-ship/README.md) | Ship it for real | a LIVE GitHub pipeline, PRs, releases, real cloud deploy code *(after 11)* | 3h |
+| | [23](23-interview/README.md) | Interview prep | spoken rounds, system design, STAR story, mock interview *(after 11)* | 3h |
 
-Follow it in order; the lab moves on to the next lesson automatically. The core path is 01-11, the **specialist tracks** 12-17 go deeper. Do not skip **Break it**: operating skill comes from failures. Tick modules off as you finish them and keep notes on what broke.
+Follow it in order; the lab moves on to the next lesson automatically. The core path is 01-11, the **specialist tracks** 12-17 go deeper, and the **job-ready extras** 18-23 add what employers ask about most (some unlock early: see the table). Finish with [JOB-READY.md](JOB-READY.md) and [CERTIFICATIONS.md](CERTIFICATIONS.md). Do not skip **Break it**: operating skill comes from failures. Tick modules off as you finish them and keep notes on what broke.
 
 ## Start here: guided mode (easiest)
 **Windows: just double-click `lab.cmd`.** It checks Docker and opens the lab in its own Git Bash window.
@@ -113,7 +125,7 @@ What it looks like in your terminal:
   lab ▸ check
    ✔ PASS
 
-  Overall  ████████░░░░░░░░░░░░░░░░  4/17 lessons   Rank: DevOps Engineer
+  Overall  ████████░░░░░░░░░░░░░░░░  4/23 lessons   Rank: DevOps Engineer
 ```
 You earn a rank as you go: Newcomer, Junior Operator, DevOps Engineer, Platform Engineer, Senior Engineer, SRE Legend.
 
@@ -139,6 +151,10 @@ app/web/   sample static site with a form that calls the API
 01-foundations/ 02-containers/ 03-compose/ 04-ci-cd/ 05-terraform/ 06-kubernetes/
 07-gitops/ 08-observability/ 09-security/ 10-sre/ 11-capstone/
 12-networking/ 13-ansible/ 14-helm/ 15-logging/ 16-postgres/ 17-aws/      (specialist tracks)
+18-linux/ 19-git/ 20-secrets/ 21-k8s-advanced/ 22-ship/ 23-interview/      (job-ready extras)
+finals/NN.sh       the interview + module final of each module
+.github/           the LIVE CI pipeline, Dependabot, feedback template
+JOB-READY.md  CERTIFICATIONS.md
 doctor.sh  .env.example  RESOURCES.md
 ```
 Change the app freely (add endpoints, break it, swap SQLite for Postgres): it exists to be operated.
@@ -161,19 +177,19 @@ Change the app freely (add endpoints, break it, swap SQLite for Postgres): it ex
 | Containers crash after sleep / low RAM | raise Docker memory, `docker compose ... up -d` |
 
 ## What was verified
-Run on Docker Desktop (Windows) while building this repo, **every lesson was executed end to end in an automatic mode that performs each hands-on task and checks the result** (the newer lessons also check the actual output, not just that a command exited cleanly):
-- **Interviews and finals:** all 85 exam items (5 per module) were run the same way: the lab sets up the scenario (it breaks things on purpose), applies a reference solution, and the real check must pass.
+Run on Docker Desktop (Windows) while building this repo, **every lesson was executed end to end in an automatic mode that performs each hands-on task and checks the result**. The interviews and finals (5 items per module, 115 in total) were run the same way: the lab sets up the scenario (it breaks things on purpose), applies a reference solution, and the real check must pass.
 - **01-03:** API tests, compose stack, nginx proxy, persistence, overrides, Git exercise.
-- **04-05:** both workflows pass `actionlint`; Terraform fmt/validate/**2 tests**; real apply/drift-heal/destroy on LocalStack.
-- **06-07:** Kustomize + schema validation; deployment to a **real k3s cluster** (self-healing with data kept, rolling restart, NetworkPolicy block, the SQLite scaling mistake).
-- **08-11:** Prometheus probes and 7 alert rules, a real alert firing, five security scanners, a game day, and a **backup, destroy, restore** drill.
-- **12 Networking:** DNS lookups, port clash, a self-signed TLS 1.3 server, a load balancer with failover.
-- **13 Ansible:** two SSH-managed servers, idempotent playbook (`changed=0` on re-run), drift repaired on one server only.
-- **14 Helm and RBAC:** chart lint, install, upgrade, rollback on the cluster; RBAC allow/deny checks.
-- **15 Logging and tracing:** Loki + Alloy ingesting container logs, LogQL queries, a trace read back from Jaeger.
-- **16 Postgres:** API switched to Postgres, scaled to 3 copies over one database, `pg_dump` restore.
-- **17 AWS:** Terraform validate, Checkov (49 pass), and the risky-file fix exercise.
+- **04-05:** workflows pass `actionlint`; Terraform fmt/validate/**2 tests**; real apply, drift heal and destroy on LocalStack.
+- **06-07:** Kustomize + schema validation; a **real k3s cluster** (self-healing with data kept, rolling restart, NetworkPolicy block, the SQLite scaling mistake).
+- **08-11:** Prometheus probes and alert rules, a real alert firing, five security scanners, a game day, a **backup, destroy, restore** drill.
+- **12-17:** DNS, TLS 1.3, a load balancer with failover; Ansible idempotence and drift repair; Helm install/upgrade/rollback and RBAC; Loki logs and a Jaeger trace; Postgres with 3 API copies and a `pg_dump` restore; AWS Terraform validate and Checkov.
+- **18 Linux administration:** a real Debian server: permissions, processes, disk, cron, systemd units, SSH keys, sudo.
+- **19 Git collaboration:** conflicts, rebase, reflog recovery, `git bisect run`, a review exercise.
+- **20 Secrets:** a real Vault server: policies, tokens, rotation, deploying the API with secrets from Vault, revocation.
+- **21 Kubernetes advanced:** a cluster with metrics-server and Traefik: Jobs, CronJobs, ConfigMaps, a real OOMKill, a real autoscale-up, an Ingress route.
+- **22 Ship it for real:** the **CI pipeline runs on GitHub for every push and all four jobs pass** (its first run failed on a real, now-fixed problem). The cloud-deploy Terraform passes validate and Checkov (32 checks).
+- **23 Interview prep:** 31 scored questions, a system-design document, a STAR story and a live-troubleshooting mock interview.
 
-**Not run:** the GitHub Actions workflows on GitHub itself, the Argo CD and Kyverno installs, and anything that applies to a real AWS account (the lesson explains the checks and guardrails; those steps are optional).
+**Not run by the lab author (needs you):** applying to a real AWS account (modules 17 and 22 are validated and scanned, and the apply steps are optional with safety rules), the optional pull-request and release tasks on your own repository, Argo CD and Kyverno installs, and testing with real learners. Tell us how it goes: `bash lab.sh feedback`.
 
-See [RESOURCES.md](RESOURCES.md) for the research behind this curriculum and where to go next.
+See [RESOURCES.md](RESOURCES.md) for the research behind this curriculum, [JOB-READY.md](JOB-READY.md) for turning the lab into interviews, and [CERTIFICATIONS.md](CERTIFICATIONS.md) for exam planning.
