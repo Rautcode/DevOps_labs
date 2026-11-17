@@ -1,6 +1,6 @@
 # 10 · SRE and Incident Response (Advanced, ~4h)
 
-> **Guided version:** run `bash lab.sh 10` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 10` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** operate the system like an owner: define reliability, get alerted on what matters, respond from a runbook, learn through blameless postmortems.
 

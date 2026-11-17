@@ -4,7 +4,7 @@ explain "Monitoring tells you the site is broken BEFORE your users do. Prometheu
 
 part "PART A · Start monitoring"
 step "Start the app plus Prometheus, Grafana and a probe" "Containers Started: blackbox, prometheus, grafana (plus api and web)." <<'CMD'
-$DCO up -d 2>&1 | tail -5
+dco up -d 2>&1 | tail -5
 CMD
 step "Wait for the first checks, then ask: is the site up?" "Two results with value 1 = up (one for the homepage, one for /healthz). 0 would mean down." <<'CMD'
 sleep 45; curl -s 'localhost:9090/api/v1/query?query=probe_success' | grep -o '"instance":"[^"]*"\|"value":\[[^]]*\]'
@@ -21,7 +21,7 @@ CMD
 
 part "PART B · Hands-on: trigger an alert"
 explain "Now break the site on purpose and watch the monitoring notice. Open http://localhost:9090/alerts in your browser first."
-task "Stop the API and wait for the EndpointDown alert" "In another terminal run: docker stop devlab-api-1   Then refresh http://localhost:9090/alerts every 15 seconds. EndpointDown goes to PENDING, then to FIRING after a minute. Come back here and press Enter when you see it." "It can take up to 2 minutes. Prometheus checks every 15 seconds and the alert waits 1 minute before firing, to avoid false alarms." <<'X'
+task "Stop the API and wait for the EndpointDown alert" "Type:  docker stop devlab-api-1   Then open http://localhost:9090/alerts in your browser and refresh it every 15 seconds. EndpointDown goes to PENDING, then to FIRING after a minute. When you can see it, type  check  here." "It can take up to 2 minutes. Prometheus checks every 15 seconds and the alert waits 1 minute before firing, to avoid false alarms." <<'X'
 curl -s localhost:9090/api/v1/alerts | grep -q EndpointDown
 ---
 docker stop devlab-api-1 >/dev/null; for i in $(seq 1 40); do curl -s localhost:9090/api/v1/alerts | grep -q EndpointDown && exit 0; sleep 5; done; exit 1
@@ -33,7 +33,7 @@ quiz "Why alert on 'error budget burn rate' instead of 'CPU above 80%'?" "user|s
 
 part "PART C · Tidy up"
 step "Stop the monitoring tools (the app keeps running)" "prometheus, grafana and blackbox stopped." <<'CMD'
-$DCO rm -sf prometheus grafana blackbox 2>&1 | tail -3
+dco rm -sf prometheus grafana blackbox 2>&1 | tail -3
 CMD
 
 explain "Done! Next: bash lab.sh 09"

@@ -13,7 +13,7 @@ quiz "If the SLO were 99.9% instead, roughly how many minutes per 30 days? (hint
 
 part "PART B · Game day: cause an incident"
 step "Start the monitoring tools" "prometheus, grafana, blackbox running." <<'CMD'
-$DCO up -d 2>&1 | tail -3; sleep 30
+dco up -d 2>&1 | tail -3; sleep 30
 CMD
 step "INJECT the failure: stop the API" "The container stops. You are now 'on call'." <<'CMD'
 docker stop devlab-api-1
@@ -25,7 +25,7 @@ step "Follow the RUNBOOK, step 1: triage" "502 from the proxy = web is up and ap
 curl -s -i localhost:8080/healthz | head -1; docker inspect devlab-api-1 --format 'api state: {{.State.Status}}'
 CMD
 step "Runbook step 2: read the API logs" "Last log lines of the stopped container. For a crash these would show the reason." <<'CMD'
-$DC logs api --tail 3
+dc logs api --tail 3
 CMD
 step "MITIGATE: start the API" '{"ok":true}' <<'CMD'
 docker start devlab-api-1 >/dev/null; sleep 12; curl -s localhost:8080/healthz
@@ -41,7 +41,7 @@ X
 quiz "In a BLAMELESS postmortem, who do we blame?" "no one|nobody|noone|system|process|not a person|nothing" "No person. People acted sensibly with the information they had; we fix the system, process or alert that allowed the problem."
 
 step "Tidy up: stop the monitoring tools" "Stopped." <<'CMD'
-$DCO rm -sf prometheus grafana blackbox 2>&1 | tail -3
+dco rm -sf prometheus grafana blackbox 2>&1 | tail -3
 CMD
 
 explain "Done! Next: bash lab.sh 11"

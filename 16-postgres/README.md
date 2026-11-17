@@ -1,6 +1,6 @@
 # 16 · Postgres (Specialist, ~2h)
 
-> **Guided version:** run `bash lab.sh 16` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 16` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** replace the SQLite file with a real database server, and see why that lets the API run as many copies.
 

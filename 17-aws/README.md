@@ -1,6 +1,6 @@
 # 17 · Real cloud: AWS (Specialist, ~2h)
 
-> **Guided version:** run `bash lab.sh 17` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 17` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** bridge from your laptop to a real cloud account **without a surprise bill**: safety habits first, security scanning with no account needed, and an optional, budget-protected apply.
 

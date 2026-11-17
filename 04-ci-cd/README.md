@@ -1,6 +1,6 @@
 # 04 · CI/CD with GitHub Actions (Intermediate, ~4h)
 
-> **Guided version:** run `bash lab.sh 04` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 04` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** every push is automatically tested, built, scanned; every tag produces a signed, traceable release.
 

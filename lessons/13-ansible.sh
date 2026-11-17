@@ -1,7 +1,6 @@
 # Ansible: configure servers with code (about 2h)
 title "Module 13 · Ansible"
 explain "Terraform creates infrastructure. Ansible CONFIGURES it: packages, files, users, services. You describe the desired state in a 'playbook' and Ansible makes each server match, over SSH, without installing anything on the servers. Running it twice changes nothing the second time (idempotent). You will manage two practice servers."
-ANS="bash 13-ansible/ansible.sh"; AC="docker compose -f 13-ansible/compose.yml"; export ANS AC
 
 part "PART A · Build the practice servers"
 step "Build the Ansible control image (first time takes a minute or two)" "Successfully built, or the image devlab-ansible is listed." ok 'devlab-ansible' <<'CMD'
@@ -11,19 +10,19 @@ step "Create an SSH key pair (Ansible logs in with a key, not a password)" "id_l
 mkdir -p playground/ssh; rm -f playground/ssh/id_lab playground/ssh/id_lab.pub; docker run --rm -v "$PWD/playground/ssh:/k" devlab-ansible ssh-keygen -t ed25519 -N "" -f /k/id_lab -q; ls playground/ssh
 CMD
 step "Start two practice servers (web1 and web2) that accept that key" "Containers ansible-web1-1 and ansible-web2-1 Started." ok 'web2' <<'CMD'
-SSH_PUBKEY="$(cat playground/ssh/id_lab.pub)" $AC up -d --build 2>&1 | tail -4; sleep 4
+SSH_PUBKEY="$(cat playground/ssh/id_lab.pub)" ac up -d --build 2>&1 | tail -4; sleep 4
 CMD
 quiz "Why does Ansible use SSH keys instead of passwords?" "secur|safe|password|guess|automat|steal|no prompt|brute" "Keys cannot be guessed like passwords and let automation log in without a human typing anything. Only the matching private key opens the door."
 
 part "PART B · Talk to the servers"
 step "Ad-hoc command: are the servers reachable? (ansible -m ping)" "web1 | SUCCESS and web2 | SUCCESS, each with \"ping\": \"pong\". Ansible reached both over SSH." ok 'pong' <<'CMD'
-$ANS ansible web -m ping
+lab-ansible ansible web -m ping
 CMD
 step "Run a one-off command on every server" "Both servers report Debian 12. One command, many machines." ok 'Debian' <<'CMD'
-$ANS ansible web -m command -a "grep PRETTY_NAME /etc/os-release"
+lab-ansible ansible web -m command -a "grep PRETTY_NAME /etc/os-release"
 CMD
 step "Is curl installed yet?" "command not found / non-zero exit on both servers. Nothing is configured yet." fail 'FAILED|non-zero|rc=1|not found|No such' <<'CMD'
-$ANS ansible web -m command -a "curl --version"
+lab-ansible ansible web -m command -a "curl --version"
 CMD
 
 part "PART C · A playbook: desired state"
@@ -31,42 +30,42 @@ step "Read the playbook" "Tasks: install packages, create a directory, render a 
 cat 13-ansible/site.yml
 CMD
 step "Run the playbook (first run: apt downloads packages, about a minute)" "PLAY RECAP with changed=3 or 4 and failed=0 for web1 and web2. Yellow 'changed' tasks mean Ansible fixed something." ok 'failed=0' <<'CMD'
-$ANS ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^TASK|^PLAY RECAP|changed=|RUNNING HANDLER"
+lab-ansible ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^TASK|^PLAY RECAP|changed=|RUNNING HANDLER"
 CMD
 step "Run it AGAIN: this is idempotence" "changed=0 everywhere. The servers already match the desired state, so Ansible does nothing. This makes running it again always safe." ok 'changed=0.*failed=0' <<'CMD'
-$ANS ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^PLAY RECAP|changed="
+lab-ansible ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^PLAY RECAP|changed="
 CMD
 step "Look at the file Ansible created on a server" "A config rendered from the template: app=devlab, host=web1, greeting=Hello from Ansible." ok 'managed by ansible' <<'CMD'
-$AC exec -T web1 cat /opt/devlab/app.conf
+ac exec -T web1 cat /opt/devlab/app.conf
 CMD
 quiz "What does 'idempotent' mean for a configuration tool?" "same|again|twice|repeat|no change|safe|nothing|result" "Running it once or many times gives the same result. If a server is already correct nothing changes, so you can re-run it any time without fear."
 
 part "PART D · Drift and variables"
 explain "Drift = someone changes a server by hand. Ansible notices on the next run and puts it back."
 step "Someone edits the config by hand on web1 (drift)" "The file now has an extra 'hacked' line." ok 'hacked' <<'CMD'
-$AC exec -T web1 sh -c 'echo "hacked by hand" >> /opt/devlab/app.conf'; $AC exec -T web1 cat /opt/devlab/app.conf
+ac exec -T web1 sh -c 'echo "hacked by hand" >> /opt/devlab/app.conf'; ac exec -T web1 cat /opt/devlab/app.conf
 CMD
 step "Run the playbook: Ansible repairs it" "web1 shows changed=1 (the template task), web2 changed=0. Config handler announces the change." ok 'changed=1' <<'CMD'
-$ANS ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^PLAY RECAP|changed=|app.conf changed"
+lab-ansible ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^PLAY RECAP|changed=|app.conf changed"
 CMD
 step "Confirm the hack is gone" "hacked lines remaining: 0" ok 'remaining: 0' <<'CMD'
-echo "hacked lines remaining: $($AC exec -T web1 grep -c hacked /opt/devlab/app.conf || true)"
+echo "hacked lines remaining: $(ac exec -T web1 grep -c hacked /opt/devlab/app.conf || true)"
 CMD
 task "Change a variable and apply it to both servers" "Run the playbook again but override the greeting variable on the command line:  bash 13-ansible/ansible.sh ansible-playbook site.yml -e \"greeting='Hi from me'\"   Then look at the config on web2:  docker compose -f 13-ansible/compose.yml exec -T web2 cat /opt/devlab/app.conf" "The check passes when web1 AND web2 both contain greeting=Hi from me." <<'X'
-$AC exec -T web1 grep -q 'greeting=Hi from me' /opt/devlab/app.conf && $AC exec -T web2 grep -q 'greeting=Hi from me' /opt/devlab/app.conf
+ac exec -T web1 grep -q 'greeting=Hi from me' /opt/devlab/app.conf && ac exec -T web2 grep -q 'greeting=Hi from me' /opt/devlab/app.conf
 ---
-$ANS ansible-playbook site.yml -e "greeting='Hi from me'"
+lab-ansible ansible-playbook site.yml -e "greeting='Hi from me'"
 X
 task "Write your own playbook" "Create playground/hello.yml that creates the file /tmp/hello.txt containing the text hello from ansible on every server in the group 'web' (use the copy module with content and dest). Run it:  bash 13-ansible/ansible.sh ansible-playbook ../playground/hello.yml" "Start with:  - hosts: web   then  tasks:  then  - ansible.builtin.copy: with content: and dest:. No 'become' is needed for /tmp." <<'X'
-$AC exec -T web1 grep -q 'hello from ansible' /tmp/hello.txt && $AC exec -T web2 grep -q 'hello from ansible' /tmp/hello.txt
+ac exec -T web1 grep -q 'hello from ansible' /tmp/hello.txt && ac exec -T web2 grep -q 'hello from ansible' /tmp/hello.txt
 ---
-printf -- '- hosts: web\n  tasks:\n    - ansible.builtin.copy:\n        content: "hello from ansible\\n"\n        dest: /tmp/hello.txt\n' > playground/hello.yml && $ANS ansible-playbook ../playground/hello.yml
+printf -- '- hosts: web\n  tasks:\n    - ansible.builtin.copy:\n        content: "hello from ansible\\n"\n        dest: /tmp/hello.txt\n' > playground/hello.yml && lab-ansible ansible-playbook ../playground/hello.yml
 X
 quiz "Ansible vs Terraform: what is each one mainly for?" "terraform.*(create|provision|infra)|ansible.*(config|install|package|server)|create|configure|provision" "Terraform creates and changes infrastructure (networks, servers, buckets). Ansible configures what runs on it (packages, files, services). They are often used together."
 
 part "PART E · Clean up"
 step "Remove the practice servers" "web1 and web2 removed." ok 'Removed|removed' <<'CMD'
-$AC down 2>&1 | tail -4
+ac down 2>&1 | tail -4
 CMD
 
 explain "Done! Next: bash lab.sh 14"

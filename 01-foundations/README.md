@@ -1,6 +1,6 @@
 # 01 · Foundations (Beginner, ~3h)
 
-> **Guided version:** run `bash lab.sh 01` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 01` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** be comfortable in a Linux shell, Git and HTTP before touching any tooling. Everything is done against the small sample app in [app/](../app) (a Node API with SQLite behind an nginx-served web page).
 

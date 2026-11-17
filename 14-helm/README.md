@@ -1,6 +1,6 @@
 # 14 · Helm and RBAC (Specialist, ~2.5h)
 
-> **Guided version:** run `bash lab.sh 14` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 14` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** package the app as a Helm chart (install, upgrade, roll back) and control access with Kubernetes RBAC.
 

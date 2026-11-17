@@ -4,7 +4,7 @@ explain "You will look inside a running app, talk to it over HTTP, use Git safel
 
 part "PART A · Start the practice app"
 step "Start the app (first time takes about a minute)" "Containers show Started / Healthy" <<'CMD'
-$DC up --build -d 2>&1 | tail -4
+dc up --build -d 2>&1 | tail -4
 CMD
 step "Check it is alive" '{"ok":true}' <<'CMD'
 sleep 10; curl -s localhost:8080/healthz
@@ -57,7 +57,7 @@ quiz "What is the difference between 401 and 403?" "401.*(login|auth|who)|(not|n
 
 part "PART D · Git: work safely"
 explain "Git records every change so you can undo mistakes. We practise on a throwaway branch."
-task "Make a branch, commit, and undo it safely" "In ANOTHER terminal (Git Bash) go to D:/devops-cloud-lab and run these 5 commands one by one: git switch -c lab/practice ; echo hello > practice.txt ; git add practice.txt ; git commit -m 'feat: practice' ; git revert --no-edit HEAD . Then come back here." "You need to be on branch lab/practice and the latest commit message must start with Revert." <<'X'
+task "Make a branch, commit, and undo it safely" "Type these 5 commands one by one at the lab prompt (you are already in the right folder): git switch -c lab/practice ; echo hello > practice.txt ; git add practice.txt ; git commit -m 'feat: practice' ; git revert --no-edit HEAD ." "You need to be on branch lab/practice and the latest commit message must start with Revert." <<'X'
 [ "$(git branch --show-current)" = "lab/practice" ] && git log -1 --pretty=%s | grep -q '^Revert'
 ---
 git switch -c lab/practice && echo hello > practice.txt && git add practice.txt && git commit -q -m 'feat: practice' && git revert --no-edit HEAD

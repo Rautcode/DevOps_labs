@@ -1,6 +1,6 @@
 # 12 · Networking (Specialist, ~2h)
 
-> **Guided version:** run `bash lab.sh 12` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 12` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** understand the four things behind most "mysterious" outages: DNS, ports, TLS certificates and load balancing.
 

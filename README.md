@@ -73,33 +73,36 @@ Follow it in order; the lab moves on to the next lesson automatically. The core 
 ## Start here: guided mode (easiest)
 **Windows: just double-click `lab.cmd`.** It checks Docker and opens the lab in its own Git Bash window.
 
-The lab teaches you **inside your terminal**. It explains each step, runs the commands for you, gives you hands-on tasks and **checks your work**.
+The lab teaches you **inside your terminal**. It explains each step, has you type the commands yourself, gives you hands-on tasks and **checks your work**.
 ```bash
 export MSYS_NO_PATHCONV=1     # Windows Git Bash only, once per terminal
 bash doctor.sh                # checks your machine (Docker, kubectl, memory)
 bash lab.sh                   # menu: pick a lesson number
 bash lab.sh 01                # or start lesson 01 directly
 ```
-How a lesson works:
-- **▶ Step**: it shows the command and what it does, you press Enter, it runs, and it tells you **what to look for**.
-- **✋ Your turn**: a hands-on task. Do it in a second terminal, press Enter, and the lab checks it (`h` shows the answer, `s` skips).
-- **❓ Quiz**: a short question, then the model answer.
+How a lesson works (you do the typing, the lab guides and checks):
+- **STEP**: it explains what you are about to do and shows the command. **You type it** at the `▸` prompt and press Enter. The lab runs it, shows the output, and tells you **what to look for**. Type something different and it still runs (explore!), but the step is only done when you run the right command.
+  - `?` = hint, `run` = let the lab type it for you (for long commands), `skip`, `shortcuts`, `quit`.
+- **YOUR TURN**: a hands-on task. You work **right there** at a `lab ▸` prompt (no second window): type any commands, use `edit FILE` to open the nano editor, then type `check`. `hint`, `answer` and `skip` are there if you are stuck.
+- **QUIZ**: a short question in your own words, then the model answer.
+
+Prefer to just watch? `LAB_MODE=watch bash lab.sh 01` runs the commands for you (press Enter at each step).
 
 What it looks like in your terminal:
 ```text
-╔════════════════════════════════════════════════════════════════════════════╗
-║ Module 02 · Containers                                                     ║
-╚════════════════════════════════════════════════════════════════════════════╝
-━━━ PART A · Build the images ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
- STEP 1/12  Build the API image
-  ❯ docker build -f 02-containers/Dockerfile.api -t devlab-api:lab app/api
+ STEP 3/22  Build the API image
+  Type this command (type it or copy it, then press Enter):
+    ❯ docker build -f 02-containers/Dockerfile.api -t devlab-api:lab app/api
+  ▸ docker build -f 02-containers/Dockerfile.api -t devlab-api:lab app/api
   │ ... Successfully built ...
+   ✔ DONE
   ➜ Look for: The last lines say the image was built.
-   ✔ PASS
 
- YOUR TURN 9/12  Build an image from your own Dockerfile
- QUIZ 10/12  Why is package.json copied BEFORE the rest of the source?
+ YOUR TURN 9/22  Build an image from your own Dockerfile
+  Type your commands right here. Type  check  when you are done.
+  lab ▸ edit playground/Dockerfile.hello
+  lab ▸ check
+   ✔ PASS
 
   Overall  ████████░░░░░░░░░░░░░░░░  4/17 lessons   Rank: DevOps Engineer
 ```

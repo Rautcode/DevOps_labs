@@ -1,11 +1,10 @@
 # Logging and tracing: logs, queries and traces (about 2h)
 title "Module 15 · Logging and tracing"
 explain "Metrics tell you THAT something is wrong. Logs tell you WHAT happened. Traces tell you WHERE the time went across services. Together they are called observability. You will collect every container's logs into Loki, query them like a database, and look at a trace in Jaeger."
-DCL="docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml -f 15-logging/compose.logging.yml --env-file .env"; export DCL
 
 part "PART A · Logs"
 step "Start the app plus Loki (log storage), Alloy (the collector) and Jaeger (traces)" "loki, alloy and jaeger Started." ok 'alloy' <<'CMD'
-$DCL rm -sf loki alloy jaeger >/dev/null 2>&1; $DCL up -d 2>&1 | grep -E "loki|alloy|jaeger"
+dcl rm -sf loki alloy jaeger >/dev/null 2>&1; dcl up -d 2>&1 | grep -E "loki|alloy|jaeger"
 CMD
 step "Wait until Loki is ready" "loki is ready (it needs about 20 seconds to start)." ok 'loki is ready' <<'CMD'
 for i in $(seq 1 30); do curl -s localhost:3100/ready | grep -q ready && { echo "loki is ready"; break; }; sleep 3; done
@@ -14,7 +13,7 @@ step "Make the API log different things (success, failure, bad input)" "Three st
 curl -s -w ' <%{http_code}>\n' localhost:8080/api/form-token | grep -o '<[0-9]*>'; curl -s -w ' <%{http_code}>\n' localhost:8080/api/auth/me | grep -o '<[0-9]*>'; curl -s -X POST -w ' <%{http_code}>\n' localhost:8080/api/inquiries -H "content-type: application/json" -d '{"name":"x","email":"not-an-email"}' | grep -o '<[0-9]*>'
 CMD
 step "Read the raw logs the app wrote" "JSON lines like {\"level\":\"info\",\"method\":\"POST\",\"path\":\"/api/inquiries\",\"status\":400,...}. One JSON object per line = 'structured logging'. Machines can search it." ok 'status' <<'CMD'
-sleep 3; $DC logs api --tail 6 --no-log-prefix
+sleep 3; dc logs api --tail 6 --no-log-prefix
 CMD
 step "Ask Loki: show API log lines mentioning 'inquiries'" "The status of each matching request. Loki stores logs from ALL containers and you search them with a query language called LogQL." ok 'status' <<'CMD'
 for i in $(seq 1 25); do curl -s -X POST localhost:8080/api/inquiries -H "content-type: application/json" -d '{"name":"x","email":"bad"}' >/dev/null; out=$(curl -sG localhost:3100/loki/api/v1/query_range --data-urlencode 'query={service="api"} |= "inquiries"' --data-urlencode 'limit=10'); echo "$out" | grep -q 'status\\":[0-9]' && break; sleep 3; done; echo "$out" | grep -o 'status\\":[0-9]*' | sort | uniq -c
@@ -46,7 +45,7 @@ quiz "Logs, metrics, traces: which one answers 'which step of this slow request 
 
 part "PART C · Tidy up"
 step "Stop the logging and monitoring tools (the app keeps running)" "removed" ok "Removed|Stopped|removed" <<'CMD'
-$DCL rm -sf loki alloy jaeger prometheus grafana blackbox 2>&1 | tail -6
+dcl rm -sf loki alloy jaeger prometheus grafana blackbox 2>&1 | tail -6
 CMD
 
 explain "Done! Next: bash lab.sh 16"

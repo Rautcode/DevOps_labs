@@ -1,6 +1,6 @@
 # 13 · Ansible (Specialist, ~2h)
 
-> **Guided version:** run `bash lab.sh 13` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 13` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** configure servers with code. Terraform *creates* infrastructure; Ansible *configures* what runs on it. You describe the desired state and Ansible makes each machine match, over plain SSH, with nothing installed on the servers.
 

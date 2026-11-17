@@ -1,6 +1,6 @@
 # 15 · Logging and tracing (Specialist, ~2h)
 
-> **Guided version:** run `bash lab.sh 15` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 15` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** collect every container's logs in one place and query them, and understand what a trace is. Metrics (module 08) say *that* something is wrong; logs say *what* happened; traces say *where the time went*.
 

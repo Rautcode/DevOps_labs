@@ -1,8 +1,6 @@
 # Terraform: infrastructure as code (about 2.5h)
 title "Module 05 · Terraform (Infrastructure as Code)"
 explain "Terraform lets you describe cloud resources (storage, queues, permissions) in files, review them like code, and create or delete them with one command. You practise on a free local copy of AWS called LocalStack, so there is no cost and no risk."
-AWSX='AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test aws --no-cli-pager --endpoint-url=http://localhost:4566 --region ap-south-1'
-export AWSX
 
 part "PART A · Test the module (no cloud needed)"
 step "Run the module's built-in tests" "2 passed, 0 failed. The tests check the bucket is private and versioned." <<'CMD'
@@ -23,7 +21,7 @@ step "terraform apply: create everything (takes about a minute)" "Apply complete
 bash 05-terraform/tf.sh apply -auto-approve 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tail -6
 CMD
 step "Look at what was created, using the AWS command line" "A bucket named devlab-dev-uploads and queues named devlab-dev-leads and devlab-dev-leads-dlq." <<'CMD'
-eval "$AWSX s3 ls"; eval "$AWSX sqs list-queues --query QueueUrls --output text"
+awsl s3 ls; awsl sqs list-queues --query QueueUrls --output text
 CMD
 step "Apply AGAIN" "0 added, 0 changed. Terraform is idempotent: it only changes what differs from the code." <<'CMD'
 bash 05-terraform/tf.sh apply -auto-approve 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tail -3
@@ -31,10 +29,10 @@ CMD
 
 part "PART C · Hands-on: drift"
 explain "Drift = someone changes the real infrastructure by hand so it no longer matches the code. Terraform can detect it and heal it."
-task "Create drift, then heal it" "1) Delete the leads queue by hand: URL=\$(aws --endpoint-url=http://localhost:4566 --region ap-south-1 sqs get-queue-url --queue-name devlab-dev-leads --query QueueUrl --output text)  then  aws --endpoint-url=http://localhost:4566 --region ap-south-1 sqs delete-queue --queue-url \$URL   (set AWS_ACCESS_KEY_ID=test and AWS_SECRET_ACCESS_KEY=test first). 2) Run: bash 05-terraform/tf.sh apply -auto-approve  . The queue comes back." "The check passes when the queue devlab-dev-leads exists in LocalStack again." <<'X'
-eval "$AWSX sqs list-queues --query QueueUrls --output text" | tr '\t' '\n' | grep -qx '.*/devlab-dev-leads'
+task "Create drift, then heal it" "1) Delete the leads queue by hand. awsl is a shortcut for the AWS CLI pointed at LocalStack. First get the queue address:  URL=\$(awsl sqs get-queue-url --queue-name devlab-dev-leads --query QueueUrl --output text)  then delete it:  awsl sqs delete-queue --queue-url \$URL    2) Heal it: bash 05-terraform/tf.sh apply -auto-approve   The queue comes back. (Variables like URL last only for one command here, so do step 1 as ONE line joined with &&.)" "The check passes when the queue devlab-dev-leads exists in LocalStack again." <<'X'
+awsl sqs list-queues --query QueueUrls --output text | tr '\t' '\n' | grep -qx '.*/devlab-dev-leads'
 ---
-U=$(eval "$AWSX sqs get-queue-url --queue-name devlab-dev-leads --query QueueUrl --output text") && eval "$AWSX sqs delete-queue --queue-url $U" && bash 05-terraform/tf.sh apply -auto-approve
+U=$(awsl sqs get-queue-url --queue-name devlab-dev-leads --query QueueUrl --output text) && awsl sqs delete-queue --queue-url $U && bash 05-terraform/tf.sh apply -auto-approve
 X
 
 part "PART D · Clean up"

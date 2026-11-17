@@ -1,6 +1,6 @@
 # 03 · Multi-container stack with Compose (Beginner, ~3h)
 
-> **Guided version:** run `bash lab.sh 03` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 03` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** run web + API together, with persistence, health-gated startup and a hardened runtime.
 

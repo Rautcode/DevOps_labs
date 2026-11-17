@@ -16,11 +16,39 @@ export DCO="docker compose -f 03-compose/docker-compose.yml -f 08-observability/
 export DCP="docker compose -f 03-compose/docker-compose.yml -f 16-postgres/compose.postgres.yml --env-file .env"
 export KUBECONFIG="$(pwd -W 2>/dev/null || pwd)/.kube/config"
 AUTO="${LAB_AUTO:-}"
+MODE="${LAB_MODE:-type}"     # type = YOU type each command (default) | watch = the lab runs them, you press Enter
 PROGRESS=.progress
 PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=0
 LESSONS=$(ls lessons/*.sh 2>/dev/null | wc -l | tr -d " ")
 W=78
 mkdir -p playground
+
+# ---------- short helper commands used in the lessons (type  shortcuts  to list them) ----------
+dc()  { docker compose -f 03-compose/docker-compose.yml --env-file .env "$@"; }
+dco() { docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml --env-file .env "$@"; }
+dcl() { docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml -f 15-logging/compose.logging.yml --env-file .env "$@"; }
+dcp() { docker compose -f 03-compose/docker-compose.yml -f 16-postgres/compose.postgres.yml --env-file .env "$@"; }
+ac()  { docker compose -f 13-ansible/compose.yml "$@"; }
+lab-ansible() { bash 13-ansible/ansible.sh "$@"; }
+lab-helm()    { bash 14-helm/helm.sh "$@"; }
+lab-tf-aws()  { bash 17-aws/tf-aws.sh "$@"; }
+awsl()   { AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test aws --no-cli-pager --endpoint-url=http://localhost:4566 --region ap-south-1 "$@"; }
+leads()  { dc exec -T api node -e "const {DatabaseSync}=require('node:sqlite');console.log('leads in database:',new DatabaseSync('/data/database.sqlite').prepare('select count(*) c from leads').get().c)"; }
+kleads() { kubectl -n devlab-dev exec devlab-api-0 -- node -e "const {DatabaseSync}=require('node:sqlite');console.log('leads in database:',new DatabaseSync('/data/database.sqlite').prepare('select count(*) c from leads').get().c)"; }
+edit()   { local f="$1"; mkdir -p "$(dirname "$f")"; if command -v nano >/dev/null 2>&1; then nano "$f"; else notepad "$(cygpath -w "$f" 2>/dev/null || echo "$f")"; fi; }
+shortcuts() {
+  printf '  %sShortcuts defined by this lab%s\n' "$BOLD" "$RST"
+  printf '    dc        docker compose for the app           (docker compose -f 03-compose/docker-compose.yml --env-file .env ...)\n'
+  printf '    dco       dc + monitoring (Prometheus, Grafana)\n'
+  printf '    dcl       dco + logging (Loki, Alloy, Jaeger)\n'
+  printf '    dcp       dc + Postgres\n'
+  printf '    ac        docker compose for the Ansible practice servers\n'
+  printf '    lab-ansible / lab-helm / lab-tf-aws   run Ansible, Helm or Terraform-for-AWS in Docker\n'
+  printf '    awsl      the AWS CLI pointed at LocalStack (the free fake AWS)\n'
+  printf '    leads / kleads   count the leads in the database (compose / Kubernetes)\n'
+  printf '    edit FILE open a file in the nano editor (Ctrl+O save, Ctrl+X exit)\n'
+  printf '  Type  type dc  to see exactly what a shortcut does.\n'
+}
 # Read keyboard input from the terminal if there is one, otherwise from stdin (lets you pipe answers in).
 if [ -z "$AUTO" ] && ( : </dev/tty ) 2>/dev/null; then exec 3</dev/tty; else exec 3<&0; fi
 
@@ -81,7 +109,7 @@ pass()    { PASS=$((PASS+1)); printf '  %s ✔ PASS %s\n' "$BG_G" "$RST"; }
 fail()    { FAIL=$((FAIL+1)); printf '  %s ✘ FAIL %s %s\n' "$BG_R" "$RST" "${1:-}"; }
 
 # step "what this does" "what to look for" [ok|fail] ["regex the output must match (checked in auto mode)"] <<'CMD' ... CMD
-step() {
+step_watch() {
   local cmd rc; cmd=$(cat)
   badge "STEP" "$BG_B" "$1"
   printf '%s%s%s\n' "$DIM$CYN" "$(printf '%s' "$cmd" | sed 's/^/  ❯ /')" "$RST"
@@ -98,7 +126,7 @@ step() {
 }
 
 # task "goal" "how to do it" "hint" <<'X' ... check command ... \n---\n ... solution command ... X
-task() {
+task_watch() {
   local all check sol a; all=$(cat)
   check=${all%%$'\n---\n'*}; sol=${all#*$'\n---\n'}
   # OPT=1 task ...  = optional task (for example one that needs a real cloud account): skipping it never blocks the lesson
@@ -121,6 +149,77 @@ task() {
     printf '  %s ✘ NOT YET %s Hint: %s\n' "$BG_R" "$RST" "${3:-read the instructions again}"
   done
 }
+
+# ---- typing mode: YOU type the commands ----
+norm() { printf '%s' "$1" | tr '\n' ' ' | sed -E "s/[\"']//g; s/[[:space:]]+/ /g; s/^ //; s/ $//"; }
+trim_tail() { printf '%s' "$1" | sed -E 's/ *2>&1 *\| *(tail|head)[^|;]*$//; s/ *2>&1 *$//; s/ *\| *(tail|head)[^|;]*$//; s/ *>\/dev\/null( 2>&1)?$//'; }
+same_cmd() { local a b; a=$(norm "$1"); b=$(norm "$2"); [ "$a" = "$b" ] || [ "$(norm "$(trim_tail "$1")")" = "$(norm "$(trim_tail "$2")")" ]; }
+show_out() { [ -n "$1" ] && { printf '%s' "$1" | sed "s/^/  ${DIM}│${RST} /"; [ "${1: -1}" != $'\n' ] && echo; }; return 0; }
+
+step_type() {
+  local cmd typed out rc tries=0 accepted
+  cmd=$(cat)
+  badge "STEP" "$BG_B" "$1"
+  printf '  %sType this command%s (type it or copy it, then press Enter):\n' "$BOLD" "$RST"
+  printf '%s%s%s\n' "$DIM$CYN" "$(printf '%s' "$cmd" | sed 's/^/    ❯ /')" "$RST"
+  while true; do
+    printf '  %s▸%s ' "$GRN$BOLD" "$RST"
+    read -r typed <&3 || { echo; exit 0; }
+    accepted=
+    case "$typed" in
+      '')          printf '  %sType the command shown above and press Enter.  ?=hint  run=let the lab run it  skip  shortcuts  quit%s\n' "$DIM" "$RST"; continue ;;
+      '?'|hint)    printf '  %s➜ %s%s\n' "$YEL" "${2:-Type the command shown above.}" "$RST"; continue ;;
+      shortcuts)   shortcuts; continue ;;
+      skip)        SKIP=$((SKIP+1)); printf '  %s○ skipped%s\n' "$YEL" "$RST"; return ;;
+      quit|q|exit) printf '  bye! Continue later with: bash lab.sh next\n'; exit 0 ;;
+      run)         typed="$cmd"; accepted=1 ;;
+    esac
+    out=$( ( eval "$typed" ) <&3 2>&1; echo "::rc=$?" ); rc=${out##*::rc=}; out=${out%::rc=*}
+    show_out "$out"
+    if [ -z "$accepted" ]; then
+      if same_cmd "$typed" "$cmd"; then accepted=1
+      elif [ -n "${4:-}" ] && [ "${3:-ok}" != fail ] && [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -Eq "$4"; then accepted=1
+      fi
+    fi
+    if [ -n "$accepted" ]; then
+      PASS=$((PASS+1)); printf '  %s ✔ DONE %s\n' "$BG_G" "$RST"
+      [ -n "${2:-}" ] && printf '  %s➜ Look for:%s %s\n' "$YEL" "$RST" "$2"
+      return
+    fi
+    tries=$((tries+1))
+    printf '  %s ✘ NOT YET %s That ran, but this step needs the command shown above.' "$BG_R" "$RST"
+    [ "$tries" -ge 2 ] && printf '  Stuck? Type  run  and I will run it for you.'
+    printf '\n'
+  done
+}
+
+task_type() {
+  local all check sol line out
+  all=$(cat); check=${all%%$'\n---\n'*}; sol=${all#*$'\n---\n'}
+  if [ -n "${OPT:-}" ]; then badge "OPTIONAL" "$BG_C" "$1"; else badge "YOUR TURN" "$BG_Y" "$1"; fi
+  explain "$2"
+  printf '  %sType your commands right here (no second window needed). Type  check  when you are done.%s\n' "$BOLD" "$RST"
+  printf '  %s  hint | answer | skip | shortcuts | edit FILE (opens the nano editor) | quit%s\n' "$DIM" "$RST"
+  while true; do
+    printf '  %slab ▸%s ' "$YEL$BOLD" "$RST"
+    read -r line <&3 || { echo; exit 0; }
+    case "$line" in
+      '') continue ;;
+      check) if ( eval "$check" ) >/dev/null 2>&1; then pass; return; fi
+             printf '  %s ✘ NOT YET %s Hint: %s\n' "$BG_R" "$RST" "${3:-read the instructions again}" ;;
+      hint|'?') printf '  %s➜ %s%s\n' "$YEL" "${3:-read the instructions again}" "$RST" ;;
+      answer|h) printf '  %sAnswer (type these yourself):%s\n%s\n' "$YEL" "$RST" "$(printf '%s' "$sol" | sed "s/^/    ${DIM}❯${RST} /")" ;;
+      skip|s) [ -z "${OPT:-}" ] && SKIP=$((SKIP+1)); printf '  %s○ skipped%s\n' "$YEL" "$RST"; return ;;
+      shortcuts) shortcuts ;;
+      quit|q|exit) printf '  bye! Continue later with: bash lab.sh next\n'; exit 0 ;;
+      edit\ *|nano\ *|vi\ *|vim\ *) ( eval "$line" ) <&3 ;;
+      *) out=$( ( eval "$line" ) <&3 2>&1 ); show_out "$out" ;;
+    esac
+  done
+}
+
+step() { if [ -n "$AUTO" ] || [ "$MODE" = watch ]; then step_watch "$@"; else step_type "$@"; fi; }
+task() { if [ -n "$AUTO" ] || [ "$MODE" = watch ]; then task_watch "$@"; else task_type "$@"; fi; }
 
 # quiz "question" 'regex of a correct answer' "model answer"
 quiz() {
@@ -165,6 +264,7 @@ run_lesson() {
   [ -z "$f" ] && { echo "No lesson '$1'. Try: bash lab.sh"; exit 1; }
   [ -f .env ] || cp .env.example .env
   PASS=0; FAIL=0; SKIP=0; CUR=0; TOTAL=$(grep -cE '^(OPT=1 )?(step|task|quiz) ' "$f")
+  if [ -z "$AUTO" ] && [ "$MODE" = type ]; then printf '\n  %sHow this works:%s you TYPE each command.  ?=hint   run=let the lab run it   skip   shortcuts   quit\n' "$BOLD" "$RST"; fi
   # shellcheck disable=SC1090
   . "$f"
   finish "$1"

@@ -1,6 +1,6 @@
 # 07 · GitOps with Argo CD (Advanced, ~4h)
 
-> **Guided version:** run `bash lab.sh 07` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 07` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** git becomes the only way to change the cluster. A controller continuously reconciles the cluster to what is in git, reverting any manual change.
 

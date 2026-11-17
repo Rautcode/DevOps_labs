@@ -1,6 +1,6 @@
 # 05 · Infrastructure as Code with Terraform (Intermediate, ~5h)
 
-> **Guided version:** run `bash lab.sh 05` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 05` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** define cloud resources as reviewed, versioned, tested code. You use a **free local AWS emulator** so you learn real AWS APIs at zero cost.
 

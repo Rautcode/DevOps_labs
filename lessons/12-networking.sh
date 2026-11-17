@@ -4,7 +4,7 @@ explain "Most 'mysterious' outages are network problems: a name that does not re
 
 part "PART A · DNS: how a name becomes an address"
 step "Make sure the practice app is running" '{"ok":true}' ok '"ok":true' <<'CMD'
-$DC up -d 2>&1 | tail -1; sleep 12; curl -s localhost:8080/healthz
+dc up -d 2>&1 | tail -1; sleep 12; curl -s localhost:8080/healthz
 CMD
 step "Which DNS server do containers use?" "nameserver 127.0.0.11. That is Docker's built-in DNS. It maps container names (like 'api') to their private IP addresses." ok '127.0.0.11' <<'CMD'
 docker exec devlab-web-1 cat /etc/resolv.conf
@@ -16,7 +16,7 @@ step "Ask a PUBLIC name (needs internet)" "One or more public IP addresses for g
 docker run --rm busybox nslookup github.com 2>&1 | tail -6
 CMD
 task "Find the API's IP address with DNS and save it" "Run nslookup for 'api' from inside the web container and save ONLY the IP address into the file playground/api-ip.txt. Hint: docker exec devlab-web-1 nslookup api   (take the last Address line)." "The file must contain just the IP, for example 172.19.0.2. It must equal the API container's real IP." <<'X'
-[ -s playground/api-ip.txt ] && [ "$(tr -d '[:space:]' < playground/api-ip.txt)" = "$($DC ps -q api | head -1 | xargs docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')" ]
+[ -s playground/api-ip.txt ] && [ "$(tr -d '[:space:]' < playground/api-ip.txt)" = "$(dc ps -q api | head -1 | xargs docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')" ]
 ---
 docker exec devlab-web-1 nslookup api | grep -E '^Address' | tail -1 | awk '{print $NF}' > playground/api-ip.txt
 X

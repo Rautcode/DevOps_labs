@@ -1,12 +1,10 @@
 # Kubernetes: run the app on a real cluster (about 3h)
 title "Module 06 · Kubernetes"
 explain "Kubernetes runs containers across machines and keeps them healthy: it restarts crashes, rolls out updates without downtime, and controls who can talk to whom. You will create a real cluster on your own computer (it runs inside one Docker container) and deploy the app."
-LEADS='kubectl -n devlab-dev exec devlab-api-0 -- node -e "const {DatabaseSync}=require(\"node:sqlite\");console.log(\"leads in database:\",new DatabaseSync(\"/data/database.sqlite\").prepare(\"select count(*) c from leads\").get().c)"'
-export LEADS
 
 part "PART A · Create the cluster and deploy"
 step "Make sure the app images exist" "Images listed (they were built in module 02)." <<'CMD'
-docker image inspect devlab-api:lab devlab-web:lab >/dev/null 2>&1 || $DC build 2>&1 | tail -2; docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab
+docker image inspect devlab-api:lab devlab-web:lab >/dev/null 2>&1 || dc build 2>&1 | tail -2; docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab
 CMD
 step "Create the cluster (about 30 seconds)" "'cluster ready'" <<'CMD'
 bash 06-kubernetes/cluster.sh up 2>&1 | tail -2
@@ -29,13 +27,13 @@ CMD
 
 part "PART B · Self-healing and zero downtime"
 step "Create a lead, then count leads" "leads in database: 1" <<'CMD'
-curl -s -X POST localhost:30080/api/inquiries -H "content-type: application/json" -d "{\"name\":\"K8s Test\",\"email\":\"k@example.com\"}" >/dev/null; eval "$LEADS"
+curl -s -X POST localhost:30080/api/inquiries -H "content-type: application/json" -d "{\"name\":\"K8s Test\",\"email\":\"k@example.com\"}" >/dev/null; kleads
 CMD
 step "Kill the API pod!" "pod deleted. Kubernetes notices and creates a new one." <<'CMD'
 kubectl -n devlab-dev delete pod devlab-api-0 --wait=false; sleep 8; kubectl -n devlab-dev wait --for=condition=ready pod/devlab-api-0 --timeout=120s
 CMD
 step "Count leads again" "leads in database: 1. The new pod re-attached the SAME disk (PVC), so no data was lost." <<'CMD'
-eval "$LEADS"
+kleads
 CMD
 step "Restart the web pods with a rolling update" "'successfully rolled out'. Old pods are replaced one by one while the site keeps working (maxUnavailable: 0)." <<'CMD'
 kubectl -n devlab-dev rollout restart deploy/devlab-web; kubectl -n devlab-dev rollout status deploy/devlab-web --timeout=120s

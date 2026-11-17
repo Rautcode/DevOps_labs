@@ -1,6 +1,6 @@
 # 06 · Kubernetes (Intermediate to Advanced, ~8h)
 
-> **Guided version:** run `bash lab.sh 06` from the repo root. It explains each step, runs it for you, and checks your hands-on tasks. This page is the reference.
+> **Guided version:** run `bash lab.sh 06` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** run the app on a real cluster with probes, limits, autoscaling, zero-downtime rollouts and network isolation.
 
