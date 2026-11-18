@@ -331,6 +331,18 @@ deeper() {
   printf '  %s└%s%s\n' "$GRN" "$(rep ─ 40)" "$RST"
 }
 
+# why "piece::meaning|piece::meaning" "the reason in plain words": shown BEFORE a step so you know what you are about to type
+why() {
+  local pair line
+  printf '\n  %s┌─ WHY THIS COMMAND, IN SIMPLE WORDS%s\n' "$GRN" "$RST"
+  while IFS= read -r pair; do
+    [ -n "$pair" ] && printf '  %s│%s %s%s%s  =  %s\n' "$GRN" "$RST" "$BOLD" "${pair%%::*}" "$RST" "${pair#*::}"
+  done < <(printf '%s\n' "$1" | tr '|' '\n')
+  printf '  %s│%s\n' "$GRN" "$RST"
+  while IFS= read -r line; do printf '  %s│%s %s\n' "$GRN" "$RST" "$line"; done < <(printf '%s\n' "$2" | fold -s -w $((W-8)))
+  printf '  %s└%s%s\n' "$GRN" "$(rep ─ 40)" "$RST"
+}
+
 # say "what the interviewer asks" "a spoken-style answer": an interview-ready answer to say out loud (never blocks)
 say() {
   local line

@@ -108,6 +108,7 @@ flowchart LR
 - **QUIZ**: a question in your own words, then the model answer.
 - **QUICK CHECK / PREDICT**: a one-key multiple-choice question. Guess what a command will do *before* you run it, then see if you were right (+5 XP).
 - **GO DEEPER**: at the end of most modules, optional links to public learning repos (Abhishek Veeramalla, Shubham Londhe, StackSimplify) for the same skill on a different project. See [STUDY-GUIDE.md](STUDY-GUIDE.md) for exactly what to read where, and [RESOURCES.md](RESOURCES.md).
+- **WHY THIS COMMAND**: before each step in module 00, a green box that explains every part of the command in simple words and why you are typing it. (More modules will get them over time.)
 - **INTERVIEW-READY ANSWER**: after every explanation, a yellow box with a short spoken answer to the matching interview question, written in first person. Say it out loud in your own words. All 115 are also collected in [INTERVIEW-ANSWERS.md](INTERVIEW-ANSWERS.md).
 - **DIAGRAMS**: framed pictures (images and containers, the GitOps loop, TLS, RBAC, scaling...) so you see the idea before you type.
 - **INTERVIEW**: after the lessons the lab becomes an interviewer. It sets up a real situation (a broken site, a bad commit, a crash loop) and asks you to **show** the fix. No step-by-step help, hints only.
