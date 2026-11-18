@@ -50,5 +50,41 @@ sed 's/runs-on/runs_on/' playground/hello.yml > playground/broken.yml
 X
 quiz "Why sign release images (the release workflow uses cosign)?" "who|built|trust|tamper|verify|supply|origin|prove|authentic" "A signature proves who built the image and that nobody changed it afterwards (supply-chain security)."
 
+part "PART D · Jenkins, side by side"
+learn "Jenkins and GitHub Actions" "Jenkins is the long-established, self-hosted CI server: you run it yourself, pipelines are written in a Jenkinsfile (Groovy), and its power comes from thousands of plugins. GitHub Actions is hosted next to your code, with workflows in YAML and a marketplace of actions. Both do the same job: run stages on every change. Many companies still run Jenkins, so interviewers ask about both. The vocabulary maps closely: a Jenkins stage is like an Actions job, an agent is a runner, a plugin is an action, credentials are secrets."
+art "The same pipeline in two tools" <<'ART'
+   GitHub Actions (YAML)              Jenkins (Jenkinsfile)
+   on: push                           triggers / webhook
+   jobs: test: runs-on: ubuntu        pipeline { agent any
+   steps: - run: npm test               stages { stage('Test') { steps { sh 'npm test' } } } }
+   secrets.X                          credentials('X')
+   hosted by GitHub                   hosted by YOU (patching, backups, plugins)
+ART
+step "Read the Jenkinsfile that mirrors this lab's CI" "pipeline, agent, stages: Install, Test, Audit, Build image, and a post section." ok 'pipeline' <<'CMD'
+cat 04-ci-cd/Jenkinsfile
+CMD
+mcq "What do you have to do with Jenkins that you do not with GitHub Actions?" "Run and maintain the server yourself (updates, plugins, backups)|Write the pipeline in YAML|Pay per minute|Use Git" 1 "Jenkins is self-hosted: that gives control and flexibility, and also work and responsibility."
+step "Start a real Jenkins server (first time downloads about 500 MB)" "A long container id. Jenkins is starting." <<'CMD'
+docker rm -f lab-jenkins >/dev/null 2>&1; docker run -d --name lab-jenkins -p 8085:8080 jenkins/jenkins:lts-jdk21
+CMD
+step "Wait until it says it is up (about a minute)" "Jenkins is fully up and running." ok 'fully up and running' <<'CMD'
+for i in $(seq 1 80); do docker logs lab-jenkins 2>&1 | grep -q "fully up and running" && break; sleep 3; done; docker logs lab-jenkins 2>&1 | grep "fully up and running"
+CMD
+step "A new Jenkins generates a one-time admin password" "password length: 32. On first login you paste it into the Unlock Jenkins page." ok 'length: 32' <<'CMD'
+echo "password length: $(docker exec lab-jenkins cat /var/jenkins_home/secrets/initialAdminPassword | tr -d '\r\n' | wc -c)"
+CMD
+step "Ask its web port for the login page" "HTTP 200 or 403: the server answers on port 8085. Open http://localhost:8085 in a browser to see the Unlock Jenkins screen." ok 'HTTP (200|403)' <<'CMD'
+curl -s -m 8 -w '\nHTTP %{http_code}\n' localhost:8085/login | tail -1
+CMD
+task "Write a Jenkinsfile" "Create playground/Jenkinsfile with a declarative pipeline: it must start with  pipeline {  , use  agent any  , and have a stage called Test that runs  sh 'npm test'  . Use  edit playground/Jenkinsfile  . (Jenkins checks the syntax when it runs, and this fresh server has no pipeline plugins yet, so this lab checks the structure.)" "Look at 04-ci-cd/Jenkinsfile for the shape: pipeline { agent any  stages { stage('Test') { steps { sh 'npm test' } } } }" <<'X'
+grep -q 'pipeline *{' playground/Jenkinsfile 2>/dev/null && grep -q 'agent' playground/Jenkinsfile && grep -q "stage('Test')\|stage(\"Test\")" playground/Jenkinsfile && grep -q "sh .npm test" playground/Jenkinsfile
+---
+printf "pipeline {\n  agent any\n  stages {\n    stage('Test') { steps { sh 'npm test' } }\n  }\n}\n" > playground/Jenkinsfile
+X
+step "Stop Jenkins" "lab-jenkins removed." ok 'lab-jenkins' <<'CMD'
+docker rm -f lab-jenkins
+CMD
+quiz "Name one reason a company might choose Jenkins and one reason it might choose GitHub Actions." "plugin|control|self|host|on-prem|flexib|maintain|server|yaml|integrat|simple|managed|no server|marketplace" "Jenkins: full control, self-hosting, a huge plugin library, works with any source system. Actions: nothing to maintain, tight GitHub integration, quick to start."
+
 deeper "GitHub Actions Zero to Hero (Abhishek Veeramalla)|https://github.com/iam-veeramalla/GitHub-Actions-Zero-to-Hero" "node-todo-cicd (Shubham Londhe)|https://github.com/LondheShubham153/node-todo-cicd" "Jenkins Zero to Hero, a second CI tool (Abhishek Veeramalla)|https://github.com/iam-veeramalla/Jenkins-Zero-To-Hero"
 explain "To use these for real on GitHub: copy 04-ci-cd/workflows/ci.yml to .github/workflows/ci.yml, commit and push. Next: bash lab.sh 05"

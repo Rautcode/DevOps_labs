@@ -1,0 +1,12 @@
+# The role's tasks: what it does. Same task syntax as in a playbook.
+- name: Make sure the directory exists
+  ansible.builtin.file:
+    path: "{{ banner_path | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Render the banner from the role's template
+  ansible.builtin.template:
+    src: banner.txt.j2
+    dest: "{{ banner_path }}"
+    mode: "0644"

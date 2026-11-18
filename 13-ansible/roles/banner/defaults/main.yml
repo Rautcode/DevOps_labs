@@ -1,0 +1,3 @@
+# Default values of the role. Anyone using the role can override them (the lowest priority in Ansible).
+banner_text: "Welcome: this server is managed by Ansible roles"
+banner_path: /opt/devlab/banner.txt

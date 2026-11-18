@@ -1,0 +1,21 @@
+# Uses a secret that lives in an ENCRYPTED file (made in the lesson: playground/secrets.yml).
+# (/root/.vault-pass is a copy of playground/vault-pass.txt made by the lab-ansible wrapper)
+# Run it with:  --vault-password-file /root/.vault-pass
+- name: Deploy a secret from an Ansible Vault file
+  hosts: web
+  become: true
+  vars_files:
+    - ../playground/secrets.yml        # encrypted: contains db_password
+  tasks:
+    - name: Make sure the directory exists
+      ansible.builtin.file:
+        path: /opt/devlab
+        state: directory
+        mode: "0755"
+
+    - name: Write the secret to the server (readable by root only)
+      ansible.builtin.copy:
+        content: "{{ db_password }}\n"
+        dest: /opt/devlab/db_password
+        mode: "0600"
+      no_log: true                      # never print the secret in Ansible's output

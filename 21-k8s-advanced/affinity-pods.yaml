@@ -1,0 +1,31 @@
+# Two pods, same wish (a node labelled disk=nvme), different strength.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: affinity-required
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:   # a MUST: no matching node means Pending
+        nodeSelectorTerms:
+          - matchExpressions:
+              - { key: disk, operator: In, values: [nvme] }
+  containers:
+    - name: web
+      image: nginx:alpine
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: affinity-preferred
+spec:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:  # a WISH: used if possible, ignored otherwise
+        - weight: 50
+          preference:
+            matchExpressions:
+              - { key: disk, operator: In, values: [nvme] }
+  containers:
+    - name: web
+      image: nginx:alpine

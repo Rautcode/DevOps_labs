@@ -139,7 +139,50 @@ step "Clean up the practice pods and the label" "Pods deleted." <<'CMD'
 kubectl delete pod bad-image pending-pod broken-app --ignore-not-found --wait=false; kubectl label node --all disktype- >/dev/null
 CMD
 
-part "PART H · Clean up"
+part "PART H · Where pods run: taints, tolerations and affinity"
+learn "Steering the scheduler" "The scheduler decides which node runs each pod. You can steer it in two directions. A node can REPEL pods with a TAINT (for example dedicated=gpu:NoSchedule: no pod may land here); only pods that carry a matching TOLERATION are allowed. A pod can ATTRACT itself to nodes with AFFINITY: required (a must: if no node matches, the pod stays Pending) or preferred (a wish: used when possible, ignored otherwise). Typical uses: keep general pods off expensive GPU or database nodes, spread copies across zones, put a pod near its data. A taint says keep out; a toleration only says I may enter, it does not pull the pod there."
+art "Taint, toleration, affinity" <<'ART'
+   node:  taint dedicated=gpu:NoSchedule     "keep out unless you tolerate this"
+   pod A (no toleration)   -> Pending        pod B (toleration)  -> can run here
+   affinity REQUIRED disk=nvme   -> Pending if no node has the label
+   affinity PREFERRED disk=nvme  -> runs anywhere, prefers a match
+ART
+step "Taint the node so that new pods are kept out" "The node is tainted (kubectl says tainted or modified). Pods already running are not affected (NoSchedule only blocks NEW pods)." ok 'tainted|modified' <<'CMD'
+kubectl taint nodes --all dedicated=gpu:NoSchedule --overwrite
+CMD
+step "Start a pod WITHOUT a toleration" "pod/no-toleration created." ok 'created' <<'CMD'
+kubectl delete pod no-toleration --ignore-not-found >/dev/null 2>&1; kubectl run no-toleration --image=nginx:alpine
+CMD
+step "See why it is stuck" "Pending, and the event says the node has an untolerated taint (dedicated: gpu)." ok 'untolerated taint' <<'CMD'
+sleep 6; kubectl get pod no-toleration --no-headers; kubectl describe pod no-toleration | grep -i FailedScheduling | head -2
+CMD
+step "Read the pod that carries a matching toleration" "A tolerations section: key dedicated, value gpu, effect NoSchedule." ok 'tolerations' <<'CMD'
+cat 21-k8s-advanced/toleration-pod.yaml
+CMD
+step "Start it: it IS allowed on the tainted node" "pod/with-toleration created, then it becomes Ready." ok 'condition met' <<'CMD'
+kubectl delete pod with-toleration --ignore-not-found >/dev/null 2>&1; kubectl apply -f 21-k8s-advanced/toleration-pod.yaml >/dev/null; kubectl wait --for=condition=Ready pod/with-toleration --timeout=120s
+CMD
+predict "You now REMOVE the taint from the node. What happens to the Pending no-toleration pod?" "It stays Pending forever|The scheduler places it on the node by itself|It is deleted|It crashes" 2 "The scheduler keeps retrying Pending pods. As soon as the node is allowed, the pod is scheduled. No restart needed."
+step "Remove the taint and watch the stuck pod start" "node/... untainted, then the pod becomes Ready by itself." ok 'condition met' <<'CMD'
+kubectl taint nodes --all dedicated- >/dev/null; kubectl wait --for=condition=Ready pod/no-toleration --timeout=120s
+CMD
+step "Read the two affinity pods" "One uses requiredDuringScheduling... (a must) and one preferredDuringScheduling... (a wish), both asking for disk=nvme." ok 'required' <<'CMD'
+grep -nE "name:|required|preferred|key:" 21-k8s-advanced/affinity-pods.yaml
+CMD
+step "Start both and compare" "affinity-preferred is Running (the wish is ignored), affinity-required is Pending (a must nobody satisfies)." ok 'affinity-required +0/1 +Pending' <<'CMD'
+kubectl delete pod affinity-required affinity-preferred --ignore-not-found >/dev/null 2>&1; kubectl apply -f 21-k8s-advanced/affinity-pods.yaml >/dev/null; kubectl wait --for=condition=Ready pod/affinity-preferred --timeout=120s >/dev/null; kubectl get pods affinity-required affinity-preferred --no-headers
+CMD
+mcq "A node has the taint dedicated=gpu:NoSchedule. Which pods can be scheduled on it?" "Only pods with a matching toleration|Every pod|No pod at all|Only pods in kube-system" 1 "A taint repels everything except pods that tolerate it. (A toleration allows, it does not force a pod onto that node: use affinity or a nodeSelector for that.)"
+task "Let the stuck pod run" "Make the affinity-required pod start WITHOUT editing the pod: give the node the label it asks for.  kubectl label node --all disk=nvme   Then wait until the pod is Running." "The pod wants a node with disk=nvme. Label the node, and the scheduler places the pod." <<'X'
+[ "$(kubectl get pod affinity-required -o jsonpath='{.status.phase}' 2>/dev/null)" = Running ]
+---
+kubectl label node --all disk=nvme --overwrite >/dev/null; kubectl wait --for=condition=Ready pod/affinity-required --timeout=120s >/dev/null
+X
+step "Clean up the practice pods, label and taint" "Pods deleted, label and taint removed." <<'CMD'
+kubectl delete pod no-toleration with-toleration affinity-required affinity-preferred --ignore-not-found --wait=false; kubectl label node --all disk- >/dev/null; kubectl taint nodes --all dedicated- >/dev/null 2>&1; true
+CMD
+
+part "PART I · Clean up"
 step "Delete the cluster" "cluster removed" ok 'cluster removed' <<'CMD'
 bash 06-kubernetes/cluster.sh down
 CMD

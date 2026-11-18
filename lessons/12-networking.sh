@@ -119,5 +119,82 @@ docker rm -f lab-a lab-b lab-lb >/dev/null; docker network rm lab-net
 CMD
 quiz "What two things does a load balancer give you?" "scale|spread|distribut|failover|availab|resilien|redundan|health|more than one" "Scaling (spread load over many copies) and availability (stop sending traffic to a failed copy, so one failure does not take the site down)."
 
+part "PART E · Firewalls and security groups"
+learn "Firewalls" "A firewall decides which network traffic may pass, by rules on source, destination and port. The safest default is DENY everything, then allow only what is needed (for example port 443 from anywhere, port 22 only from the office). A host firewall such as iptables runs on one machine; in the cloud a SECURITY GROUP does the same job in front of a server, and a network ACL does it for a whole subnet. Security groups are stateful: if a request is allowed in, the reply is allowed out automatically. A rule that DROPs traffic gives the sender no answer at all, so the client just waits and times out (REJECT sends back a refusal instead)."
+art "Rules decide what gets through" <<'ART'
+   internet --> [ firewall / security group ] --> server
+                  allow tcp 443 from anywhere      443: yes
+                  allow tcp 22  from office only   22 : only from the office
+                  everything else: DENY            80 : dropped, no answer
+ART
+step "Start a web server in its own network, with permission to edit its firewall" "A container id. lab-fw is nginx; --cap-add NET_ADMIN lets us change its network rules." <<'CMD'
+docker rm -f lab-fw >/dev/null 2>&1; docker network rm lab-fw-net >/dev/null 2>&1; docker network create lab-fw-net >/dev/null; docker run -d --name lab-fw --network lab-fw-net --cap-add NET_ADMIN nginx:alpine; sleep 2
+CMD
+step "Install the firewall tool (iptables) inside it" "OK: and a package count. iptables is ready." ok 'OK' <<'CMD'
+docker exec lab-fw apk add --no-cache iptables iptables-legacy 2>&1 | tail -1
+CMD
+step "Call the web server from a different container" "HTTP 200: the server answers." ok 'HTTP 200' <<'CMD'
+docker run --rm --network lab-fw-net curlimages/curl -s -m 3 -w '\nHTTP %{http_code}\n' lab-fw | tail -1
+CMD
+predict "You add a rule that DROPs all traffic to port 80. What will the client see?" "A 403 Forbidden page|A refusal at once|Nothing: the request hangs until it times out|A 404 page" 3 "DROP discards packets silently, so the client waits. HTTP codes come from the web server, but the web server never even sees the request."
+step "Add the firewall rule: drop all traffic to port 80" "A table with one rule: DROP tcp dpt:80." ok 'DROP' <<'CMD'
+docker exec lab-fw iptables-legacy -A INPUT -p tcp --dport 80 -j DROP && docker exec lab-fw iptables-legacy -L INPUT -n
+CMD
+step "Call it again" "HTTP 000: no answer. curl gave up after 3 seconds. The web server is running fine; the firewall is blocking." ok 'HTTP 000' <<'CMD'
+docker run --rm --network lab-fw-net curlimages/curl -s -m 3 -w '\nHTTP %{http_code}\n' lab-fw | tail -1
+CMD
+step "Remove the rule and call once more" "HTTP 200 again." ok 'HTTP 200' <<'CMD'
+docker exec lab-fw iptables-legacy -D INPUT -p tcp --dport 80 -j DROP; docker run --rm --network lab-fw-net curlimages/curl -s -m 3 -w '\nHTTP %{http_code}\n' lab-fw | tail -1
+CMD
+mcq "A cloud security group allows inbound only port 443. A client tries port 22. What happens?" "The request is silently dropped and times out|The server answers 403|The server closes the port|The client is banned" 1 "Anything not allowed is denied, and denied traffic is normally dropped without a reply."
+
+part "PART F · Private networks, bastions and VPNs"
+learn "Reaching things that are not on the internet" "Databases and internal services should have NO public address. People still need to reach them, so you build a controlled doorway. A BASTION (jump host) is one hardened machine that is reachable from outside and also sits inside the private network; you connect through it. A TUNNEL (ssh -L port forwarding, or a service such as AWS Systems Manager) carries one port through that doorway. A VPN does the same for whole networks: it wraps all your traffic in an encrypted connection to a private network, so your laptop behaves as if it were inside it (site-to-site VPNs join an office to a cloud network). The rule of thumb: nothing private is exposed, and every doorway is logged."
+art "A bastion in front of a private network" <<'ART'
+   your laptop --> [ bastion ]  (public side)
+                       |        (private side)
+                       v
+                 [ secret service ]   no public address, unreachable directly
+ART
+step "Create a private network (no outside access) with a secret page on it" "ready. The secret service lives only on the private network." ok 'ready' <<'CMD'
+docker rm -f lab-secret lab-bastion >/dev/null 2>&1; docker network rm lab-pub lab-priv >/dev/null 2>&1; docker network create lab-pub >/dev/null; docker network create --internal lab-priv >/dev/null; docker run -d --name lab-secret --network lab-priv nginx:alpine >/dev/null; sleep 1; docker exec lab-secret sh -c 'echo "SECRET internal page" > /usr/share/nginx/html/index.html'; echo ready
+CMD
+step "Try to reach it from your own computer" "HTTP 000: there is nothing to connect to. The private service is not exposed." ok 'HTTP 000' <<'CMD'
+curl -s -m 3 -w '\nHTTP %{http_code}\n' localhost:9099 | tail -1
+CMD
+step "Start a bastion that sits on BOTH networks and forwards port 9099 to the secret page" "bastion ready. This is what ssh -L 9099:secret:80 does, built from socat." ok 'bastion ready' <<'CMD'
+docker run -d --name lab-bastion --network lab-pub -p 9099:80 alpine/socat tcp-listen:80,fork,reuseaddr tcp:lab-secret:80 >/dev/null; docker network connect lab-priv lab-bastion; sleep 2; echo bastion ready
+CMD
+step "Try again, now through the bastion" "SECRET internal page. You reached the private service through the controlled doorway." ok 'SECRET internal page' <<'CMD'
+curl -s -m 5 localhost:9099
+CMD
+mcq "What is the main benefit of a bastion or VPN over giving the database a public IP address?" "Only one hardened, logged doorway needs protecting|It is faster|It is cheaper|The database becomes unnecessary" 1 "The fewer public doors, the smaller the attack surface. Everything private stays unreachable except through the doorway you control and monitor."
+
+part "PART G · CDN: caching at the edge"
+learn "What a CDN does" "A CDN (content delivery network) is many cache servers around the world. A user's request goes to the nearest EDGE server. On a HIT the edge answers from its copy (fast, and your origin does no work). On a MISS the edge fetches from the ORIGIN, keeps a copy for the TTL, and answers. The TTL comes from the origin's Cache-Control header. It also absorbs traffic spikes and attacks, and shows an X-Cache style header so you can see what happened. You will build a one-edge CDN with nginx."
+art "Edge cache and origin" <<'ART'
+   user --> [ edge cache ] --HIT--> answer (origin not touched)
+                  | MISS (first time, or expired)
+                  v
+              [ origin server ]  -> answer is kept at the edge for the TTL (30 s here)
+ART
+step "Start an origin server and an edge cache in front of it" "edge ready. The edge listens on port 8091; cdn.conf holds the caching rules." ok 'edge ready' <<'CMD'
+docker rm -f lab-origin lab-edge >/dev/null 2>&1; docker network rm lab-cdn-net >/dev/null 2>&1; docker network create lab-cdn-net >/dev/null; docker run -d --name lab-origin --network lab-cdn-net nginx:alpine >/dev/null; docker run -d --name lab-edge --network lab-cdn-net -p 8091:80 -v "$PWD/12-networking/cdn.conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine >/dev/null; sleep 2; echo edge ready
+CMD
+step "First request: a MISS, the edge must ask the origin" "X-Cache-Status: MISS." ok 'MISS' <<'CMD'
+curl -s -D - localhost:8091 | grep -i x-cache
+CMD
+step "Second request: a HIT, answered from the edge's copy" "X-Cache-Status: HIT." ok 'HIT' <<'CMD'
+curl -s -D - localhost:8091 | grep -i x-cache
+CMD
+step "How many requests did the ORIGIN really see?" "origin requests: 1. Two users asked, the origin worked once. That is the offload a CDN gives." ok 'origin requests: 1' <<'CMD'
+echo "origin requests: $(docker logs lab-origin 2>&1 | grep -c 'GET /')"
+CMD
+mcq "Which setting controls how long an edge may keep its copy?" "The TTL (from Cache-Control or the cache rule)|The port number|The IP address|The container name" 1 "A short TTL means fresher data but more origin traffic; a long TTL means fewer origin requests but staler content."
+step "Clean up the firewall, tunnel and CDN practice containers" "Everything removed." ok 'cleaned' <<'CMD'
+docker rm -f lab-fw lab-secret lab-bastion lab-origin lab-edge >/dev/null 2>&1; docker network rm lab-fw-net lab-pub lab-priv lab-cdn-net >/dev/null 2>&1; echo cleaned
+CMD
+quiz "Name one kind of content that is a good fit for a CDN and one that is not." "image|static|video|script|css|public|javascript|private|personal|user|account|login|checkout|cookie|dynamic" "Good: static public files such as images, scripts, videos. Not: personalised or private pages (account, cart, checkout), which must not be shared between users."
+
 deeper "A to Z of networking (Abhishek Veeramalla)|https://github.com/iam-veeramalla/a-to-z-of-networking"
 explain "Done! Next: bash lab.sh 13"

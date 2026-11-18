@@ -69,7 +69,70 @@ printf -- '- hosts: web\n  tasks:\n    - ansible.builtin.copy:\n        content:
 X
 quiz "Ansible vs Terraform: what is each one mainly for?" "terraform.*(create|provision|infra)|ansible.*(config|install|package|server)|create|configure|provision" "Terraform creates and changes infrastructure (networks, servers, buckets). Ansible configures what runs on it (packages, files, services). They are often used together."
 
-part "PART E · Clean up"
+part "PART E · Roles: reusable building blocks"
+learn "Roles" "A playbook that grows becomes hard to read and reuse. A ROLE packages one job (install and configure nginx, set up users, create a banner) in a standard folder layout: tasks (what to do), defaults (variables anyone can override), templates (files with variables), handlers and more. A playbook then uses the role in one line, and the same role works for every project. Ansible Galaxy is a public library of ready-made roles."
+art "The layout of a role" <<'ART'
+   roles/banner/
+     defaults/main.yml      variables with default values (easy to override)
+     tasks/main.yml         the work to do
+     templates/banner.txt.j2   a file with {{ variables }}
+   playbook:  roles: [ banner ]     <- one line uses all of it
+ART
+step "Look at the files that make up the role" "defaults/main.yml, tasks/main.yml and templates/banner.txt.j2 under 13-ansible/roles/banner." ok 'tasks/main.yml' <<'CMD'
+find 13-ansible/roles -type f | sort
+CMD
+step "Read the role's defaults and tasks" "A default banner_text, and two tasks: create the directory and render the template." ok 'banner_text' <<'CMD'
+cat 13-ansible/roles/banner/defaults/main.yml 13-ansible/roles/banner/tasks/main.yml
+CMD
+step "Read the playbook that uses the role" "Only the list of roles: banner. Everything else lives in the role." ok 'banner' <<'CMD'
+cat 13-ansible/roles-demo.yml
+CMD
+step "Apply the role to both servers" "PLAY RECAP with failed=0 and changed=2 for each server (the first time)." ok 'failed=0' <<'CMD'
+lab-ansible ansible-playbook roles-demo.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^PLAY RECAP|changed="
+CMD
+step "Read the result on web1" "The default banner and host: web1. The template filled in the variable inventory_hostname." ok 'host: web1' <<'CMD'
+ac exec -T web1 cat /opt/devlab/banner.txt
+CMD
+task "Override a role variable" "Apply the role again, but change the banner text from the command line:  bash 13-ansible/ansible.sh ansible-playbook roles-demo.yml -e \"banner_text='Maintenance tonight'\"   Then look at the banner on web2: it must say Maintenance tonight." "-e sets extra variables, which beat the role's defaults. Check with: ac exec -T web2 cat /opt/devlab/banner.txt" <<'X'
+ac exec -T web2 grep -q 'Maintenance tonight' /opt/devlab/banner.txt
+---
+lab-ansible ansible-playbook roles-demo.yml -e "banner_text='Maintenance tonight'"
+X
+
+part "PART F · Ansible Vault: secrets in the repository, safely"
+learn "Ansible Vault" "Playbooks often need secrets: database passwords, API keys. Ansible Vault encrypts a variables file with a password, so the encrypted file can be committed to Git while the password is kept elsewhere (a secret manager, a CI secret). Ansible decrypts it in memory when you run a playbook and give it the vault password. Add no_log: true to tasks that handle secrets so Ansible never prints them. In this lab the wrapper copies your playground/vault-pass.txt to /root/.vault-pass inside the Ansible container (and locks its permissions), so that is the password file you name on the command line. Vault protects secrets at rest; for rotation and access control use a secret manager (module 20)."
+art "Vault: what is stored where" <<'ART'
+   secrets.yml (ENCRYPTED)  ---> committed to Git, safe to read for anyone
+   vault password           ---> NEVER in Git (CI secret / password manager)
+   playbook run + password  ---> secret decrypted in memory, copied to the server (mode 0600)
+ART
+step "Create a plain secrets file and a vault password file" "The file shows the secret in plain text, for now." ok 's3cr3t' <<'CMD'
+printf 'lab-vault-password\n' > playground/vault-pass.txt; printf 'db_password: s3cr3t-value\n' > playground/secrets.yml; cat playground/secrets.yml
+CMD
+step "Encrypt it with ansible-vault" "encrypted OK. ansible-vault prints nothing when it works, so the lab adds the message; the next step shows the result." ok 'encrypted OK' <<'CMD'
+lab-ansible ansible-vault encrypt ../playground/secrets.yml --vault-password-file /root/.vault-pass 2>&1 && echo "encrypted OK"
+CMD
+step "Look at the file now" "Unreadable: it starts with \$ANSIBLE_VAULT;1.1;AES256 followed by hex. This file is safe to commit." ok 'ANSIBLE_VAULT' <<'CMD'
+head -3 playground/secrets.yml
+CMD
+step "Count the plain-text copies of the secret in that file" "secret copies in the file: 0." ok 'file: 0' <<'CMD'
+echo "secret copies in the file: $(grep -c s3cr3t playground/secrets.yml || true)"
+CMD
+step "With the password, Ansible can still read it" "db_password: s3cr3t-value." ok 's3cr3t-value' <<'CMD'
+lab-ansible ansible-vault view ../playground/secrets.yml --vault-password-file /root/.vault-pass
+CMD
+step "Read the playbook that uses the encrypted file" "vars_files points at the encrypted file, and the copy task has no_log: true." ok 'no_log' <<'CMD'
+cat 13-ansible/vault-demo.yml
+CMD
+step "Run it with the vault password" "PLAY RECAP with failed=0: the secret was decrypted and copied to both servers." ok 'failed=0' <<'CMD'
+lab-ansible ansible-playbook vault-demo.yml --vault-password-file /root/.vault-pass 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^PLAY RECAP|changed="
+CMD
+step "Check the secret file on the server: permissions and owner" "600 root: only root can read it." ok '600 root' <<'CMD'
+ac exec -T web1 stat -c '%a %U %n' /opt/devlab/db_password
+CMD
+quiz "Why is it safe to commit an Ansible Vault file to Git, but never the vault password?" "password|key|encrypt|decrypt|unreadable|without|separate|secret|anyone|access" "The file is encrypted, so without the password it is just noise. The password is the key: anyone who has both can read the secrets, so the two must live in different places."
+
+part "PART G · Clean up"
 step "Remove the practice servers" "web1 and web2 removed." ok 'Removed|removed' <<'CMD'
 ac down 2>&1 | tail -4
 CMD

@@ -1,0 +1,18 @@
+// The same checks as .github/workflows/ci.yml, written for Jenkins (a "declarative pipeline").
+// Compare it with the GitHub Actions file: stages are jobs, steps are steps, sh runs a shell command.
+pipeline {
+  agent any
+  options { timeout(time: 20, unit: 'MINUTES') }
+  stages {
+    stage('Install') { steps { sh 'cd app/api && npm ci' } }
+    stage('Test')    { steps { sh 'cd app/api && npm test' } }
+    stage('Audit')   { steps { sh 'cd app/api && npm audit --audit-level=high' } }
+    stage('Build image') {
+      steps { sh 'docker build -f 02-containers/Dockerfile.api -t devlab-api:${BUILD_NUMBER} app/api' }
+    }
+  }
+  post {
+    failure { echo 'tell the team the build is broken' }
+    always  { cleanWs() }
+  }
+}

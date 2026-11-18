@@ -48,7 +48,38 @@ awsl sqs list-queues --query QueueUrls --output text | tr '\t' '\n' | grep -qx '
 U=$(awsl sqs get-queue-url --queue-name devlab-dev-leads --query QueueUrl --output text) && awsl sqs delete-queue --queue-url $U && bash 05-terraform/tf.sh apply -auto-approve
 X
 
-part "PART D · Clean up"
+part "PART D · Workspaces: one code, several environments"
+learn "Workspaces" "A Terraform workspace is a separate STATE for the same code. The default workspace is called default. Create another one (for example staging) and Terraform starts with an empty state: the same code now wants to create everything again, without touching what the other workspace built. Teams use workspaces, or separate folders, to run dev, staging and production from one set of files. Inside the code, terraform.workspace holds the current name, so you can change names or sizes per environment. Production usually gets its own state and its own access rights, because a wrong workspace is an easy mistake."
+art "One code, many states" <<'ART'
+   same .tf files
+      |-- workspace default  -> state A -> dev resources
+      |-- workspace staging  -> state B -> staging resources   (empty at first)
+      |-- workspace qa       -> state C -> qa resources
+   terraform workspace select NAME   switches which state is used
+ART
+step "List the workspaces" "A star marks the one in use: default." ok 'default' <<'CMD'
+bash 05-terraform/tf.sh workspace list
+CMD
+step "Create a workspace called staging" "Created and switched to workspace staging." ok 'staging' <<'CMD'
+bash 05-terraform/tf.sh workspace new staging 2>&1 | head -2
+CMD
+step "Plan in the new workspace" "Plan: 8 to add. The staging state is empty, so Terraform wants to create everything, even though default already has it." ok '8 to add' <<'CMD'
+bash 05-terraform/tf.sh plan 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^Plan:|No changes"
+CMD
+step "Switch back to default and plan again" "No changes. The default workspace still knows the resources it built." ok 'No changes' <<'CMD'
+bash 05-terraform/tf.sh workspace select default >/dev/null 2>&1; bash 05-terraform/tf.sh plan 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^Plan:|No changes"
+CMD
+predict "You run terraform apply while the staging workspace is selected, but you meant to change dev. What happens?" "It changes dev|It builds a SEPARATE copy using the staging state|It fails|Nothing" 2 "Each workspace has its own state, so the apply works on the staging state only. Always check which workspace you are in (terraform workspace show) before you apply."
+task "Plan in your own workspace" "Create a workspace called qa, then save its plan into playground/qa-plan.txt:  bash 05-terraform/tf.sh workspace new qa   then   bash 05-terraform/tf.sh plan > playground/qa-plan.txt   The plan must say 8 to add, and qa must be the selected workspace." "workspace new creates AND selects it. Check with: bash 05-terraform/tf.sh workspace show" <<'X'
+grep -q '8 to add' playground/qa-plan.txt 2>/dev/null && [ "$(bash 05-terraform/tf.sh workspace show 2>/dev/null | tr -d '\r\n')" = qa ]
+---
+bash 05-terraform/tf.sh workspace new qa >/dev/null 2>&1; bash 05-terraform/tf.sh plan 2>&1 | sed 's/\x1b\[[0-9;]*m//g' > playground/qa-plan.txt
+X
+step "Return to default and delete the practice workspaces" "The staging and qa workspaces are deleted; default stays." ok 'default' <<'CMD'
+bash 05-terraform/tf.sh workspace select default >/dev/null 2>&1; bash 05-terraform/tf.sh workspace delete staging >/dev/null 2>&1; bash 05-terraform/tf.sh workspace delete qa >/dev/null 2>&1; bash 05-terraform/tf.sh workspace list
+CMD
+
+part "PART E · Clean up"
 step "terraform destroy: remove everything it created" "Destroy complete! Resources: 8 destroyed." <<'CMD'
 bash 05-terraform/tf.sh destroy -auto-approve 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tail -2
 CMD

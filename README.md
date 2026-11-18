@@ -42,7 +42,7 @@ flowchart LR
     N[12 Networking] --> AN[13 Ansible] --> H[14 Helm and RBAC] --> L[15 Logging and tracing] --> PG[16 Postgres] --> AW[17 Real cloud: AWS]
   end
   subgraph Extra["Job-ready extras"]
-    LX[18 Linux admin] --- GC[19 Git collaboration] --- SE[20 Secrets] --- KA[21 Kubernetes advanced] --- SH[22 Ship it for real] --- IV[23 Interview prep]
+    LX[18 Linux admin] --- GC[19 Git collaboration] --- SE[20 Secrets] --- KA[21 Kubernetes advanced] --- SH[22 Ship it for real] --- IV[23 Interview prep] --- SD[24 System design]
   end
   M --> CI
   K --> G
@@ -50,6 +50,7 @@ flowchart LR
   X --> N
   F --> LX
   G0 --> GC
+  N --> SD
   X --> SH
 ```
 
@@ -61,16 +62,16 @@ flowchart LR
 | | [01](01-foundations/README.md) | Foundations | Linux, HTTP, shell, debugging by layers *(after 00)* | 3h |
 | | [02](02-containers/README.md) | Containers | secure images, nginx reverse proxy | 4h |
 | | [03](03-compose/README.md) | Compose | multi-service stack, volumes, health, hardening | 3h |
-| **Intermediate** | [04](04-ci-cd/README.md) | CI/CD | GitHub Actions, scanning, signed releases | 4h |
-| | [05](05-terraform/README.md) | Infrastructure as Code | Terraform modules, tests, AWS APIs (free emulator) | 5h |
+| **Intermediate** | [04](04-ci-cd/README.md) | CI/CD | GitHub Actions, scanning, signed releases, Jenkins side by side | 4h |
+| | [05](05-terraform/README.md) | Infrastructure as Code | Terraform modules, tests, workspaces, AWS APIs (free emulator) | 5h |
 | | [06](06-kubernetes/README.md) | Kubernetes | probes, limits, HPA, StatefulSet, NetworkPolicy | 8h |
 | **Advanced** | [07](07-gitops/README.md) | GitOps | Argo CD, drift, rollback by revert | 4h |
 | | [08](08-observability/README.md) | Observability | Prometheus, Grafana, SLO burn-rate alerts | 4h |
 | | [09](09-security/README.md) | DevSecOps | shift-left scanning, admission policy, supply chain | 4h |
 | | [10](10-sre/README.md) | SRE | SLOs, runbooks, game days, postmortems | 4h |
 | **Expert** | [11](11-capstone/README.md) | Capstone | DR drill, release end to end, DORA, readiness review | 10h+ |
-| **Specialist** | [12](12-networking/README.md) | Networking | IP addressing and CIDR, DNS, ports, TLS certificates, load balancing and failover | 2h |
-| | [13](13-ansible/README.md) | Ansible | configuration management, idempotence, drift repair | 2h |
+| **Specialist** | [12](12-networking/README.md) | Networking | IP addressing and CIDR, DNS, ports, TLS certificates, load balancing and failover, firewalls, bastion tunnels, CDN caching | 2h |
+| | [13](13-ansible/README.md) | Ansible | configuration management, idempotence, drift repair, roles, Ansible Vault | 2h |
 | | [14](14-helm/README.md) | Helm and RBAC | chart install/upgrade/rollback, least-privilege access | 2.5h |
 | | [15](15-logging/README.md) | Logging and tracing | Loki + Alloy, LogQL, Jaeger traces | 2h |
 | | [16](16-postgres/README.md) | Postgres | real database, scaling the API, pg_dump backup | 2h |
@@ -78,11 +79,12 @@ flowchart LR
 | **Job-ready extras** | [18](18-linux/README.md) | Linux administration | users, permissions, processes, disk, cron, systemd, SSH keys *(unlocks after 01)* | 3h |
 | | [19](19-git/README.md) | Git collaboration | conflicts, rebase, reflog recovery, bisect, code review *(after 00)* | 2.5h |
 | | [20](20-secrets/README.md) | Secrets management | HashiCorp Vault, policies, rotation, revocation *(after 03)* | 2h |
-| | [21](21-k8s-advanced/README.md) | Kubernetes advanced | Jobs, ConfigMaps, OOMKilled, autoscaling, ingress, troubleshooting ImagePullBackOff and Pending pods *(after 06)* | 3h |
+| | [21](21-k8s-advanced/README.md) | Kubernetes advanced | Jobs, ConfigMaps, OOMKilled, autoscaling, ingress, troubleshooting ImagePullBackOff and Pending pods, taints, tolerations, affinity *(after 06)* | 3h |
 | | [22](22-ship/README.md) | Ship it for real | a LIVE GitHub pipeline, PRs, releases, real cloud deploy code *(after 11)* | 3h |
 | | [23](23-interview/README.md) | Interview prep | spoken rounds, system design, STAR story, mock interview *(after 11)* | 3h |
+| | [24](24-system-design/README.md) | **System design** | caching, queues, rate limiting, load balancing, CDN, sharding, circuit breaker, each run in miniature *(after 12)* | 3h |
 
-Follow it in order; the lab moves on to the next lesson automatically. Start with module **00** (Git from zero). The core path is 00-11, the **specialist tracks** 12-17 go deeper, and the **job-ready extras** 18-23 add what employers ask about most (some unlock early: see the table). Finish with [JOB-READY.md](JOB-READY.md). Do not skip **Break it**: operating skill comes from failures. Tick modules off as you finish them and keep notes on what broke.
+Follow it in order; the lab moves on to the next lesson automatically. Start with module **00** (Git from zero). The core path is 00-11, the **specialist tracks** 12-17 go deeper, and the **job-ready extras** 18-24 add what employers ask about most (some unlock early: see the table). Finish with [JOB-READY.md](JOB-READY.md). Do not skip **Break it**: operating skill comes from failures. Tick modules off as you finish them and keep notes on what broke.
 
 ## Start here: guided mode (easiest)
 **Windows: just double-click `lab.cmd`.** It checks Docker and opens the lab in its own Git Bash window.
@@ -133,7 +135,7 @@ What it looks like in your terminal:
   lab ▸ check
    ✔ PASS
 
-  Overall  ████████░░░░░░░░░░░░░░░░  4/24 modules   Rank: DevOps Engineer   XP 640 (level 5)
+  Overall  ████████░░░░░░░░░░░░░░░░  4/25 modules   Rank: DevOps Engineer   XP 640 (level 5)
 ```
 You earn a rank as you go: Newcomer, Junior Operator, DevOps Engineer, Platform Engineer, Senior Engineer, SRE Legend.
 
@@ -159,7 +161,7 @@ app/web/   sample static site with a form that calls the API
 00-git/ 01-foundations/ 02-containers/ 03-compose/ 04-ci-cd/ 05-terraform/ 06-kubernetes/
 07-gitops/ 08-observability/ 09-security/ 10-sre/ 11-capstone/
 12-networking/ 13-ansible/ 14-helm/ 15-logging/ 16-postgres/ 17-aws/      (specialist tracks)
-18-linux/ 19-git/ 20-secrets/ 21-k8s-advanced/ 22-ship/ 23-interview/      (job-ready extras)
+18-linux/ 19-git/ 20-secrets/ 21-k8s-advanced/ 22-ship/ 23-interview/ 24-system-design/   (job-ready extras)
 finals/NN.sh       the interview + module final of each module
 .github/           the LIVE CI pipeline, Dependabot, feedback template
 JOB-READY.md  STUDY-GUIDE.md

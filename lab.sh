@@ -38,6 +38,7 @@ kleads() { kubectl -n devlab-dev exec devlab-api-0 -- node -e "const {DatabaseSy
 gh_repo() { git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##'; }     # owner/repo of this checkout
 ghget()   { curl -s "https://api.github.com/repos/$(gh_repo)$1"; }                                                          # read-only GitHub API for your repo (public repos need no login)
 ghjobs()  { local id; id=$(ghget '/actions/workflows/ci.yml/runs?status=completed&per_page=1' | grep -m1 '"id"' | grep -o '[0-9]*'); ghget "/actions/runs/$id/jobs" | grep -E '^      "(name|conclusion)"' | sed -E 's/^ +"(name|conclusion)": "?([^",]*)"?,?/\1: \2/'; }   # jobs of the latest finished CI run
+rc()  { docker exec lab-redis redis-cli "$@"; }                  # the Redis CLI in the practice Redis (module 24)
 lx()  { docker exec lab-linux "$@"; }                       # run a command inside the Linux practice server (module 18)
 g()   { git -C playground/collab "$@"; }                      # git inside the practice repo (module 19)
 vlt() { local i=; case "$*" in *"policy write"*) i=-i ;; esac; docker exec $i -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN="${VAULT_TOKEN_LAB:-lab-root}" lab-vault vault "$@"; }   # the Vault CLI (module 20); stdin is attached only for "policy write"
@@ -56,6 +57,7 @@ shortcuts() {
   printf '    leads / kleads   count the leads in the database (compose / Kubernetes)\n'
   printf '    ghget /PATH   read your repo from the GitHub API, for example ghget /actions/runs   ghjobs  the jobs of the latest CI run\n'
   printf '    lx CMD    run CMD inside the Linux practice server (module 18)\n'
+  printf '    rc CMD    the Redis CLI in the practice Redis, for example rc GET key (module 24)\n'
   printf '    g CMD     git inside the practice repo playground/collab (module 19)\n'
   printf '    vlt CMD   the Vault CLI against the practice Vault (module 20)\n'
   printf '    edit FILE open a file in the nano editor (Ctrl+O save, Ctrl+X exit)\n'
@@ -451,6 +453,7 @@ prereq_of() {
     01) echo 00 ;;
     18) echo 01 ;;
     19) echo 00 ;;
+    24) echo 12 ;;
     20) echo 03 ;;
     21) echo 06 ;;
     22|23) echo 11 ;;
@@ -548,7 +551,7 @@ case "${1:-menu}" in
   down)
     # one 'down' that knows every compose file used by the lessons (app, monitoring, logging, postgres)
     docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml -f 15-logging/compose.logging.yml -f 16-postgres/compose.postgres.yml --env-file .env down --remove-orphans 2>&1 | tail -3
-    docker rm -f my-nginx my-page lab-api lab-tls lab-a lab-b lab-lb lab-linux lab-vault vault-api exam-vault-api exam-api exam-a exam-b exam-db port-squatter >/dev/null 2>&1; docker network rm lab-net exam-net >/dev/null 2>&1
+    docker rm -f lab-redis lab-jenkins lab-fw lab-secret lab-bastion lab-origin lab-edge my-nginx my-page lab-api lab-tls lab-a lab-b lab-lb lab-linux lab-vault vault-api exam-vault-api exam-api exam-a exam-b exam-db port-squatter >/dev/null 2>&1; docker network rm lab-net exam-net lab-fw-net lab-pub lab-priv lab-cdn-net >/dev/null 2>&1
     bash 06-kubernetes/cluster.sh down 2>/dev/null
     docker compose -f 05-terraform/compose.localstack.yml down 2>&1 | tail -1
     docker compose -f 13-ansible/compose.yml down 2>&1 | tail -1 ;;

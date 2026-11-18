@@ -1,0 +1,6 @@
+# Using a role takes three lines. The role carries the tasks, template and defaults.
+- name: Apply the banner role to the web servers
+  hosts: web
+  become: true
+  roles:
+    - banner

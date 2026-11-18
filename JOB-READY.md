@@ -20,7 +20,7 @@ Tick each one before you apply. Everything here is public, so a recruiter can cl
 - [ ] A **tagged release** with images published (module 22, part C).
 - [ ] **Dependabot** pull requests merged (a small, real sign of maintenance).
 - [ ] A **postmortem** and a **runbook** written in your own words (modules 10 and 23).
-- [ ] The **design document** and your **STAR story** from module 23 saved in the repo (copy them out of `playground/`).
+- [ ] The **design document** and your **STAR story** from module 23 saved in the repo, and one **system design** you can draw and explain in 10 minutes (module 24) (copy them out of `playground/`).
 - [ ] Optional but strong: a **live URL** from the real-cloud deployment (module 22, part D), with the budget alarm screenshot, and the destroy confirmed.
 
 ## CV bullets you can honestly write
