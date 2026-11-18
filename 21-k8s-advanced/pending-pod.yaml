@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pending-pod
+spec:
+  # asks for a node that has the label disktype=ssd; no node has it yet
+  nodeSelector:
+    disktype: ssd
+  containers:
+    - name: web
+      image: nginx:alpine

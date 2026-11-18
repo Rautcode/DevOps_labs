@@ -100,7 +100,46 @@ curl -s -w '\n%{http_code}' -H 'Host: unknown.localhost' localhost:8081/ | tail 
 CMD
 quiz "What is the difference between a Service and an Ingress?" "outside|external|http|host|path|route|rules|inside|stable" "A Service is a stable in-cluster address for a set of pods. An Ingress is HTTP routing for outside traffic (by host name and path) to Services, enforced by an ingress controller."
 
-part "PART G · Clean up"
+part "PART G · Troubleshoot like an SRE"
+learn "Read the status, then the events" "When a pod is unhappy, its STATUS names the problem: ImagePullBackOff (the image cannot be downloaded: wrong name or tag, or a private registry without credentials), CrashLoopBackOff (the container starts and keeps crashing: read kubectl logs), Pending (no node can take it: not enough CPU or memory, or a nodeSelector, taint or affinity no node satisfies). The reason is always in kubectl describe, under Events at the bottom."
+art "Which status means what?" <<'ART'
+   Pending            -> not placed on a node     -> describe pod: FailedScheduling
+   ImagePullBackOff   -> image cannot be fetched   -> describe pod: Failed to pull image
+   CrashLoopBackOff   -> app starts then dies      -> kubectl logs POD (and --previous)
+   OOMKilled (137)    -> over its memory limit     -> raise the limit or fix the leak
+ART
+step "Start a pod with an image tag that does not exist" "pod/bad-image created. Kubernetes accepts it; the problem shows later." ok 'created' <<'CMD'
+kubectl delete pod bad-image --ignore-not-found >/dev/null 2>&1; kubectl run bad-image --image=nginx:no-such-tag-123
+CMD
+step "Wait for the status to show the problem" "ErrImagePull and then ImagePullBackOff. Kubernetes retries with growing delays." ok 'ImagePull' <<'CMD'
+for i in $(seq 1 30); do kubectl get pod bad-image --no-headers | grep -q ImagePull && break; sleep 3; done; kubectl get pod bad-image
+CMD
+step "Find the reason in the events" "A line saying Failed to pull image, with the name that could not be found." ok 'Failed' <<'CMD'
+kubectl describe pod bad-image | grep -iE "Failed|not found" | head -3
+CMD
+step "Fix it by pointing the pod at a real tag" "pod/bad-image image updated, then the pod becomes ready." ok 'condition met' <<'CMD'
+kubectl set image pod/bad-image bad-image=nginx:alpine; kubectl wait --for=condition=Ready pod/bad-image --timeout=120s
+CMD
+step "Now a pod that asks for a node that does not exist (nodeSelector disktype=ssd)" "pod/pending-pod created." ok 'created' <<'CMD'
+kubectl delete pod pending-pod --ignore-not-found >/dev/null 2>&1; kubectl apply -f 21-k8s-advanced/pending-pod.yaml
+CMD
+step "See it stuck, and why" "Status Pending, and an event FailedScheduling: no node matches the node selector." ok 'FailedScheduling' <<'CMD'
+sleep 6; kubectl get pod pending-pod --no-headers; kubectl describe pod pending-pod | grep -i FailedScheduling | head -2
+CMD
+predict "How can you make that Pending pod schedule WITHOUT editing the pod?" "Label a node with disktype=ssd|Restart the cluster|Delete the Deployment|Add more memory" 1 "The scheduler only needs a node that matches the selector. Giving a node the label makes it eligible."
+step "Label the node and watch the pod start" "node/... labeled, then the pod is Ready." ok 'condition met' <<'CMD'
+kubectl label node --all disktype=ssd --overwrite >/dev/null; kubectl wait --for=condition=Ready pod/pending-pod --timeout=120s
+CMD
+task "Fix a broken app" "A pod called broken-app was deployed with a typo in its image tag. Apply it with  kubectl apply -f 21-k8s-advanced/broken-app.yaml  , look at its status and events (kubectl get pod, kubectl describe pod), then fix the image to nginx:alpine and wait until it is Running. Type check when done." "kubectl set image pod/broken-app web=nginx:alpine  (the container is named web). Wait with: kubectl wait --for=condition=Ready pod/broken-app" <<'X'
+[ "$(kubectl get pod broken-app -o jsonpath='{.status.phase}' 2>/dev/null)" = Running ] && kubectl get pod broken-app -o jsonpath='{.spec.containers[0].image}' | grep -q 'nginx:alpine'
+---
+kubectl delete pod broken-app --ignore-not-found >/dev/null 2>&1; kubectl apply -f 21-k8s-advanced/broken-app.yaml >/dev/null; kubectl set image pod/broken-app web=nginx:alpine >/dev/null; kubectl wait --for=condition=Ready pod/broken-app --timeout=120s >/dev/null
+X
+step "Clean up the practice pods and the label" "Pods deleted." <<'CMD'
+kubectl delete pod bad-image pending-pod broken-app --ignore-not-found --wait=false; kubectl label node --all disktype- >/dev/null
+CMD
+
+part "PART H · Clean up"
 step "Delete the cluster" "cluster removed" ok 'cluster removed' <<'CMD'
 bash 06-kubernetes/cluster.sh down
 CMD

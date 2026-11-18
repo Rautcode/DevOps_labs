@@ -34,6 +34,15 @@ X
 quiz "Why do containers use names like 'api' instead of IP addresses?" "change|dynamic|restart|new ip|name|dns|stable" "Container IPs change every time a container is recreated. Names are stable and DNS finds the current IP."
 
 part "PART B · Ports and TCP: how a connection is made"
+learn "IP addresses and subnets (CIDR)" "An IPv4 address has four numbers (0-255), such as 10.0.1.25. A network is written in CIDR form, 10.0.1.0/24: the number after the slash says how many of the 32 bits are fixed for the network, and the rest are free for hosts. A /24 leaves 8 free bits, so 2 to the power 8 = 256 addresses (254 usable). A /16 has 65,536. Bigger slash number means a SMALLER network. Cloud networks (VPCs) and Kubernetes pods are carved out of private ranges: 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16."
+art "Reading 10.0.1.0/24" <<'ART'
+   10 . 0 . 1 . 25      /24  = first 24 bits are the NETWORK
+   |______________|   |____|
+     fixed (network)   last 8 bits = HOST: 256 addresses
+   /16 -> 65,536 addresses     /28 -> 16 addresses     /32 -> exactly one
+ART
+mcq "How many addresses are in 10.0.0.0/24?" "24|256|255|65536" 2 "32 - 24 = 8 free bits, and 2 to the power 8 = 256 (two are reserved, so 254 are usable)."
+mcq "Which of these is a PRIVATE address (not reachable from the internet)?" "8.8.8.8|172.15.0.1|172.20.4.9|93.184.216.34" 3 "The private 172 range is 172.16.0.0 to 172.31.255.255, so 172.20.4.9 is private and 172.15.0.1 is not."
 learn "Ports and TCP" "An IP address finds a machine and a port finds a program on it. A server LISTENS on a port; a client CONNECTS to it. Only one program can own a port, so two servers on one machine need different ports or a reverse proxy in front."
 step "What is the web server listening on?" "0.0.0.0:8080 in LISTEN state. A port is like a door number on one machine." ok '8080' <<'CMD'
 docker exec devlab-web-1 netstat -tln

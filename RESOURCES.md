@@ -76,6 +76,8 @@ Shubham Londhe publishes many hands-on DevOps learning repos on GitHub ([profile
 **How to use these:** finish a module here first, then repeat the same idea on a different app from the table. Doing the skill twice, on two apps, is what makes it stick.
 
 ## More practice: Abhishek Veeramalla and StackSimplify
+**Start with [STUDY-GUIDE.md](STUDY-GUIDE.md):** it says which folder or day to read for each lab module, and what to watch out for.
+
 Two more public sources, matched to the modules. Star counts are approximate and from the GitHub API at the time of writing; read a repo's README before committing time to it.
 
 **[Abhishek Veeramalla](https://github.com/iam-veeramalla)** publishes a "zero to hero" repo for most DevOps topics:
