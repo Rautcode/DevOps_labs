@@ -34,6 +34,21 @@ docker start devlab-api-1         # it resolves
 ```
 Then watch `slo:error_ratio:rate5m` rise on the dashboard against the 0.5% budget line.
 
+## PromQL: ask your metrics questions
+The lab shortcut `pq 'QUERY'` runs an instant query (it calls `http://localhost:9090/api/v1/query`). Or type the same queries into the Prometheus web page.
+```promql
+up                                                           # 1 = scraped fine
+probe_success{instance="http://web:8080/healthz"}            # one series, by label
+probe_duration_seconds * 1000                                # arithmetic: seconds to ms
+probe_duration_seconds > 0.5                                 # a filter: only slow probes (the SlowResponses alert)
+rate(prometheus_http_requests_total{handler="/api/v1/query"}[2m])   # a COUNTER as a per-second rate
+sum by (job) (up)                                            # aggregation, keep the job label
+avg_over_time(probe_success{instance="http://web:8080/healthz"}[5m])   # availability over 5 minutes
+```
+- **Gauge** (goes up and down) vs **counter** (only goes up, resets on restart): never read a counter raw, use `rate()` or `increase()`.
+- Selectors: `=`, `!=`, `=~` (regex), `!~`. Aggregations: `sum`, `avg`, `max`, `count` with `by (label)`.
+- `histogram_quantile(0.95, sum by (le) (rate(x_bucket[5m])))` gives a p95 latency from a histogram.
+
 ## Concepts
 - **The four golden signals:** latency, traffic, errors, saturation.
 - **SLI → SLO → error budget** ([10-sre/slo.md](../10-sre/slo.md)). **Burn-rate alerts** page only when the budget is genuinely at risk: far less noise than "CPU > 80%".

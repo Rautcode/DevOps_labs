@@ -24,6 +24,24 @@ bash 13-ansible/ansible.sh ansible-playbook site.yml            # changed=0  (id
 docker compose -f 13-ansible/compose.yml down
 ```
 
+## Roles and Ansible Vault (parts E and F of the guided lab)
+**Roles** package one job in a standard layout, so a playbook uses it in one line:
+```
+roles/banner/
+  defaults/main.yml          # variables with default values (easy to override)
+  tasks/main.yml             # the work
+  templates/banner.txt.j2    # files with {{ variables }}
+```
+[roles-demo.yml](roles-demo.yml) applies it. Override a default with `-e "banner_text='Maintenance tonight'"` (extra vars beat role defaults). Ansible Galaxy is a public library of ready-made roles.
+
+**Ansible Vault** encrypts a variables file so it can live in Git while the password does not:
+```bash
+bash 13-ansible/ansible.sh ansible-vault encrypt ../playground/secrets.yml --vault-password-file /root/.vault-pass
+bash 13-ansible/ansible.sh ansible-vault view    ../playground/secrets.yml --vault-password-file /root/.vault-pass
+bash 13-ansible/ansible.sh ansible-playbook vault-demo.yml --vault-password-file /root/.vault-pass
+```
+`/root/.vault-pass` is a copy of `playground/vault-pass.txt` made by the wrapper (Ansible treats an executable password file as a script, and files mounted from Windows look executable). Use `no_log: true` on tasks that handle secrets. For rotation and access control use a secret manager (module 20).
+
 ## Concepts
 - **Idempotent:** run it once or ten times, same result. Already-correct servers are left alone.
 - **Declarative tasks:** "package X is present", not "run apt install X".

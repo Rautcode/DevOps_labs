@@ -38,6 +38,7 @@ kleads() { kubectl -n devlab-dev exec devlab-api-0 -- node -e "const {DatabaseSy
 gh_repo() { git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##'; }     # owner/repo of this checkout
 ghget()   { curl -s "https://api.github.com/repos/$(gh_repo)$1"; }                                                          # read-only GitHub API for your repo (public repos need no login)
 ghjobs()  { local id; id=$(ghget '/actions/workflows/ci.yml/runs?status=completed&per_page=1' | grep -m1 '"id"' | grep -o '[0-9]*'); ghget "/actions/runs/$id/jobs" | grep -E '^      "(name|conclusion)"' | sed -E 's/^ +"(name|conclusion)": "?([^",]*)"?,?/\1: \2/'; }   # jobs of the latest finished CI run
+pq()  { curl -s localhost:9090/api/v1/query --data-urlencode "query=$1" | node 08-observability/pq.js; }   # ask Prometheus a PromQL question (module 08)
 rc()  { docker exec lab-redis redis-cli "$@"; }                  # the Redis CLI in the practice Redis (module 24)
 lx()  { docker exec lab-linux "$@"; }                       # run a command inside the Linux practice server (module 18)
 g()   { git -C playground/collab "$@"; }                      # git inside the practice repo (module 19)
@@ -57,6 +58,7 @@ shortcuts() {
   printf '    leads / kleads   count the leads in the database (compose / Kubernetes)\n'
   printf '    ghget /PATH   read your repo from the GitHub API, for example ghget /actions/runs   ghjobs  the jobs of the latest CI run\n'
   printf '    lx CMD    run CMD inside the Linux practice server (module 18)\n'
+  printf '    pq QUERY  run a PromQL query against Prometheus, for example pq up (module 08)\n'
   printf '    rc CMD    the Redis CLI in the practice Redis, for example rc GET key (module 24)\n'
   printf '    g CMD     git inside the practice repo playground/collab (module 19)\n'
   printf '    vlt CMD   the Vault CLI against the practice Vault (module 20)\n'

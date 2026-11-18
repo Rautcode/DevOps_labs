@@ -38,6 +38,17 @@ docker run --rm --entrypoint sh -v "$PWD/05-terraform:/w" -w /w/modules/storage 
 - **Drift:** change the bucket by hand (`aws s3api put-bucket-versioning ... Suspended`), then `plan`: Terraform shows the drift and heals it.
 - **Policy as code:** [Checkov](../09-security/README.md) found real gaps here (unencrypted SQS, no multipart-abort rule). They were fixed; the remaining ones are *documented suppressions* (`# checkov:skip=... reason`).
 
+## Workspaces: one code, several states
+A workspace is a separate **state** for the same code. A new workspace is empty, so Terraform wants to create everything again, without touching what the other workspace built.
+```bash
+bash 05-terraform/tf.sh workspace list              # * default
+bash 05-terraform/tf.sh workspace new staging       # creates AND selects it
+bash 05-terraform/tf.sh plan                        # Plan: 8 to add  (empty state)
+bash 05-terraform/tf.sh workspace select default
+bash 05-terraform/tf.sh workspace delete staging
+```
+Inside the code, `terraform.workspace` holds the current name (use it for names and sizes). Always run `terraform workspace show` before you apply. Many teams prefer separate folders and separate states per environment, because a wrong workspace is an easy mistake.
+
 ## Exercises
 1. Add a `prod` environment with a different `environment` name and 90-day version retention (new variable, default 30).
 2. Add a third `terraform test` that asserts the bucket name contains the environment.

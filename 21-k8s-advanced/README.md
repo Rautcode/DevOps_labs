@@ -23,6 +23,23 @@ The lab cluster is created with the add-ons switched on: `K3S_ADDONS=1 bash 06-k
 | Autoscale quickly | `kubectl autoscale deployment X --cpu-percent=50 --min=1 --max=3` |
 | Test an ingress rule | `curl -H 'Host: devlab.localhost' http://localhost:8081/` |
 
+## Troubleshooting pods and scheduling (parts G and H of the guided lab)
+| Status | Meaning | Where to look |
+|---|---|---|
+| `ImagePullBackOff` | image cannot be downloaded (wrong name or tag, private registry without credentials) | `kubectl describe pod`: Events, "Failed to pull image" |
+| `CrashLoopBackOff` | the container starts and keeps crashing | `kubectl logs POD` and `--previous` |
+| `Pending` | no node can take the pod (resources, nodeSelector, taint, affinity) | `kubectl describe pod`: `FailedScheduling` |
+| `OOMKilled` (137) | over its memory limit | raise the limit or fix the leak |
+
+Steering the scheduler:
+```bash
+kubectl taint nodes --all dedicated=gpu:NoSchedule      # repel: new pods without a toleration stay Pending
+kubectl taint nodes --all dedicated-                    # remove the taint (the stuck pods start by themselves)
+kubectl label node --all disk=nvme                      # give nodes a label that affinity can match
+```
+- **Taint** (on a node) says keep out; a **toleration** (on a pod) says I may enter. A toleration allows, it does not attract.
+- **Node affinity**: `required...` is a must (no match, stays Pending); `preferred...` is a wish (used if possible). See [toleration-pod.yaml](toleration-pod.yaml), [affinity-pods.yaml](affinity-pods.yaml), [pending-pod.yaml](pending-pod.yaml), [broken-app.yaml](broken-app.yaml).
+
 ## Concepts
 - **Requests** are reserved for scheduling; **limits** are enforced. Memory over the limit means OOMKilled (exit code 137); CPU over the limit means throttling.
 - The **HPA** compares usage with the CPU *request*, so set requests. Scaling up is fast, scaling down is deliberately slow.

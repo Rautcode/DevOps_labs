@@ -42,6 +42,28 @@ cosign verify ghcr.io/<you>/devlab-web:1.0.0 --certificate-identity-regexp 'gith
 - **Cache** (`type=gha`) cuts build time dramatically.
 - **Immutable versions.** Deploy `1.0.0` (or better, its digest), never `latest`.
 
+## Jenkins side by side
+Many companies still run Jenkins, so interviewers ask how it compares with GitHub Actions. [Jenkinsfile](Jenkinsfile) is this repo's CI written for Jenkins (a *declarative pipeline*).
+
+| GitHub Actions | Jenkins |
+|---|---|
+| workflow file in `.github/workflows/*.yml` | `Jenkinsfile` (Groovy) in the repo |
+| `on: push` | webhook or polling trigger |
+| job, step, `run:` | stage, step, `sh '...'` |
+| runner | agent |
+| action from the marketplace | plugin |
+| `secrets.NAME` | credentials binding |
+| hosted by GitHub | **hosted by you**: updates, plugins, backups, security |
+
+```bash
+docker run -d --name lab-jenkins -p 8085:8080 jenkins/jenkins:lts-jdk21
+docker logs lab-jenkins 2>&1 | grep "fully up"                                   # wait for it
+docker exec lab-jenkins cat /var/jenkins_home/secrets/initialAdminPassword       # first-login password
+# open http://localhost:8085, unlock, install suggested plugins, create a Pipeline job that uses the Jenkinsfile
+docker rm -f lab-jenkins
+```
+The guided lab stops at the unlock page, because pipeline syntax checking needs the pipeline plugins that the setup wizard installs.
+
 ## Break it
 1. Break a test in `app/api/server.test.js`, push: the PR is blocked. Fix it.
 2. Add a fake AWS key (`AKIA` + 16 chars) to a file, push: gitleaks should fail. Then learn why deleting it in a later commit is **not** enough (history; rotate the key).

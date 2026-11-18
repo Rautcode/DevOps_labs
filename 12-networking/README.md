@@ -17,6 +17,22 @@
 | TLS | you create a self-signed certificate, serve HTTPS, see curl reject it, then trust that one certificate and read the negotiated version (TLS 1.3) |
 | Load balancing | two backends behind nginx answer in turn; stop one and nobody notices |
 
+## Firewalls, bastion tunnels and CDN (parts E, F, G of the guided lab)
+**Firewall.** Rules decide which traffic passes; deny by default, allow what is needed. A dropped packet gets no answer at all, so the client times out.
+```bash
+docker network create lab-fw-net
+docker run -d --name lab-fw --network lab-fw-net --cap-add NET_ADMIN nginx:alpine
+docker exec lab-fw apk add --no-cache iptables iptables-legacy
+docker exec lab-fw iptables-legacy -A INPUT -p tcp --dport 80 -j DROP     # block port 80
+docker run --rm --network lab-fw-net curlimages/curl -s -m 3 lab-fw       # hangs, then times out
+docker exec lab-fw iptables-legacy -D INPUT -p tcp --dport 80 -j DROP     # unblock
+```
+In the cloud the same job is done by **security groups** (stateful, per instance) and **network ACLs** (per subnet).
+
+**Bastion / tunnel / VPN.** Private services have no public address. A *bastion* sits on the public and the private network and forwards one port (this is `ssh -L` or AWS Systems Manager port forwarding); a *VPN* wraps all traffic to a private network in an encrypted tunnel. The guided lab builds a bastion from `alpine/socat` and two Docker networks (one `--internal`).
+
+**CDN.** An edge cache serves repeat requests from its own copy for the TTL and asks the origin only on a miss. [cdn.conf](cdn.conf) is an nginx `proxy_cache` edge; the header `X-Cache-Status` shows `MISS`, then `HIT`.
+
 ## Concepts
 - **DNS** turns names into addresses. In containers and Kubernetes, names are stable while IPs change.
 - **A port** is a numbered door on one machine; only one program can own it.
