@@ -1,5 +1,6 @@
 # Terraform: infrastructure as code (about 2.5h)
 title "Module 05 · Terraform (Infrastructure as Code)"
+mission "Your manager asks for a cloud storage bucket, a queue and permissions, and last time someone clicked them together by hand and nobody could repeat it. Your mission: describe the infrastructure in code, preview the change, and create it with one command."
 explain "Terraform lets you describe cloud resources (storage, queues, permissions) in files, review them like code, and create or delete them with one command. You practise on a free local copy of AWS called LocalStack, so there is no cost and no risk."
 
 part "PART A · Test the module (no cloud needed)"
@@ -13,6 +14,16 @@ CMD
 
 part "PART B · Plan, apply, inspect"
 learn "The Terraform workflow" "The loop is init (download plugins), plan (preview), apply (create), destroy (remove). ALWAYS read the plan before applying. Terraform remembers what it created in a state file, which maps your code to real resources and must be protected."
+art "init, plan, apply" <<'ART'
+   terraform init     download the plugins
+        |
+   terraform plan     PREVIEW: what will be added / changed / destroyed
+        |
+   terraform apply    do it (and write the state file)
+        |
+   terraform destroy  remove everything it made
+ART
+mcq "Which command shows what WOULD change without changing anything?" "terraform apply|terraform plan|terraform init|terraform fmt" 2 "Always read the plan first: it is your safety net."
 step "terraform init: download the AWS plugin" "Terraform has been successfully initialized" <<'CMD'
 bash 05-terraform/tf.sh init 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tail -3
 CMD
@@ -46,4 +57,5 @@ docker compose -f 05-terraform/compose.localstack.yml down 2>&1 | tail -2
 CMD
 quiz "Terraform keeps a 'state' file. What is in it and why must it never be committed to git?" "secret|sensitive|password|map|resource|real|id|credential" "State maps your code to the real resources and can contain secrets. Teams keep it in a protected remote backend with locking."
 
+deeper "Terraform Zero to Hero (Abhishek Veeramalla)|https://github.com/iam-veeramalla/terraform-zero-to-hero" "TerraWeek, a 7-day challenge (Shubham Londhe)|https://github.com/LondheShubham153/TerraWeek"
 explain "Done! Next: bash lab.sh 06"

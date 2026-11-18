@@ -1,5 +1,6 @@
 # Interview prep: questions, system design and your story (about 3h)
 title "Module 23 · Interview prep"
+mission "The job interview is the final boss. Your mission: practise real questions in four rounds, draw a system design, and turn your lab work into stories with the STAR method."
 explain "Doing the work is half of getting hired; explaining it clearly is the other half. This module is a mock interview in four rounds of questions, a written system-design exercise and a behavioural story. A question counts as strong when your answer covers the key ideas, in your own words. After every question you see a model answer: read it, and compare. Short, concrete answers beat long vague ones."
 
 part "PART A · How DevOps interviews work"
@@ -58,6 +59,13 @@ X
 
 part "PART G : Your story (behavioural)"
 learn "The STAR method" "Behavioural questions (tell me about a time...) are answered with a story in four parts: Situation (the context), Task (what you were responsible for), Action (what YOU did, step by step) and Result (what happened, with a number if you can). Use your lab: the game day, the crash loop, the bad release you rolled back. Say I, not we, for the actions."
+art "STAR" <<'ART'
+   S  Situation   one sentence of context
+   T  Task        what you had to achieve
+   A  Action      what YOU did (the longest part)
+   R  Result      a number or a lesson learned
+ART
+mcq "In a STAR answer, which part should be the longest?" "Action: what you did|Situation|Task|Result" 1 "Interviewers hire for what you did, so spend most of the answer there."
 task "Write one STAR story" "Write playground/star.md about a time something broke (use something from this lab). It needs four headings: Situation, Task, Action and Result, with real sentences under each (at least 60 words in total). Use  edit playground/star.md  ." "Example: Situation: during the game day the API stopped. Task: restore service. Action: I read the runbook, checked docker ps, saw the container stopped, read its logs and started it. Result: back in 4 minutes and I fixed the runbook." <<'X'
 f=playground/star.md; [ -f $f ] && for h in Situation Task Action Result; do grep -qi "^#.*$h\|^\*\*$h\|^$h" $f || exit 1; done; [ "$(wc -w < $f | tr -d ' ')" -ge 60 ]
 ---
@@ -65,4 +73,5 @@ printf '# Situation\nDuring a practice game day the API container of our sample 
 X
 quiz "Name two good questions you could ask the interviewer at the end." "team|on-call|oncall|incident|deploy|stack|tool|learn|grow|monitor|culture|process|release|onboarding" "For example: How does the team handle on-call and incidents? How often do you deploy and how do changes reach production? What does the first 90 days look like for this role? How do you decide what to automate next?"
 
-explain "Done! Now take the mock interview: the exam below combines live troubleshooting, a design and a spoken round. Then see JOB-READY.md and CERTIFICATIONS.md at the top of the repo."
+deeper "DevOps and cloud interview guide (Abhishek Veeramalla)|https://github.com/iam-veeramalla/devops-cloud-interview-guide" "DevOps interview preparation guide (Abhishek Veeramalla)|https://github.com/iam-veeramalla/devops-interview-preparation-guide"
+explain "Done! Now take the mock interview: the exam below combines live troubleshooting, a design and a spoken round. Then read JOB-READY.md at the top of the repo."

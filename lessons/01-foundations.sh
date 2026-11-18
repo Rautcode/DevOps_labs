@@ -1,9 +1,20 @@
 # Foundations: Linux, HTTP, Git, shell (about 1.5h)
 title "Module 01 · Foundations"
+mission "You join the DevOps team and your first ticket says: the app is slow and nobody knows why. Before you can fix anything you need to look inside a running container, speak HTTP, and read logs like a detective. Everything here runs on a practice app on your own computer."
 explain "You will look inside a running app, talk to it over HTTP, use Git safely, and write a small script. Everything runs on a practice app on your own computer. Read each step, TYPE the command it shows, and read the output. Nothing here can harm your computer."
 
 part "PART A · Start the practice app"
 learn "Containers in one minute" "A container is a small, isolated Linux system that runs one program. Docker builds and runs containers, and Docker Compose starts several together. The shortcut dc stands for docker compose with this lab's settings. dc up -d means: create and start everything, and run it in the background (-d)."
+art "Container vs virtual machine" <<'ART'
+   VIRTUAL MACHINE                 CONTAINER
+  +-----------------+          +-----------------+
+  |  your app       |          |  your app       |
+  |  guest OS (big) |          |  (shares the    |
+  |  virtual HW     |          |   host kernel)  |
+  +-----------------+          +-----------------+
+   gigabytes, minutes           megabytes, seconds
+ART
+mcq "What does a container share with the computer it runs on?" "The kernel (the core of the operating system)|The whole disk|Nothing at all|The user's password" 1 "Containers share the host kernel, which is why they start in seconds and are small."
 step "Start the app (first time takes about a minute)" "Containers show Started / Healthy" <<'CMD'
 dc up --build -d 2>&1 | tail -4
 CMD
@@ -38,6 +49,14 @@ quiz "Why does the data survive when the app restarts?" "volume|disk|outside|sep
 part "PART C · HTTP: talk to the API"
 explain "HTTP is how browsers and apps talk. Every answer starts with a status code: 200 = OK, 401 = who are you?, 429 = slow down, 502 = the server behind the proxy is down."
 learn "HTTP in 60 seconds" "A web request has a method (GET to read, POST to send data), a path, headers and sometimes a body. The answer starts with a status code: 2xx worked, 4xx you made a mistake, 5xx the server has a problem. curl is the command line tool that sends requests, so you can see exactly what a browser would see."
+art "One HTTP request" <<'ART'
+   you (curl)                                   server
+     |  GET /healthz  HTTP/1.1  ------------->    |
+     |                                            |
+     |  <------------  200 OK   {"ok":true}       |
+   method + path                       status code + body
+ART
+mcq "Which HTTP status code means: the thing you asked for does not exist?" "200|301|404|500" 3 "2xx = success, 3xx = redirect, 4xx = your request was wrong (404 not found), 5xx = the server failed."
 step "7. Read a full HTTP response" "First line 'HTTP/1.1 200 OK', then headers, then the body." <<'CMD'
 curl -i -s localhost:8080/healthz
 CMD
@@ -88,6 +107,13 @@ X
 part "PART F · Break it, then fix it"
 explain "Operating skill comes from failures. Stop the API and see how it looks from the outside."
 learn "Debug by layers" "When something is broken, ask WHICH LAYER failed: name lookup (DNS), network, the proxy, the app, or the database. A 502 from a proxy means the proxy is fine but the service behind it is not. Naming the layer first saves hours of guessing."
+art "Debug from the bottom up" <<'ART'
+   4. the app answers correctly?     (logs, status code)
+   3. the port accepts connections?  (curl, docker ps)
+   2. the name resolves?             (DNS)
+   1. the machine is running?        (docker ps, ping)
+   Start at the layer that is broken, do not guess.
+ART
 step "Stop the API" "The container stops." <<'CMD'
 docker stop devlab-api-1
 CMD
@@ -99,4 +125,5 @@ docker start devlab-api-1 >/dev/null; sleep 12; curl -s localhost:8080/healthz
 CMD
 quiz "In one sentence: what does a 502 tell you?" "proxy|gateway|backend|behind|upstream|api.*down|down" "The front door (proxy) works but the service behind it is down or unreachable."
 
+deeper "Ultimate Linux guide (Abhishek Veeramalla)|https://github.com/iam-veeramalla/ultimate-linux-guide" "Shell scripting projects (Abhishek Veeramalla)|https://github.com/iam-veeramalla/shell-scripting-projects"
 explain "Done! Next: bash lab.sh 02"

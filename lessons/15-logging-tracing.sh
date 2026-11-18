@@ -1,9 +1,16 @@
 # Logging and tracing: logs, queries and traces (about 2h)
 title "Module 15 · Logging and tracing"
+mission "The graph says errors went up, but WHICH requests, from WHERE, and slow in WHICH service? Your mission: search logs, follow one request across services with a trace, and use all three signals together."
 explain "Metrics tell you THAT something is wrong. Logs tell you WHAT happened. Traces tell you WHERE the time went across services. Together they are called observability. You will collect every container's logs into Loki, query them like a database, and look at a trace in Jaeger."
 
 part "PART A · Logs"
 learn "Logs, metrics and traces" "Metrics are numbers over time, logs are events, and traces follow one request through the system. Loki stores logs and indexes only their labels, which keeps it cheap. Alloy is the collector that reads every container's output and ships it to Loki. LogQL is the query language."
+art "The three pillars" <<'ART'
+   METRICS  numbers over time        "errors went up"      (that)
+   LOGS     events with detail       "user 7 got HTTP 500"  (what)
+   TRACES   one request's journey    "slow in the database" (where)
+ART
+mcq "A request is slow and you want to know WHICH service is slow. Which signal?" "Traces|Metrics only|Logs only|DNS" 1 "A trace shows the time spent in each step across services."
 step "Start the app plus Loki (log storage), Alloy (the collector) and Jaeger (traces)" "loki, alloy and jaeger Started." ok 'alloy' <<'CMD'
 dcl rm -sf loki alloy jaeger >/dev/null 2>&1; dcl up -d 2>&1 | grep -E "loki|alloy|jaeger"
 CMD
@@ -50,4 +57,5 @@ step "Stop the logging and monitoring tools (the app keeps running)" "removed" o
 dcl rm -sf loki alloy jaeger prometheus grafana blackbox 2>&1 | tail -6
 CMD
 
+deeper "Observability Zero to Hero (Abhishek Veeramalla)|https://github.com/iam-veeramalla/observability-zero-to-hero" "otel-playground: real OpenTelemetry (Shubham Londhe)|https://github.com/LondheShubham153/otel-playground"
 explain "Done! Next: bash lab.sh 16"

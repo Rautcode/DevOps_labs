@@ -75,7 +75,28 @@ Shubham Londhe publishes many hands-on DevOps learning repos on GitHub ([profile
 
 **How to use these:** finish a module here first, then repeat the same idea on a different app from the table. Doing the skill twice, on two apps, is what makes it stick.
 
+## More practice: Abhishek Veeramalla and StackSimplify
+Two more public sources, matched to the modules. Star counts are approximate and from the GitHub API at the time of writing; read a repo's README before committing time to it.
+
+**[Abhishek Veeramalla](https://github.com/iam-veeramalla)** publishes a "zero to hero" repo for most DevOps topics:
+| Repository | What it is | Pairs with module |
+|---|---|---|
+| [ultimate-linux-guide](https://github.com/iam-veeramalla/ultimate-linux-guide) (~4.2k stars) | learn Linux from scratch | 01, 18 |
+| [shell-scripting-projects](https://github.com/iam-veeramalla/shell-scripting-projects) (~1.2k) | shell scripting projects that simulate real work | 01 |
+| [Docker-Zero-to-Hero](https://github.com/iam-veeramalla/Docker-Zero-to-Hero) (~7.5k) | Docker with examples | 02, 03 |
+| [Jenkins-Zero-To-Hero](https://github.com/iam-veeramalla/Jenkins-Zero-To-Hero) (~10k), [GitHub-Actions-Zero-to-Hero](https://github.com/iam-veeramalla/GitHub-Actions-Zero-to-Hero) (~1.9k), [cicd-end-to-end](https://github.com/iam-veeramalla/cicd-end-to-end) | CI/CD with Jenkins and GitHub Actions, plus an end-to-end demo | 04, 07 |
+| [terraform-zero-to-hero](https://github.com/iam-veeramalla/terraform-zero-to-hero) (~4.3k) | Terraform in 7 days | 05 |
+| [Kubernetes-Zero-to-Hero](https://github.com/iam-veeramalla/Kubernetes-Zero-to-Hero) (~2.8k), [kubernetes-troubleshooting-zero-to-hero](https://github.com/iam-veeramalla/kubernetes-troubleshooting-zero-to-hero) (~1k) | Kubernetes basics and fixing common problems | 06, 21 |
+| [observability-zero-to-hero](https://github.com/iam-veeramalla/observability-zero-to-hero) (~3.2k) | learn observability | 08, 15 |
+| [a-to-z-of-networking](https://github.com/iam-veeramalla/a-to-z-of-networking) (~1k) | networking with real-time examples | 12 |
+| [ansible-zero-to-hero](https://github.com/iam-veeramalla/ansible-zero-to-hero) (~1.7k) | Ansible fundamentals with examples | 13 |
+| [aws-devops-zero-to-hero](https://github.com/iam-veeramalla/aws-devops-zero-to-hero) (~11.7k) | AWS in 30 days, with projects and interview questions | 17 |
+| [ultimate-devops-project-aws](https://github.com/iam-veeramalla/ultimate-devops-project-aws) (~1k) | an end-to-end DevOps project | 11, 22 |
+| [devops-cloud-interview-guide](https://github.com/iam-veeramalla/devops-cloud-interview-guide) (~1.4k), [devops-interview-preparation-guide](https://github.com/iam-veeramalla/devops-interview-preparation-guide) (~1.1k) | interview questions | 23 |
+
+**[StackSimplify: aws-eks-kubernetes-masterclass](https://github.com/stacksimplify/aws-eks-kubernetes-masterclass)** (~1.8k stars) is a step-by-step course repo for running Kubernetes on AWS EKS. Its folders cover Docker and Kubernetes fundamentals, storage with EBS and RDS, load balancers, Fargate, ECR, a DevOps pipeline, microservices with tracing and canary deployments, autoscaling (HPA, VPA, cluster autoscaler) and CloudWatch monitoring. Use it **after modules 06, 14 and 21**, when you want to repeat those ideas on a managed cluster. EKS costs real money, so set a budget alarm first (module 17) and delete the cluster when you finish.
+
 ## Where to go after this lab
-1. **Cloud:** pick one provider and do its free-tier path; redo module 05 against the real API. Certifications worth the effort: AWS Solutions Architect Associate or Azure AZ-104, then CKA / CKAD (Kubernetes) and HashiCorp Terraform Associate.
+1. **Cloud:** pick one provider and do its free-tier path; redo module 05 against the real API.
 2. **Specialise:** *SRE* (SLOs, incident command), *Platform engineering* (Backstage, golden paths), or *DevSecOps* (supply chain, policy).
 3. **Portfolio:** publish this repo's pipeline and a write-up of your game-day postmortem. Concrete evidence beats a list of tools.

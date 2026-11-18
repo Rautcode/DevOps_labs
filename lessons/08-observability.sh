@@ -1,9 +1,18 @@
 # Observability: monitoring, dashboards and alerts (about 2h)
 title "Module 08 · Observability"
+mission "Customers told you the site was down before your own tools did. Your mission: build the monitoring that tells YOU first: metrics, dashboards and alerts that fire when users are really affected."
 explain "Monitoring tells you the site is broken BEFORE your users do. Prometheus checks the site every 15 seconds, Grafana draws graphs, and alert rules notify you when the error budget is burning too fast."
 
 part "PART A · Start monitoring"
 learn "Monitoring basics" "Prometheus checks targets every 15 seconds and stores the results as time series. Grafana draws graphs from them, and alert rules are queries that raise an alert when they are true for long enough. Probing the site from outside measures what a real visitor experiences."
+art "The monitoring flow" <<'ART'
+   your app --(/metrics)--> [ Prometheus ] --stores--> numbers over time
+                                  |                          |
+                                  v                          v
+                            [ Alertmanager ]            [ Grafana ]
+                            "page the human"            graphs and dashboards
+ART
+mcq "Who does the checking in Prometheus?" "Prometheus scrapes (asks) each target every few seconds|Each app pushes email|You open the website by hand|Grafana" 1 "Prometheus pulls metrics from each target on a schedule."
 step "Start the app plus Prometheus, Grafana and a probe" "Containers Started: blackbox, prometheus, grafana (plus api and web)." <<'CMD'
 dco up -d 2>&1 | tail -5
 CMD
@@ -38,4 +47,5 @@ step "Stop the monitoring tools (the app keeps running)" "prometheus, grafana an
 dco rm -sf prometheus grafana blackbox 2>&1 | tail -3
 CMD
 
+deeper "Observability Zero to Hero (Abhishek Veeramalla)|https://github.com/iam-veeramalla/observability-zero-to-hero" "observability-for-devops (Shubham Londhe)|https://github.com/LondheShubham153/observability-for-devops"
 explain "Done! Next: bash lab.sh 09"

@@ -1,9 +1,17 @@
 # DevSecOps: scan for security problems automatically (about 2h)
 title "Module 09 · DevSecOps"
+mission "A security review is coming. Instead of checking by hand, your mission is to put five automatic scanners in front of every change, so secrets, weak Dockerfiles and risky infrastructure are caught early."
 explain "Security checks should run automatically, early and often. Five scanners look at your secrets, Dockerfiles, container images, Terraform and Kubernetes files. You will run them all, then break one on purpose to see it fail."
 
 part "PART A · Run the security gate"
 learn "Shift left" "Shift left means finding security problems as early as possible, when they are cheap to fix. Five different scanners look at five different things: secrets in git, Dockerfile mistakes, vulnerabilities in images, misconfigured cloud code, and insecure Kubernetes manifests."
+art "Shift left" <<'ART'
+   code -> commit -> build -> test -> deploy -> production
+    ^                                              ^
+   cheap to fix here                  expensive and risky here
+   (scan on every push)               (breach, outage, headlines)
+ART
+mcq "Why scan on every commit instead of once a year?" "Problems are cheapest to fix right after they are introduced|Scanners only work on commits|It is required by Git|It makes the code smaller" 1 "The earlier a problem is found, the cheaper it is to fix."
 step "Make sure both images exist" "devlab-api:lab and devlab-web:lab are listed." <<'CMD'
 docker image inspect devlab-api:lab devlab-web:lab >/dev/null 2>&1 || dc build 2>&1 | tail -2; docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab
 CMD

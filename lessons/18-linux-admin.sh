@@ -1,5 +1,6 @@
 # Linux administration: users, permissions, processes, disk, cron, systemd (about 3h)
 title "Module 18 · Linux administration"
+mission "Almost every incident ends on a Linux server. Your mission: on a throwaway server, practise the daily skills: who owns which file, what is eating the CPU or the disk, why a service will not start."
 explain "Almost every DevOps interview and almost every incident ends up on a Linux machine. You will practise the daily skills of a sysadmin on a throwaway Linux server (a container you can break freely): users and permissions, processes and signals, disk and memory, logs, scheduled jobs, systemd services, SSH keys and sudo. The shortcut lx runs a command inside that server."
 
 part "PART A · The practice server"
@@ -16,6 +17,13 @@ CMD
 
 part "PART B · Users, groups and permissions"
 learn "Who may do what to a file" "Every file has an owner, a group and three sets of permission bits: owner, group, others. Each set can have r (read=4), w (write=2) and x (execute=1). So 750 means: owner can do everything (7=4+2+1), group can read and enter (5=4+1), others get nothing (0). A directory needs x to be entered. Files are protected by these bits, not by hiding them."
+art "Reading permissions: -rwxr-x---" <<'ART'
+   -   rwx    r-x    ---
+   |    |      |      |
+ type owner  group  others   r=read(4) w=write(2) x=execute(1)
+   chmod 750 file  =  rwx r-x ---
+ART
+mcq "What does chmod 640 give?" "Owner read and write, group read, others nothing|Everyone full access|Owner nothing|Only the group can write" 1 "6=rw- (4+2), 4=r--, 0=---."
 step "Create a user called alice" "No output means success." <<'CMD'
 lx useradd -m alice
 CMD
@@ -115,4 +123,5 @@ step "Remove the practice server" "lab-linux" ok 'lab-linux' <<'CMD'
 docker rm -f lab-linux
 CMD
 
+deeper "Ultimate Linux guide (Abhishek Veeramalla)|https://github.com/iam-veeramalla/ultimate-linux-guide"
 explain "Done! This module gives you the Linux skills interviewers test most. Next in the list: bash lab.sh 19"

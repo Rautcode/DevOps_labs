@@ -1,9 +1,15 @@
 # Ship it for real: a live GitHub pipeline, releases and a real cloud deploy (about 3h)
 title "Module 22 · Ship it for real"
+mission "Employers believe what they can click. Your mission: put a real pipeline on GitHub, ship a tagged release, protect the main branch, and collect the evidence for your CV."
 explain "Everything before this ran on your computer. Employers want proof that you have shipped to the real world: a pipeline running on GitHub, a release that others can pull, and a deployment on a real cloud. This module uses your REAL GitHub repository (the pipeline is already live in it) and prepares a real cloud deployment. The steps that need your own accounts are marked OPTIONAL and come with safety rules. The shortcut ghget reads your repo from the GitHub API; ghjobs shows the jobs of the latest CI run."
 
 part "PART A · Your pipeline is live"
 learn "CI on GitHub" "Every push to main and every pull request now runs .github/workflows/ci.yml on a fresh GitHub machine: tests and audit (app), Dockerfile lint and image builds with a vulnerability scan (docker), secret scanning (security), and Terraform and Kubernetes checks (infra). A red cross blocks trust in a change; a green tick is the minimum bar for merging."
+art "From a push to a release" <<'ART'
+   push -> GitHub Actions: test, scan, build -> green check
+   open a pull request -> review -> merge to main
+   tag v1.0.0 -> release + published images
+ART
 step "Which jobs does the pipeline have?" "app, docker, security and infra." ok 'docker' <<'CMD'
 grep -nE '^  [a-z]+:$' .github/workflows/ci.yml
 CMD
@@ -65,4 +71,5 @@ part "PART E · What an employer sees"
 learn "Turn this into evidence" "Evidence beats a list of tools. After this module you can point at: a public repository with a green pipeline badge, Dependabot pull requests, tagged releases with signed container images, infrastructure as code with tests and scans, runbooks and postmortems, and (with an account) a live URL. The JOB-READY.md guide shows how to present each of these on your CV and in interviews."
 quiz "In one sentence: what is the difference between continuous delivery and continuous deployment?" "manual|approval|automatic|every|release|human|button|click" "Continuous delivery keeps every change ready to release, with a human pressing the button. Continuous deployment releases every passing change to production automatically, with no human step."
 
+deeper "cicd-end-to-end (Abhishek Veeramalla)|https://github.com/iam-veeramalla/cicd-end-to-end" "An end-to-end DevOps project (Abhishek Veeramalla)|https://github.com/iam-veeramalla/ultimate-devops-project-aws"
 explain "Done! Next: bash lab.sh 23"

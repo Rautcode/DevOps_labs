@@ -1,9 +1,16 @@
 # Secrets management with Vault (about 2h)
 title "Module 20 · Secrets management"
+mission "Someone committed a password to Git, and it is now in the history forever. Your mission: keep secrets in one protected place with a manager that hands each service only what it needs, and rotate them safely."
 explain "Passwords and keys in .env files and git history are one of the most common causes of breaches. A secret manager keeps secrets in ONE protected place, gives each application only the secrets it needs, can revoke access instantly and records who read what. You will run a real HashiCorp Vault server (in development mode, for learning), store secrets, limit access with a policy, rotate a secret and deploy the API with secrets pulled from Vault. The shortcut vlt runs the vault command line."
 
 part "PART A · Start Vault"
 learn "Why a secret manager?" "A .env file is plain text on disk, easy to copy and easy to commit by mistake. A secret manager gives you central storage, access policies (who may read what), audit logs, easy rotation, and short-lived tokens that can be revoked. Dev mode keeps everything in memory with a known root token (lab-root), which is fine for learning and never acceptable in production."
+art "Secrets flow with Vault" <<'ART'
+   app starts -> asks Vault: "token please, give me secret/devlab"
+                 Vault checks the POLICY -> returns ONLY what that app may read
+   The secret is never in Git, never in the image, never in a file.
+ART
+mcq "Where should a production password live?" "In a secret manager, injected at deploy time|In the Git repo|In the Docker image|In the README" 1 "Anything in Git or an image can be copied by anyone who can read it."
 step "Start a Vault dev server (the first time downloads the image)" "A container id." ok '[0-9a-f]{12}' <<'CMD'
 docker rm -f lab-vault >/dev/null 2>&1; docker run -d --name lab-vault --cap-add=IPC_LOCK -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID=lab-root -e VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200 hashicorp/vault:1.17; sleep 5
 CMD

@@ -1,9 +1,19 @@
 # Networking: DNS, ports, TLS and load balancing (about 2h)
 title "Module 12 · Networking"
+mission "Users say the site cannot be reached, but the servers look fine. Most outages like this are network problems. Your mission: learn to tell names (DNS), doors (ports), locks (TLS) and traffic police (load balancers) apart, and find the broken one fast."
 explain "Most 'mysterious' outages are network problems: a name that does not resolve, a port that is taken, a certificate that expired, a server that is down behind a load balancer. You will see each one with your own eyes."
 
 part "PART A · DNS: how a name becomes an address"
 learn "DNS: names to addresses" "Computers connect by IP address, but people and programs use names. DNS translates one into the other. Inside Docker, a built-in DNS server (127.0.0.11) knows every container by name, which is why the web server can find the API simply as api even though its IP changes."
+art "DNS lookup" <<'ART'
+   browser: "where is example.com?"
+        |
+        v
+   [ DNS resolver ] ---> "93.184.x.x"
+        |
+        v
+   browser connects to that IP address, then the port
+ART
 step "Make sure the practice app is running" '{"ok":true}' ok '"ok":true' <<'CMD'
 dc up -d 2>&1 | tail -1; sleep 12; curl -s localhost:8080/healthz
 CMD
@@ -42,6 +52,14 @@ quiz "Two servers must both be reachable from outside. How can they share one ma
 part "PART C · TLS: encrypted connections (HTTPS)"
 explain "HTTPS = HTTP inside TLS. The server proves who it is with a certificate. Real sites get certificates from a trusted authority. Here you make your own, so browsers do not trust it, and you will see exactly why."
 learn "TLS and certificates" "TLS encrypts a connection and a certificate proves who the server is. A trusted authority signs real certificates; a self-signed one is signed by nobody, so clients warn about it. Certificates expire, and an expired certificate is one of the most common outages."
+art "TLS handshake (short)" <<'ART'
+   client                                  server
+     | -- hello, here are my ciphers --->    |
+     | <-- certificate (proves identity) --- |
+     |     check: trusted CA? name matches? not expired?
+     | == encrypted traffic from here on ==   |
+ART
+mcq "Which of these makes a certificate fail?" "Expired date or wrong name|Too many visitors|Using port 443|Having a .com address" 1 "Browsers reject a certificate that is expired, for a different name, or signed by an unknown authority."
 step "Create a self-signed certificate (valid 7 days)" "cert.pem and key.pem appear in playground/tls." ok 'cert.pem' <<'CMD'
 mkdir -p playground/tls; docker run --rm -v "$PWD/playground/tls:/out" alpine/openssl req -x509 -newkey rsa:2048 -nodes -keyout /out/key.pem -out /out/cert.pem -days 7 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost" >/dev/null 2>&1; ls playground/tls
 CMD
@@ -68,6 +86,11 @@ quiz "Why does a browser show a warning for a self-signed certificate?" "trust|a
 part "PART D · Load balancing and failover"
 explain "A load balancer spreads requests over several copies of a service and stops sending to a dead one. You will build a tiny one with two backends."
 learn "Load balancing and failover" "A load balancer spreads requests over several copies of a service (round-robin means taking turns) and stops sending traffic to a dead copy. That gives you both scale and availability. A gotcha you will meet: without a shared memory zone, each nginx worker keeps its own turn counter."
+art "Load balancer" <<'ART'
+                   +--> [ server A ]
+   users --> [ LB ] -+
+                   +--> [ server B ]      A dies -> LB sends everything to B
+ART
 step "Start two backends and a load balancer" "Three containers started: lab-a, lab-b and the balancer on port 8090." ok 'lab-lb' <<'CMD'
 docker rm -f lab-a lab-b lab-lb >/dev/null 2>&1; docker network rm lab-net >/dev/null 2>&1; docker network create lab-net >/dev/null; docker run -d --name lab-a --network lab-net traefik/whoami >/dev/null; docker run -d --name lab-b --network lab-net traefik/whoami >/dev/null; sleep 2; docker run -d --name lab-lb --network lab-net -p 8090:80 -v "$PWD/12-networking/lb.conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine >/dev/null && echo "started lab-a lab-b lab-lb"; sleep 3
 CMD
@@ -87,4 +110,5 @@ docker rm -f lab-a lab-b lab-lb >/dev/null; docker network rm lab-net
 CMD
 quiz "What two things does a load balancer give you?" "scale|spread|distribut|failover|availab|resilien|redundan|health|more than one" "Scaling (spread load over many copies) and availability (stop sending traffic to a failed copy, so one failure does not take the site down)."
 
+deeper "A to Z of networking (Abhishek Veeramalla)|https://github.com/iam-veeramalla/a-to-z-of-networking"
 explain "Done! Next: bash lab.sh 13"

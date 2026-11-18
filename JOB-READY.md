@@ -8,7 +8,7 @@ This lab gives you skills and **evidence**. This page shows how to turn both int
 | You can build, ship and operate a small service end to end | You have run production at scale with a team |
 | You can debug on Linux, Docker and Kubernetes under a scenario | You have been on call for real customers |
 | You write Terraform, pipelines, runbooks and postmortems | You know a specific company's stack |
-| You can explain your choices out loud (module 23) | You hold certifications (see CERTIFICATIONS.md) |
+| You can explain your choices out loud (module 23) | You know one company's specific tools |
 
 Aim for **junior DevOps, SRE-trainee, platform or cloud-support roles and internships**. Be upfront that your experience is hands-on practice. Employers hiring juniors value learning speed and honesty.
 
@@ -42,7 +42,7 @@ Replace the numbers with your own. Do not claim anything you did not do.
 |---|---|
 | 1 | Redo modules 06 and 08 on a **different app** (see the second-helping links in RESOURCES.md). Make the repo public and tidy. |
 | 2 | Run the real-cloud deployment (module 22, part D) with a budget alarm. Take screenshots, then destroy. |
-| 3 | Start a certification (see CERTIFICATIONS.md) and book the exam date: a deadline helps. |
+| 3 | Pick a second small project (module 21 or 22 ideas) and add it to the repo, so you have two stories to tell. |
 | 4 | Apply to 10 roles a week. For each, tailor three CV bullets to the job post and rehearse the module 23 answers. |
 
 ## Interview-day checklist

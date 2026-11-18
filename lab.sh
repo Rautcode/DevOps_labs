@@ -2,7 +2,7 @@
 # Guided lab runner. Walks you through each module: explains, runs commands for you,
 # gives hands-on tasks and checks your work. Run from the repo root in Git Bash:
 #   bash lab.sh            menu (press Enter to continue where you left off)
-#   bash lab.sh 01         start lesson 01 (continues to the next lesson by itself)
+#   bash lab.sh 00         start lesson 00 (continues to the next lesson by itself)
 #   bash lab.sh next       resume at the first unfinished lesson
 #   bash lab.sh status     your progress
 #   bash lab.sh down       stop everything the labs started
@@ -117,7 +117,7 @@ part() {
   esac
 }
 badge()   { CUR=$((CUR+1)); printf '\n%s %s %d/%d %s %s%s%s\n' "$2" "$1" "$CUR" "$TOTAL" "$RST" "$BOLD" "$3" "$RST"; }
-pass()    { PASS=$((PASS+1)); printf '  %s ✔ PASS %s\n' "$BG_G" "$RST"; }
+pass()    { PASS=$((PASS+1)); printf '  %s ✔ PASS %s' "$BG_G" "$RST"; xp_add 25; printf '\n'; }
 fail()    { FAIL=$((FAIL+1)); printf '  %s ✘ FAIL %s %s\n' "$BG_R" "$RST" "${1:-}"; }
 
 # step "what this does" "what to look for" [ok|fail] ["regex the output must match (checked in auto mode)"] <<'CMD' ... CMD
@@ -204,7 +204,7 @@ step_type() {
       fi
     fi
     if [ -n "$accepted" ]; then
-      PASS=$((PASS+1)); printf '  %s ✔ DONE %s\n' "$BG_G" "$RST"
+      PASS=$((PASS+1)); printf '  %s ✔ DONE %s' "$BG_G" "$RST"; xp_add 10; printf '\n'
       [ -n "${2:-}" ] && printf '  %s➜ Look for:%s %s\n' "$YEL" "$RST" "$2"
       return
     fi
@@ -313,6 +313,92 @@ qa_need() {
   QA_OK=0; QA_N=0
 }
 
+# ---------- XP, diagrams, missions, multiple choice ----------
+XPFILE=.xp
+xp_total() { cat "$XPFILE" 2>/dev/null || echo 0; }
+xp_level() { echo $(( $(xp_total) / 150 + 1 )); }
+xp_add() { [ -n "$AUTO" ] && return 0; echo $(( $(xp_total) + $1 )) > "$XPFILE"; printf ' %s+%d XP%s' "$YEL" "$1" "$RST"; }
+
+# deeper "label|url" ...: optional further practice on a public repo (never required, never blocks)
+deeper() {
+  local a
+  printf '\n  %s┌─ GO DEEPER (optional): same skill, on someone else'"'"'s project%s\n' "$GRN" "$RST"
+  for a in "$@"; do printf '  %s│%s %s\n  %s│%s   %s%s%s\n' "$GRN" "$RST" "${a%%|*}" "$GRN" "$RST" "$DIM" "${a#*|}" "$RST"; done
+  printf '  %s└%s%s\n' "$GRN" "$(rep ─ 40)" "$RST"
+}
+
+# art "caption" <<'X' ... X : a framed diagram
+art() {
+  local line; printf '\n  %s┌─ %s%s\n' "$CYN" "$1" "$RST"
+  while IFS= read -r line; do printf '  %s│%s %s%s%s\n' "$CYN" "$RST" "$CYN$BOLD" "$line" "$RST"; done
+  printf '  %s└%s%s\n' "$CYN" "$(rep ─ 40)" "$RST"
+}
+
+# row COLOR "text": one padded line of a multi-line box
+_row() {
+  local len pad; len=$(printf '%s' "$2" | LC_ALL=C tr -d '\200-\277' | wc -c); pad=$(( W - 4 - len )); [ "$pad" -lt 0 ] && pad=0
+  printf '%s║ %s%*s ║%s\n' "$1" "$2" "$pad" '' "$RST"
+}
+# mission "story": the situation you are in, shown as a box at the start of a module
+mission() {
+  local c="$BOLD$MAG" line
+  printf '\n%s╔%s╗%s\n' "$c" "$(rep ═ $((W-2)))" "$RST"
+  _row "$c" "MISSION"
+  while IFS= read -r line; do _row "$c" "$line"; done < <(printf '%s\n' "$1" | fold -s -w $((W-6)))
+  printf '%s╚%s╝%s\n' "$c" "$(rep ═ $((W-2)))" "$RST"
+}
+
+# mcq / predict "question" "option 1|option 2|option 3" CORRECT_NUMBER "why": a one-key question, never blocks
+_choose() {
+  local kind="$1" q="$2" opts="$3" ans="$4" why="$5" a i n=0 o
+  [ -n "$AUTO" ] && return 0
+  local IFS='|'; local arr=($opts); IFS=' '
+  if [ "$kind" = PREDICT ]; then printf '\n %s PREDICT %s %s%s%s\n' "$BG_Y" "$RST" "$BOLD" "$q" "$RST"
+  else printf '\n %s QUICK CHECK %s %s%s%s\n' "$BG_C" "$RST" "$BOLD" "$q" "$RST"; fi
+  for o in "${arr[@]}"; do n=$((n+1)); printf '    %s%d)%s %s\n' "$BOLD" "$n" "$RST" "$o"; done
+  printf '  %sPress a number ▸ %s' "$YEL" "$RST"; read -r a <&3 || exit 0
+  if [ "$a" = "$ans" ]; then printf '  %s✔ Correct!%s' "$GRN" "$RST"; xp_add 5; printf '  %s\n' "$why"
+  else printf '  %s✘ Not quite.%s The answer is %s) %s. %s\n' "$YEL" "$RST" "$ans" "${arr[$((ans-1))]}" "$why"; fi
+  return 0
+}
+mcq()     { _choose CHECK "$@"; }
+predict() { _choose PREDICT "$@"; }
+
+trophy() {
+  printf '%s' "$YEL$BOLD"
+  cat <<'ART'
+            ___________
+           '._==_==_=_.'
+           .-\:      /-.
+          | (|:.     |) |
+           '-|:.     |-'
+             \::.    /
+              '::. .'
+                ) (
+              _.' '._
+             `"""""""`
+ART
+  printf '%s' "$RST"
+}
+
+# roadmap: the whole course as a map you can see at a glance
+roadmap() {
+  local f id st n=0 label
+  printf '\n  %sYOUR ROADMAP%s   XP %s%d%s  Level %s%d%s\n' "$BOLD" "$RST" "$YEL" "$(xp_total)" "$RST" "$CYN" "$(xp_level)" "$RST"
+  printf '  %s✔ done   ◐ lessons done   ● open now   🔒 locked%s\n' "$DIM" "$RST"
+  local group
+  for f in lessons/*.sh; do
+    id=$(basename "$f" | cut -c1-2)
+    case "$((10#$id))" in 0) group="START HERE: Git from zero" ;; 1) group="THE CORE PATH" ;; 12) group="SPECIALIST TRACKS" ;; 18) group="JOB-READY EXTRAS" ;; *) group="" ;; esac
+    [ -n "$group" ] && { printf '\n  %s%s%s\n  ' "$BOLD$CYN" "$group" "$RST"; n=0; }
+    if has "$id"; then st="${GRN}✔${RST}"; elif has "$id.learn"; then st="${YEL}◐${RST}"; elif gate_ok "$id"; then st="${BOLD}●${RST}"; else st="${DIM}🔒${RST}"; fi
+    label=$(sed -n '1s/^# *//p' "$f" | sed 's/[:(].*//' | cut -c1-14)
+    printf '[%s %s %-13s] ' "$st" "$id" "$label"
+    n=$((n+1)); [ $((n % 3)) -eq 0 ] && printf '\n  '
+  done
+  printf '\n\n'
+}
+
 # quiz "question" 'regex of a correct answer' "model answer"
 quiz() {
   [ -n "$AUTO" ] && return 0
@@ -333,7 +419,7 @@ part_summary() {
   else msg="$2 not finished (items skipped)."; c="$BOLD$YEL"; fi
   printf '\n'; box "$c" "Module $1 · $msg"
   printf '  %s%s summary:%s %s%d passed%s   %s%d failed%s   %s%d skipped%s\n' "$BOLD" "$1" "$RST" "$GRN" "$PASS" "$RST" "$RED" "$FAIL" "$RST" "$YEL" "$SKIP" "$RST"
-  printf '  Overall  %s  %d/%d modules   Rank: %s%s%s\n' "$(bar "$n" "$LESSONS")" "$n" "$LESSONS" "$BOLD" "$(rank "$n")" "$RST"
+  printf '  Overall  %s  %d/%d modules   Rank: %s%s%s   XP %s%d%s (level %d)\n' "$(bar "$n" "$LESSONS")" "$n" "$LESSONS" "$BOLD" "$(rank "$n")" "$RST" "$YEL" "$(xp_total)" "$RST" "$(xp_level)"
   [ "$SKIP" -gt 0 ] && printf '  %sSkipped items do not count. Run  bash lab.sh %s  again to finish them.%s\n' "$YEL" "$1" "$RST"
   return 0
 }
@@ -352,17 +438,19 @@ menu() {
     else mark="${DIM}○${RST}"; fi
     printf '   %s  %s%s%s  %s\n' "$mark" "$BOLD" "$id" "$RST" "$(lesson_title "$f")"
   done
-  printf '\n   Progress  %s  %d/%d      Rank: %s%s%s\n' "$(bar "$n" "$LESSONS" 30)" "$n" "$LESSONS" "$BOLD$CYN" "$(rank "$n")" "$RST"
+  printf '\n   Progress  %s  %d/%d      Rank: %s%s%s   XP %s%d%s  Level %d\n' "$(bar "$n" "$LESSONS" 30)" "$n" "$LESSONS" "$BOLD$CYN" "$(rank "$n")" "$RST" "$YEL" "$(xp_total)" "$RST" "$(xp_level)"
   printf '\n   %s✔ complete   ◐ lessons done, exam pending   🔒 locked until its prerequisite module is passed%s\n' "$DIM" "$RST"
-  printf '   %sbash lab.sh 01%s start (continues by itself)   %sbash lab.sh next%s resume   %sbash lab.sh final 05%s retake an exam   %sbash lab.sh down%s stop all\n' "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST"
+  printf '   %sbash lab.sh 00%s start (continues by itself)   %sbash lab.sh next%s resume   %sbash lab.sh final 05%s retake an exam   %sbash lab.sh down%s stop all\n' "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST" "$DIM" "$RST"
 }
 
 # Which module must be passed before this one unlocks. Core path: the previous number.
-# Extra modules open earlier: Linux admin and Git collaboration after 01, Secrets after 03,
+# Extra modules open earlier: Linux admin and Git collaboration after 00, Secrets after 03,
 # Kubernetes advanced after 06, Ship-it-for-real and Interview prep after the core path (11).
 prereq_of() {
   case "$((10#$1))" in
-    18|19) echo 01 ;;
+    01) echo 00 ;;
+    18) echo 01 ;;
+    19) echo 00 ;;
     20) echo 03 ;;
     21) echo 06 ;;
     22|23) echo 11 ;;
@@ -371,7 +459,7 @@ prereq_of() {
 }
 gate_ok() { # a module unlocks when its prerequisite is complete (not enforced in auto-test mode)
   [ -n "$AUTO" ] || [ -n "${LAB_SKIPGATE:-}" ] && return 0
-  [ "$((10#$1))" -le 1 ] && return 0
+  [ "$((10#$1))" -le 0 ] && return 0
   has "$(prereq_of "$1")"
 }
 
@@ -413,6 +501,7 @@ run_lesson() {
   [ "$ok" -eq 1 ] || return 1
   mark "$id"
   printf '\n'; box "$BOLD$GRN" "★ MODULE $id COMPLETE ★  Rank: $(rank "$(done_count)")"
+  [ -z "$AUTO" ] && trophy
   [ -z "$AUTO" ] && [ "$(done_count)" -lt "$LESSONS" ] && printf '  %sThe next module is now unlocked.%s\n' "$GRN" "$RST"
   return 0
 }
@@ -448,7 +537,7 @@ flow() {
 case "${1:-menu}" in
   menu|list) menu
     if [ -z "$AUTO" ]; then
-      nxt=$(first_incomplete); [ -z "$nxt" ] && nxt=01
+      nxt=$(first_incomplete); [ -z "$nxt" ] && nxt=00
       printf '\n  Type a lesson number, or press Enter to continue with lesson %s (q to quit) ▸ ' "$nxt"; read -r n <&3
       if [ "$n" = q ]; then :
       elif [ -z "$n" ]; then flow "$nxt"
@@ -459,11 +548,12 @@ case "${1:-menu}" in
   down)
     # one 'down' that knows every compose file used by the lessons (app, monitoring, logging, postgres)
     docker compose -f 03-compose/docker-compose.yml -f 08-observability/compose.observability.yml -f 15-logging/compose.logging.yml -f 16-postgres/compose.postgres.yml --env-file .env down --remove-orphans 2>&1 | tail -3
-    docker rm -f lab-api lab-tls lab-a lab-b lab-lb lab-linux lab-vault vault-api exam-vault-api exam-api exam-a exam-b exam-db port-squatter >/dev/null 2>&1; docker network rm lab-net exam-net >/dev/null 2>&1
+    docker rm -f my-nginx my-page lab-api lab-tls lab-a lab-b lab-lb lab-linux lab-vault vault-api exam-vault-api exam-api exam-a exam-b exam-db port-squatter >/dev/null 2>&1; docker network rm lab-net exam-net >/dev/null 2>&1
     bash 06-kubernetes/cluster.sh down 2>/dev/null
     docker compose -f 05-terraform/compose.localstack.yml down 2>&1 | tail -1
     docker compose -f 13-ansible/compose.yml down 2>&1 | tail -1 ;;
-  reset) rm -f "$PROGRESS"; echo "progress cleared" ;;
+  reset) rm -f "$PROGRESS" "$XPFILE"; echo "progress cleared" ;;
+  map|roadmap) roadmap ;;
   feedback)
     printf '\n%sLab feedback%s\n' "$BOLD" "$RST"
     printf '  Tell us what was confusing, broken, too easy or too hard. It makes the lab better for everyone.\n'
@@ -475,5 +565,5 @@ case "${1:-menu}" in
   final) ONLY_FINAL=1 run_lesson "$(printf '%02d' "$((10#${2:-1}))")" ;;
   next|continue) nxt=$(first_incomplete); [ -z "$nxt" ] && { echo "All lessons are done."; exit 0; }; flow "$nxt" ;;
   [0-9]*) if [ -n "$AUTO" ]; then run_lesson "$(printf '%02d' "$((10#$1))")"; else flow "$(printf '%02d' "$((10#$1))")"; fi ;;
-  *) echo "usage: bash lab.sh [menu|NN|next|final NN|status|feedback|down|reset]"; exit 1 ;;
+  *) echo "usage: bash lab.sh [menu|NN|next|final NN|map|status|feedback|down|reset]"; exit 1 ;;
 esac

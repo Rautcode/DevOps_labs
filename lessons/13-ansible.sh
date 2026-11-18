@@ -1,5 +1,6 @@
 # Ansible: configure servers with code (about 2h)
 title "Module 13 · Ansible"
+mission "You have ten servers to set up exactly the same way, and typing the same commands ten times is how mistakes happen. Your mission: write the setup once as a playbook, run it on all of them, and fix drift when someone changes a server by hand."
 explain "Terraform creates infrastructure. Ansible CONFIGURES it: packages, files, users, services. You describe the desired state in a 'playbook' and Ansible makes each server match, over SSH, without installing anything on the servers. Running it twice changes nothing the second time (idempotent). You will manage two practice servers."
 
 part "PART A · Build the practice servers"
@@ -32,6 +33,7 @@ step "Read the playbook" "Tasks: install packages, create a directory, render a 
 cat 13-ansible/site.yml
 CMD
 learn "Idempotence" "A task says what state you want (package present), not which command to run. Ansible checks first and changes only if needed. So running the playbook twice gives the same result, and the second run reports changed=0. That makes re-running always safe."
+predict "You run the same playbook twice. What does the second run report?" "ok, nothing changed|It repeats every change|It fails because the work exists|It deletes the work" 1 "Idempotent means safe to repeat: tasks describe a state, and Ansible changes only what does not match yet."
 step "Run the playbook (first run: apt downloads packages, about a minute)" "PLAY RECAP with changed=3 or 4 and failed=0 for web1 and web2. Yellow 'changed' tasks mean Ansible fixed something." ok 'failed=0' <<'CMD'
 lab-ansible ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^TASK|^PLAY RECAP|changed=|RUNNING HANDLER"
 CMD
@@ -72,4 +74,5 @@ step "Remove the practice servers" "web1 and web2 removed." ok 'Removed|removed'
 ac down 2>&1 | tail -4
 CMD
 
+deeper "Ansible Zero to Hero (Abhishek Veeramalla)|https://github.com/iam-veeramalla/ansible-zero-to-hero"
 explain "Done! Next: bash lab.sh 14"

@@ -1,9 +1,23 @@
 # Kubernetes: run the app on a real cluster (about 3h)
 title "Module 06 · Kubernetes"
+mission "One container is a toy. Production needs copies that restart when they crash, update without downtime, and talk only to who they should. Your mission: run the app on a real Kubernetes cluster and break it on purpose to watch it heal."
 explain "Kubernetes runs containers across machines and keeps them healthy: it restarts crashes, rolls out updates without downtime, and controls who can talk to whom. You will create a real cluster on your own computer (it runs inside one Docker container) and deploy the app."
 
 part "PART A · Create the cluster and deploy"
 learn "What Kubernetes does" "You declare the DESIRED state (for example: 2 copies of the web) and Kubernetes keeps reality matching it. A Pod runs your containers, a Deployment manages interchangeable pods, a StatefulSet manages pods that keep data, and a Service gives them a stable name. Kustomize overlays describe how dev and prod differ."
+art "Kubernetes architecture (simplified)" <<'ART'
+   you: kubectl apply -f ...            CLUSTER
+          |                    +------------------------+
+          v                    |  control plane         |
+   [ API server ] ------------>|  (decides)             |
+                               +-----------+------------+
+                                           |
+                       +-------------------+------------------+
+                       |  node 1           |  node 2          |
+                       |  [pod][pod]       |  [pod]           |
+                       +-------------------+------------------+
+ART
+mcq "What do you give Kubernetes?" "The DESIRED state, and it keeps reality matching it|A list of commands to run once|Only container images|A server to log into" 1 "Kubernetes is declarative: you say what you want and controllers keep working until it is true."
 step "Make sure the app images exist" "Images listed (they were built in module 02)." <<'CMD'
 docker image inspect devlab-api:lab devlab-web:lab >/dev/null 2>&1 || dc build 2>&1 | tail -2; docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab
 CMD
@@ -28,6 +42,7 @@ CMD
 
 part "PART B · Self-healing and zero downtime"
 learn "Self-healing" "Controllers constantly compare what you asked for with what exists and fix differences. Kill a pod and a new one appears. The new pod re-attaches the SAME disk (a PersistentVolumeClaim), so the data is still there. Probes tell Kubernetes when a pod is ready for traffic and when it must be restarted."
+predict "You delete one pod of a Deployment that wants 2 copies. What happens in a few seconds?" "Nothing, it stays at 1|A new pod is created automatically|The Deployment is deleted too|Kubernetes asks you" 2 "The Deployment controller notices 1 pod is missing and creates a new one. That is self-healing."
 step "Create a lead, then count leads" "leads in database: 1" <<'CMD'
 curl -s -X POST localhost:30080/api/inquiries -H "content-type: application/json" -d "{\"name\":\"K8s Test\",\"email\":\"k@example.com\"}" >/dev/null; kleads
 CMD
@@ -74,4 +89,5 @@ step "Delete the cluster" "cluster removed" <<'CMD'
 bash 06-kubernetes/cluster.sh down
 CMD
 
+deeper "Kubernetes Zero to Hero (Abhishek Veeramalla)|https://github.com/iam-veeramalla/Kubernetes-Zero-to-Hero" "kubestarter (Shubham Londhe)|https://github.com/LondheShubham153/kubestarter" "Kubernetes on AWS EKS course (StackSimplify)|https://github.com/stacksimplify/aws-eks-kubernetes-masterclass"
 explain "Done! Next: bash lab.sh 07"

@@ -1,5 +1,7 @@
 # 01 · Foundations (Beginner, ~3h)
 
+> New to Git? Do **module 00** first (`bash lab.sh 00`): it unlocks this module.
+>
 > **Guided version:** run `bash lab.sh 01` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference.
 
 **Goal:** be comfortable in a Linux shell, Git and HTTP before touching any tooling. Everything is done against the small sample app in [app/](../app) (a Node API with SQLite behind an nginx-served web page).

@@ -1,9 +1,17 @@
 # Compose: run a multi-container stack (about 2h)
 title "Module 03 · Compose"
+mission "The app is now three pieces: a web server, an API and a database file. Starting them one by one with long commands is slow and error-prone. Your mission: describe the whole stack in ONE file and start, stop and rebuild it with a single command."
 explain "Real apps are several containers working together. Docker Compose describes them in ONE file. Here: a web server (nginx) in front, and the API behind it, plus a disk volume for the data."
 
 part "PART A · The stack"
 learn "Why Docker Compose?" "Real apps are several containers. A compose file describes the services, networks and volumes in one place, so docker compose up creates the whole stack and down removes it. The same file works on every machine, which ends the 'works on my machine' problem."
+art "One file, whole stack" <<'ART'
+   docker-compose.yml
+        |
+        v                    browser  ->  web (nginx) -> api (Node) -> data volume
+   docker compose up         all three started, wired and named together
+ART
+mcq "Which command starts every service in a compose file?" "docker compose up|docker run|docker compose list|docker start all" 1 "docker compose up -d builds if needed and starts the whole stack in the background."
 step "Start (or refresh) the stack" "Both containers Started / Healthy." <<'CMD'
 dc up --build -d 2>&1 | tail -4
 CMD
@@ -20,6 +28,12 @@ quiz "The API container publishes no port to your computer. Why is that good?" "
 
 part "PART B · Data survives restarts (volumes)"
 learn "Volumes keep data" "A container's own filesystem is disposable. A volume is storage managed by Docker OUTSIDE the container, so it survives when the container is deleted. docker compose down removes the containers but keeps volumes; down -v also deletes the volumes, and the data is gone for good."
+art "Container filesystem vs volume" <<'ART'
+   container deleted  ->  its own files are GONE
+   volume             ->  lives outside the container, data SURVIVES
+   [ container ] ---mounts---> [ volume: /data ]
+ART
+predict "You delete the API container but keep its volume, then start a new container with the same volume. Is the data still there?" "Yes, the volume still holds it|No, everything is lost|Only half of it|Only after a restart" 1 "A volume has its own life, separate from any container. That is why databases always use volumes."
 step "Create a lead (a record in the database)" 'A reply like {"id":1}' <<'CMD'
 curl -s -X POST localhost:8080/api/inquiries -H "content-type: application/json" -d "{\"name\":\"Compose Test\",\"email\":\"c@example.com\"}"; echo
 CMD
@@ -48,4 +62,5 @@ step "Go back to the normal configuration" "api recreated without LOG_LEVEL. Ove
 dc up -d 2>&1 | tail -2; sleep 12; curl -s localhost:8080/healthz
 CMD
 
+deeper "Flask + database with Compose: two-tier-flask-app (Shubham Londhe)|https://github.com/LondheShubham153/two-tier-flask-app" "Django notes app (Shubham Londhe)|https://github.com/LondheShubham153/django-notes-app"
 explain "Done! Next: bash lab.sh 04"

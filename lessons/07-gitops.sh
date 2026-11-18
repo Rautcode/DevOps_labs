@@ -1,5 +1,6 @@
 # GitOps: git is the source of truth (about 1.5h)
 title "Module 07 · GitOps"
+mission "A colleague changed the live cluster by hand at 2am and nobody knows what they did. Your mission: make Git the only way to change the cluster, so every change is reviewed, recorded and reversible."
 explain "GitOps: you never change the cluster by hand. You change files in git, and a controller (Argo CD) makes the cluster match. Every change is reviewed, recorded, and can be undone with git revert. This lesson shows the pieces locally; the optional last part installs Argo CD itself."
 
 part "PART A · Environments are just folders"
@@ -16,6 +17,16 @@ CMD
 
 part "PART B · The Argo CD application"
 learn "Argo CD" "Argo CD runs inside the cluster and watches a git repository. When git changes it applies the change (pull model, so CI needs no cluster password). With selfHeal on it undoes manual changes, and with prune on it removes things you deleted from git."
+art "The GitOps loop" <<'ART'
+   you change a file  ->  Git (source of truth)
+                              ^        |
+                              |        v
+                         Argo CD compares git with the cluster
+                              |
+                              v
+                      cluster is changed to MATCH git
+ART
+mcq "In GitOps, how do you change the live cluster?" "By editing files in Git and letting a controller apply them|By running kubectl edit on the server|By logging into the node|By restarting Argo CD" 1 "Git is the only door. That gives review, history and an easy rollback (git revert)."
 step "Read the file that tells Argo CD what to watch" "repoURL (your GitHub repo), path (06-kubernetes/overlays/dev), and syncPolicy with prune and selfHeal." <<'CMD'
 cat 07-gitops/argocd-app.yaml
 CMD
@@ -36,4 +47,5 @@ explain "  kubectl create namespace argocd"
 explain "  kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
 explain "  kubectl apply -f 07-gitops/argocd-app.yaml"
 explain "Then change replicas in an overlay, push, and watch Argo CD update the cluster (about 3 minutes). Details: 07-gitops/README.md"
+deeper "argocd-in-one-shot (Shubham Londhe)|https://github.com/LondheShubham153/argocd-in-one-shot" "Jenkins + Argo CD GitOps (Abhishek Veeramalla)|https://github.com/iam-veeramalla/Jenkins-Zero-To-Hero"
 explain "Done! Next: bash lab.sh 08"

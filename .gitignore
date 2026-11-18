@@ -8,3 +8,4 @@ backups/
 .progress
 playground/
 node_modules/
+.xp

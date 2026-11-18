@@ -1,9 +1,16 @@
 # Capstone: disaster recovery and production readiness (about 2h)
 title "Module 11 · Capstone"
+mission "A disk dies. Are your backups any good? Your mission: lose data on purpose and bring it back, then check the whole system against a production-readiness list. Only a restore that worked counts as a backup."
 explain "Backups that were never restored are not backups. In this capstone you run a real disaster-recovery drill: lose data on purpose, then bring it back. Then you review the whole system like a production-readiness reviewer."
 
 part "PART A · The disaster-recovery drill"
 learn "Backups and recovery" "A backup you never restored is only a hope. RPO is how much data you can afford to lose (time since the last backup). RTO is how long recovery may take. An online backup copies the database while the app keeps running, and a restore drill proves the backup really works."
+art "RPO and RTO" <<'ART'
+   last backup           disaster            back online
+       |<------ RPO ------->|<------ RTO ------>|
+       data you can lose        time you are down
+ART
+mcq "Why is an untested backup only a hope?" "You do not know it restores until you try|Backups are always corrupt|It uses too much disk|It cannot be read" 1 "Restore drills are the only proof."
 step "Make sure the app is running" '{"ok":true}' <<'CMD'
 dc up -d 2>&1 | tail -1; sleep 12; curl -s localhost:8080/healthz
 CMD
@@ -46,4 +53,5 @@ explain "  PEOPLE   postmortems and game days                              (modu
 quiz "Which area is your weakest right now, and what is one thing you would do next?" "." "There is no wrong answer. Pick one and turn it into a small task: for example, schedule the backup script, or push this repo and enable the CI workflow."
 
 part "PART C · Core path complete: what next?"
+deeper "An end-to-end DevOps project (Abhishek Veeramalla)|https://github.com/iam-veeramalla/ultimate-devops-project-aws" "SkillPulse full pipeline (Shubham Londhe)|https://github.com/LondheShubham153/SkillPulse"
 explain "You finished the core path (lessons 01-11). The SPECIALIST modules go deeper and continue automatically: 12 Networking, 13 Ansible, 14 Helm and RBAC, 15 Logging and tracing, 16 Postgres, 17 Real cloud (AWS). Press Enter at the next prompt to start 12, or stop here and run:  bash lab.sh down"

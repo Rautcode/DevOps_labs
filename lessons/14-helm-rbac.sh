@@ -1,9 +1,17 @@
 # Helm and RBAC: package apps and control who can do what (about 2.5h)
 title "Module 14 · Helm and RBAC"
+mission "Installing the same app in dev, staging and production with copied YAML files is a mess, and everybody having admin rights is a risk. Your mission: package the app as a Helm chart and give each person only the access they need."
 explain "Helm is the package manager for Kubernetes: one chart plus a few settings (values) installs a whole app, and upgrades and rollbacks are one command. RBAC decides who may do what in the cluster. Both appear in almost every real Kubernetes job."
 
 part "PART A · Get a cluster and look at the chart"
 learn "Helm: a package manager for Kubernetes" "A chart is a folder of templates. Values are the settings you pass in. A release is one installed copy of a chart, and every change creates a new revision you can roll back to. helm template shows the YAML a chart would create without installing anything."
+art "Helm chart plus values" <<'ART'
+   chart (templates)  +  values (your settings)
+                |
+                v
+   helm install  ->  rendered Kubernetes YAML  ->  running app
+   helm upgrade / helm rollback  = one command each
+ART
 step "Make sure the app images exist" "Images listed." ok 'devlab-api' <<'CMD'
 docker image inspect devlab-api:lab devlab-web:lab >/dev/null 2>&1 || dc build 2>&1 | tail -2; docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab
 CMD
@@ -47,6 +55,12 @@ quiz "Why is 'helm rollback' safer than editing files by hand under pressure?" "
 part "PART C · RBAC: who may do what"
 explain "By default a new Kubernetes account can do nothing. You grant exact permissions with a Role (what is allowed) and a RoleBinding (who gets it). Least privilege again."
 learn "RBAC: who may do what" "By default a new account can do nothing. A Role lists allowed actions (verbs like get and list) on resources (like pods). A RoleBinding gives that Role to a user or ServiceAccount. Grant the smallest set that works (least privilege), and test it with kubectl auth can-i."
+art "RBAC" <<'ART'
+   WHO              CAN DO WHAT            WHERE
+   [ServiceAccount] --RoleBinding--> [Role: get,list pods] in namespace dev
+   default answer = NO. You add only what is needed (least privilege).
+ART
+mcq "What does RBAC do by default for a new account?" "Allows nothing until you grant it|Allows everything|Allows only reading|Asks the user" 1 "Deny by default, then grant the least privilege."
 step "Create a 'viewer' account that may only read pods" "serviceaccount, role and rolebinding created." ok 'rolebinding' <<'CMD'
 kubectl apply -n devlab-helm -f 14-helm/rbac.yaml
 CMD
@@ -77,4 +91,5 @@ step "Uninstall the release and delete the cluster" "release uninstalled, cluste
 lab-helm uninstall devlab -n devlab-helm 2>&1 | tail -1; bash 06-kubernetes/cluster.sh down
 CMD
 
+deeper "Kubernetes Zero to Hero (Abhishek Veeramalla)|https://github.com/iam-veeramalla/Kubernetes-Zero-to-Hero"
 explain "Done! Next: bash lab.sh 15"

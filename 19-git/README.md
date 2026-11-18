@@ -1,5 +1,7 @@
 # 19 · Git collaboration (Extra, ~2.5h)
 
+> Needs **module 00** (Git from zero) first.
+>
 > **Guided version:** run `bash lab.sh 19` from the repo root. It explains each step, has you type the commands yourself, and checks your hands-on tasks. This page is the reference. **Unlocks after module 01.**
 
 **Goal:** work in a team: branches, pull requests, merge conflicts, rebase, recovering lost work, finding which commit broke something, and reviewing a risky change.

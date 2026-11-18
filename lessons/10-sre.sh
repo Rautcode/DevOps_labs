@@ -1,9 +1,18 @@
 # SRE: SLOs, incidents, runbooks and postmortems (about 2h)
 title "Module 10 · SRE and incident response"
+mission "It is 3am and the site is down. A good team has a number for reliability (the SLO), a runbook that tells the on-call person what to do, and a calm, blameless review afterwards. Your mission: cause a real incident and handle it properly."
 explain "Site Reliability Engineering treats reliability as a number you can measure and budget. You will read the SLO, cause a real incident, handle it with a runbook, and write a blameless postmortem."
 
 part "PART A · The SLO and the error budget"
 learn "SLI, SLO and error budget" "An SLI is a number you measure (the share of successful health checks). An SLO is the target for it (99.5% over 30 days). The error budget is the failure you are ALLOWED: 100% minus the SLO. While budget remains you can ship features; when it is gone you fix reliability first."
+art "SLO and error budget" <<'ART'
+   SLI = what you measure         e.g. 99.95% of requests succeed
+   SLO = the promise              e.g. 99.9% over 30 days
+   error budget = 100% - SLO      0.1% of requests may fail
+   budget left   -> ship features
+   budget gone   -> freeze changes, fix reliability
+ART
+mcq "If the SLO is 99.9%, what is the error budget?" "0.1%|99.9%|1%|10%" 1 "100% minus 99.9% = 0.1% of requests (about 43 minutes a month) are allowed to fail."
 step "Read the service level objective" "99.5% availability over 30 days." <<'CMD'
 sed -n 1,12p 10-sre/slo.md
 CMD

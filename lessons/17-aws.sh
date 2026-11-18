@@ -1,5 +1,6 @@
 # Real cloud (AWS): safely, with budgets and security checks (about 2h)
 title "Module 17 · Real cloud: AWS"
+mission "Everything so far was free and local. A real cloud account can send a real bill. Your mission: learn to deploy safely, with budgets, least-privilege permissions and automatic checks, before you ever click create."
 explain "Everything so far ran on your computer. This module is the bridge to a REAL cloud account. The danger is not difficulty, it is the BILL: a forgotten resource keeps charging you. So you learn the safety habits first, practise security scanning on code with NO account needed, and only then (optionally) apply to a real account with a budget alarm in place."
 
 part "PART A · Safety habits (before you create anything)"
@@ -16,6 +17,11 @@ CMD
 
 part "PART B · Read and validate the real-AWS Terraform (no account needed)"
 learn "Same code, different target" "The storage module is exactly the one you tested on LocalStack. Only the provider changes. That is the value of practising locally first. On a real account every resource can cost money, so safety habits come first."
+art "LocalStack vs real AWS" <<'ART'
+   same Terraform code
+      |-- endpoint = LocalStack (free, on your laptop)   <- you practised here
+      |-- endpoint = real AWS   (real money, real risk)  <- budget + checks first
+ART
 step "The real environment reuses the module you tested in module 05" "source = \"../../../05-terraform/modules/storage\": the SAME module. Only the provider (real AWS instead of LocalStack) changes." ok 'modules/storage' <<'CMD'
 grep -n "source\|budget" 17-aws/envs/aws/main.tf | head -8
 CMD
@@ -53,4 +59,5 @@ false
 true
 X
 
+deeper "AWS DevOps Zero to Hero, 30 days (Abhishek Veeramalla)|https://github.com/iam-veeramalla/aws-devops-zero-to-hero" "aws-zero-to-hero (Shubham Londhe)|https://github.com/LondheShubham153/aws-zero-to-hero"
 explain "Done! You have finished all lessons. Run  bash lab.sh down  to stop everything."

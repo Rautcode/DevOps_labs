@@ -1,5 +1,6 @@
 # Git collaboration: conflicts, rebase, recovery, bisect and code review (about 2.5h)
 title "Module 19 · Git collaboration"
+mission "Real teams have many people changing the same code. Your mission: handle the situations that happen every week: a merge conflict, a messy history, a lost commit, and a bug that appeared sometime last week."
 explain "Working in a team means branches, pull requests, reviews and the occasional mess. You will practise the situations that happen every week: merge conflicts, rebasing, losing a commit and getting it back, finding which commit broke something, and reviewing a risky change. Everything happens in a throwaway practice repository (playground/collab); the shortcut g means git inside it."
 
 part "PART A · A practice repository"
@@ -42,6 +43,14 @@ X
 
 part "PART D · Rebase"
 learn "Merge versus rebase" "Merge keeps the true history and adds a merge commit. Rebase REPLAYS your commits on top of the latest main so history becomes a straight line, which is easier to read. The golden rule: never rebase a branch other people already use, because rebase rewrites commits. Rebase your own unpublished work only."
+art "Merge vs rebase" <<'ART'
+   MERGE   keeps the true history:   o--o--o----M      (M = merge commit)
+                                         \    /
+                                          o--o
+   REBASE  replays your commits:     o--o--o--o'--o'   (straight line, new ids)
+   Never rebase commits other people already have.
+ART
+mcq "When is it safe to rebase?" "On your own, not-yet-shared branch|On main|On a branch your teammates pulled|Never" 1 "Rebase rewrites commits, so only do it on work nobody else has."
 step "Create a diverged feature branch" "A feature branch with one commit, while main moved on." ok 'feature/rebase' <<'CMD'
 g switch -c feature/rebase; echo r1 > playground/collab/r.txt; g add r.txt; g commit -qm "feat: r1"; g switch main; echo m2 > playground/collab/m.txt; g add m.txt; g commit -qm "feat: m2"; g switch feature/rebase; g log --oneline --graph --all | head -6
 CMD
@@ -94,4 +103,5 @@ X
 quiz "What does branch protection on main usually enforce?" "review|approv|status check|ci|no direct push|pull request|force" "It blocks direct pushes and force pushes to main and requires a pull request with passing checks and at least one approving review before merging."
 quiz "Why write commit messages like feat: ... or fix: ... (Conventional Commits)?" "changelog|release|version|semantic|automat|readab|history|scan|categor" "A consistent prefix makes history easy to scan and lets tools generate changelogs and choose version numbers (feat = minor, fix = patch) automatically."
 
+deeper "90 Days of DevOps (Shubham Londhe)|https://github.com/LondheShubham153/90DaysOfDevOps"
 explain "Done! Git collaboration is what you do in every job, every day. Next: bash lab.sh 20"

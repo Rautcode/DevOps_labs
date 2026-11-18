@@ -19,4 +19,4 @@ Cover requirements, the flow from code to production, deployment and rollback, i
 **S**ituation, **T**ask, **A**ction (what *you* did, step by step), **R**esult (with a number). Reuse a real moment from this lab: the game day, the crash loop, the bad release you rolled back.
 
 ## Next steps
-See [JOB-READY.md](../JOB-READY.md) for the portfolio checklist, CV bullets and a 30-day plan, and [CERTIFICATIONS.md](../CERTIFICATIONS.md) for which exams to take.
+See [JOB-READY.md](../JOB-READY.md) for the portfolio checklist, CV bullets and a 30-day plan.

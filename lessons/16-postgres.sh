@@ -1,5 +1,6 @@
 # Postgres: a real database, and why it lets the API scale (about 2h)
 title "Module 16 · Postgres"
+mission "The app keeps its data in one file, so you can only ever run ONE copy of it. Your mission: move the data into a real database server, run several copies of the API, and learn to back the database up properly."
 explain "Until now the API kept its data in a SQLite file, so you could run only ONE copy of it. A real database server (Postgres) holds the data separately. Then the API itself has no state and you can run many copies. This is the single biggest step from 'works on my machine' to 'production-shaped'."
 
 part "PART A · Switch the API to Postgres"
@@ -20,6 +21,13 @@ quiz "What is the difference between /healthz and /readyz?" "database|dependen|r
 
 part "PART B · Scale the API: many copies, one database"
 learn "Scaling out" "Horizontal scaling means more copies instead of a bigger machine. It only works when every copy sees the same data, which is why the shared database matters. The proxy spreads requests between the copies."
+art "Scaling with a shared database" <<'ART'
+   SQLite file:   [ api ] --file-->   only ONE copy can own it
+   Postgres:      [ api 1 ] \
+                  [ api 2 ] --> [ database ]   add copies freely
+                  [ api 3 ] /
+ART
+mcq "Why does moving to Postgres let you run more API copies?" "The state lives in one shared database, so each API copy is stateless|Postgres is faster|It removes the need for a load balancer|It encrypts the API" 1 "Stateless app + shared state = easy horizontal scaling."
 step "Run TWO copies of the API" "Two api containers. The web proxy spreads requests between them." <<'CMD'
 dcp up -d --scale api=2 --no-recreate 2>&1 | tail -3; sleep 12; dcp ps api --format 'table {{.Name}}\t{{.Status}}'
 CMD

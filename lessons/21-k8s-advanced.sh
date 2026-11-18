@@ -1,5 +1,6 @@
 # Kubernetes advanced: Jobs, config, resource limits, autoscaling, ingress (about 3h)
 title "Module 21 · Kubernetes advanced"
+mission "The cluster must also run nightly jobs, keep settings out of images, stop one greedy app from starving the rest, add copies when load rises, and take outside traffic. Your mission: add these production features one by one."
 explain "Module 06 taught you to run an app on Kubernetes. Real clusters also run batch work on a schedule, keep configuration out of images, protect themselves from greedy containers, scale automatically with load, and route outside traffic by host name. You will meet each of those on a real cluster. This cluster keeps k3s's built-in metrics-server and Traefik ingress controller, which are switched off in module 06."
 
 part "PART A · A cluster with the extras"
@@ -50,6 +51,11 @@ quiz "Why keep configuration in a ConfigMap instead of baking it into the image?
 
 part "PART D · Requests, limits and OOMKilled"
 learn "Requests and limits" "A request is what the scheduler reserves for the container. A limit is the most it may use. Go over a CPU limit and the container is slowed down (throttled). Go over a MEMORY limit and the kernel kills it: that is OOMKilled (out of memory), and Kubernetes restarts it, so you see a crash loop. Always set both, and look at the real usage with kubectl top."
+art "Requests and limits" <<'ART'
+   request = what the scheduler RESERVES for the pod   (a seat at the table)
+   limit   = the most it may USE                       (over memory => killed)
+ART
+mcq "A container uses more memory than its limit. What happens?" "It is killed (OOMKilled) and restarted|It slows down|Kubernetes adds memory|Nothing" 1 "Memory over the limit cannot be throttled, so the process is killed."
 step "Run a pod that needs 100 MB but may only use 20 MB" "pod/oom-demo created" ok 'created' <<'CMD'
 kubectl apply -f 21-k8s-advanced/oom.yaml
 CMD
@@ -75,6 +81,11 @@ CMD
 
 part "PART F · Ingress"
 learn "Ingress" "A Service gives pods a stable address INSIDE the cluster. An Ingress is a set of HTTP routing rules for traffic coming from OUTSIDE: send host a.example.com to service A and host b.example.com to service B, on one shared entry point (one load balancer, one certificate). The Ingress object holds the rules; the ingress controller (Traefik here) enforces them."
+art "Ingress" <<'ART'
+   internet -> [ Ingress ] -- /api --> [ Service api ] -> pods
+                        \-- /    --> [ Service web ] -> pods
+   one door, rules decide where each URL goes
+ART
 step "Deploy the app (the dev environment) again on this cluster" "deployments created." ok 'devlab' <<'CMD'
 kubectl apply -k 06-kubernetes/overlays/dev | tail -3; kubectl -n devlab-dev rollout status deploy/devlab-web --timeout=150s; kubectl -n devlab-dev rollout status sts/devlab-api --timeout=150s
 CMD
@@ -94,4 +105,5 @@ step "Delete the cluster" "cluster removed" ok 'cluster removed' <<'CMD'
 bash 06-kubernetes/cluster.sh down
 CMD
 
+deeper "Kubernetes troubleshooting Zero to Hero (Abhishek Veeramalla)|https://github.com/iam-veeramalla/kubernetes-troubleshooting-zero-to-hero" "HPA, ingress and more on EKS (StackSimplify)|https://github.com/stacksimplify/aws-eks-kubernetes-masterclass" "k8s-kind-voting-app (Shubham Londhe)|https://github.com/LondheShubham153/k8s-kind-voting-app"
 explain "Done! Next: bash lab.sh 22"

@@ -1,9 +1,18 @@
 # CI/CD: automatic checks with GitHub Actions (about 2h)
 title "Module 04 · CI/CD"
+mission "A teammate pushed a change that broke the build, and nobody noticed for two days. Your mission: make GitHub test, scan and build every change automatically, so a broken change is caught in minutes, before it reaches anyone."
 explain "CI/CD means every change is automatically tested, scanned and built, so mistakes are caught in minutes instead of in production. GitHub runs these 'workflows' from YAML files. Here you will check and run the same steps on your own computer."
 
 part "PART A · Read the pipeline"
 learn "What CI/CD means" "CI (continuous integration) means every change is automatically built and tested. CD (continuous delivery) means passing changes are automatically released. A GitHub Actions workflow lives in .github/workflows and has jobs; each job runs steps on a fresh machine, so results never depend on one person's laptop."
+art "The CI/CD flow" <<'ART'
+   you push code
+        |
+        v
+   [ test ] -> [ scan ] -> [ build image ] -> [ deploy ]
+      fail anywhere = stop, you are told in minutes
+ART
+mcq "What is the main benefit of CI?" "Mistakes are caught minutes after the change, not weeks later|It makes the code faster|It removes the need for tests|It replaces Git" 1 "CI runs the checks on every change automatically so broken code is found while it is still small."
 step "List the jobs in the CI workflow" "Jobs: app, docker, security, infra. Each is a group of steps that can run in parallel." <<'CMD'
 grep -nE "^  [a-z]+:$" 04-ci-cd/workflows/ci.yml
 CMD
@@ -41,4 +50,5 @@ sed 's/runs-on/runs_on/' playground/hello.yml > playground/broken.yml
 X
 quiz "Why sign release images (the release workflow uses cosign)?" "who|built|trust|tamper|verify|supply|origin|prove|authentic" "A signature proves who built the image and that nobody changed it afterwards (supply-chain security)."
 
+deeper "GitHub Actions Zero to Hero (Abhishek Veeramalla)|https://github.com/iam-veeramalla/GitHub-Actions-Zero-to-Hero" "node-todo-cicd (Shubham Londhe)|https://github.com/LondheShubham153/node-todo-cicd" "Jenkins Zero to Hero, a second CI tool (Abhishek Veeramalla)|https://github.com/iam-veeramalla/Jenkins-Zero-To-Hero"
 explain "To use these for real on GitHub: copy 04-ci-cd/workflows/ci.yml to .github/workflows/ci.yml, commit and push. Next: bash lab.sh 05"

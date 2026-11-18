@@ -27,7 +27,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   subgraph Beginner
-    F[01 Foundations] --> C[02 Containers] --> M[03 Compose]
+    G0[00 Git from zero] --> F[01 Foundations] --> C[02 Containers] --> M[03 Compose]
   end
   subgraph Intermediate
     CI[04 CI/CD] --> T[05 Terraform] --> K[06 Kubernetes]
@@ -49,6 +49,7 @@ flowchart LR
   R --> X
   X --> N
   F --> LX
+  G0 --> GC
   X --> SH
 ```
 
@@ -56,7 +57,8 @@ flowchart LR
 
 | Level | # | Module | You learn | Time |
 |---|---|---|---|---|
-| **Beginner** | [01](01-foundations/README.md) | Foundations | Linux, HTTP, Git, shell | 3h |
+| **Beginner** | [00](00-git/README.md) | **Git from zero (start here)** | save, undo, branch, merge, .gitignore, GitHub, in tiny steps | 1.5h |
+| | [01](01-foundations/README.md) | Foundations | Linux, HTTP, shell, debugging by layers *(after 00)* | 3h |
 | | [02](02-containers/README.md) | Containers | secure images, nginx reverse proxy | 4h |
 | | [03](03-compose/README.md) | Compose | multi-service stack, volumes, health, hardening | 3h |
 | **Intermediate** | [04](04-ci-cd/README.md) | CI/CD | GitHub Actions, scanning, signed releases | 4h |
@@ -74,13 +76,13 @@ flowchart LR
 | | [16](16-postgres/README.md) | Postgres | real database, scaling the API, pg_dump backup | 2h |
 | | [17](17-aws/README.md) | Real cloud (AWS) | budget alarms, cloud security scanning, safe real-account apply | 2h |
 | **Job-ready extras** | [18](18-linux/README.md) | Linux administration | users, permissions, processes, disk, cron, systemd, SSH keys *(unlocks after 01)* | 3h |
-| | [19](19-git/README.md) | Git collaboration | conflicts, rebase, reflog recovery, bisect, code review *(after 01)* | 2.5h |
+| | [19](19-git/README.md) | Git collaboration | conflicts, rebase, reflog recovery, bisect, code review *(after 00)* | 2.5h |
 | | [20](20-secrets/README.md) | Secrets management | HashiCorp Vault, policies, rotation, revocation *(after 03)* | 2h |
 | | [21](21-k8s-advanced/README.md) | Kubernetes advanced | Jobs, ConfigMaps, OOMKilled, autoscaling, ingress *(after 06)* | 3h |
 | | [22](22-ship/README.md) | Ship it for real | a LIVE GitHub pipeline, PRs, releases, real cloud deploy code *(after 11)* | 3h |
 | | [23](23-interview/README.md) | Interview prep | spoken rounds, system design, STAR story, mock interview *(after 11)* | 3h |
 
-Follow it in order; the lab moves on to the next lesson automatically. The core path is 01-11, the **specialist tracks** 12-17 go deeper, and the **job-ready extras** 18-23 add what employers ask about most (some unlock early: see the table). Finish with [JOB-READY.md](JOB-READY.md) and [CERTIFICATIONS.md](CERTIFICATIONS.md). Do not skip **Break it**: operating skill comes from failures. Tick modules off as you finish them and keep notes on what broke.
+Follow it in order; the lab moves on to the next lesson automatically. Start with module **00** (Git from zero). The core path is 00-11, the **specialist tracks** 12-17 go deeper, and the **job-ready extras** 18-23 add what employers ask about most (some unlock early: see the table). Finish with [JOB-READY.md](JOB-READY.md). Do not skip **Break it**: operating skill comes from failures. Tick modules off as you finish them and keep notes on what broke.
 
 ## Start here: guided mode (easiest)
 **Windows: just double-click `lab.cmd`.** It checks Docker and opens the lab in its own Git Bash window.
@@ -89,10 +91,11 @@ The lab teaches you **inside your terminal**. It explains each step, has you typ
 ```bash
 export MSYS_NO_PATHCONV=1     # Windows Git Bash only, once per terminal
 bash doctor.sh                # checks your machine (Docker, kubectl, memory)
-bash lab.sh                   # menu: pick a lesson number
-bash lab.sh 01                # or start module 01 directly (it continues by itself)
+bash lab.sh                   # menu: pick a lesson number (start with 00)
+bash lab.sh 00                # or start module 00 directly (it continues by itself)
+bash lab.sh map               # your roadmap and XP
 ```
-Every module follows the same path, and **the next module stays locked until you pass this one**:
+Every module opens with a **mission** (the story: why you are learning this) and follows the same path. **The next module stays locked until you pass this one**:
 ```mermaid
 flowchart LR
   L["LEARN a little<br/>(short note)"] --> D["DO it<br/>(you type)"] --> L2["LEARN<br/>next idea"] --> D2["DO it"] --> I["INTERVIEW<br/>hands-on questions"] --> F["MODULE FINAL<br/>exam, no step-by-step"] --> U(["Next module unlocks"])
@@ -101,8 +104,13 @@ flowchart LR
 - **STEP** (do): the lab shows a command, **you type it** at the `▸` prompt. It runs it, shows the output, and tells you what to look for. A different command still runs (explore!) but only the right one completes the step. `?` = hint, `run` = let the lab type it for you, `skip`, `shortcuts`, `quit`.
 - **YOUR TURN** (do): a hands-on task at a `lab ▸` prompt right in the lab (no second window): type commands, `edit FILE` opens nano, then `check`.
 - **QUIZ**: a question in your own words, then the model answer.
+- **QUICK CHECK / PREDICT**: a one-key multiple-choice question. Guess what a command will do *before* you run it, then see if you were right (+5 XP).
+- **GO DEEPER**: at the end of most modules, optional links to public learning repos (Abhishek Veeramalla, Shubham Londhe, StackSimplify) for the same skill on a different project. See also [RESOURCES.md](RESOURCES.md).
+- **DIAGRAMS**: framed pictures (images and containers, the GitOps loop, TLS, RBAC, scaling...) so you see the idea before you type.
 - **INTERVIEW**: after the lessons the lab becomes an interviewer. It sets up a real situation (a broken site, a bad commit, a crash loop) and asks you to **show** the fix. No step-by-step help, hints only.
 - **MODULE FINAL**: an exam of 3 hands-on challenges for the whole module. You get the objective, not the commands. Every item is checked against the real result, and all must pass to unlock the next module.
+
+**XP and levels:** every step, task and correct answer earns XP (150 XP per level), and a trophy appears when you finish a module. `bash lab.sh map` shows your whole roadmap at a glance.
 
 Menu symbols: `✔` module complete, `◐` lessons done but interview/final pending, `🔒` locked until the previous module is passed.
 Failed an exam item? Retake only the exam with `bash lab.sh final 05` (change 05 to the module number).
@@ -125,7 +133,7 @@ What it looks like in your terminal:
   lab ▸ check
    ✔ PASS
 
-  Overall  ████████░░░░░░░░░░░░░░░░  4/23 lessons   Rank: DevOps Engineer
+  Overall  ████████░░░░░░░░░░░░░░░░  4/24 modules   Rank: DevOps Engineer   XP 640 (level 5)
 ```
 You earn a rank as you go: Newcomer, Junior Operator, DevOps Engineer, Platform Engineer, Senior Engineer, SRE Legend.
 
@@ -148,13 +156,13 @@ lab.sh  lessons/   guided runner and one lesson script per module (bash lab.sh 0
 playground/        your own files from the hands-on tasks (git-ignored)
 app/api/   sample API: Express, SQLite or Postgres, health + readiness, auth, rate limit, JSON logs, tests   (npm test)
 app/web/   sample static site with a form that calls the API
-01-foundations/ 02-containers/ 03-compose/ 04-ci-cd/ 05-terraform/ 06-kubernetes/
+00-git/ 01-foundations/ 02-containers/ 03-compose/ 04-ci-cd/ 05-terraform/ 06-kubernetes/
 07-gitops/ 08-observability/ 09-security/ 10-sre/ 11-capstone/
 12-networking/ 13-ansible/ 14-helm/ 15-logging/ 16-postgres/ 17-aws/      (specialist tracks)
 18-linux/ 19-git/ 20-secrets/ 21-k8s-advanced/ 22-ship/ 23-interview/      (job-ready extras)
 finals/NN.sh       the interview + module final of each module
 .github/           the LIVE CI pipeline, Dependabot, feedback template
-JOB-READY.md  CERTIFICATIONS.md
+JOB-READY.md
 doctor.sh  .env.example  RESOURCES.md
 ```
 Change the app freely (add endpoints, break it, swap SQLite for Postgres): it exists to be operated.
@@ -210,7 +218,7 @@ Run on Docker Desktop (Windows) while building this repo, **every lesson was exe
 
 **Not run by the lab author (needs you):** applying to a real AWS account (modules 17 and 22 are validated and scanned, and the apply steps are optional with safety rules), the optional pull-request and release tasks on your own repository, Argo CD and Kyverno installs, and testing with real learners. Tell us how it goes: `bash lab.sh feedback`.
 
-See [RESOURCES.md](RESOURCES.md) for the research behind this curriculum, [JOB-READY.md](JOB-READY.md) for turning the lab into interviews, and [CERTIFICATIONS.md](CERTIFICATIONS.md) for exam planning.
+See [RESOURCES.md](RESOURCES.md) for the research behind this curriculum, and [JOB-READY.md](JOB-READY.md) for turning the lab into interviews.
 
 ## License
 MIT: see [LICENSE](LICENSE). Use it, copy it, teach with it. Third-party tools and images used by the lab keep their own licenses.
