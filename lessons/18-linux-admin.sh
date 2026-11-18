@@ -5,6 +5,7 @@ explain "Almost every DevOps interview and almost every incident ends up on a Li
 
 part "PART A · The practice server"
 learn "Your practice server" "lx stands for docker exec on a container named lab-linux. Whatever you run after lx runs INSIDE that little Debian server, as root. Pipes and redirects written after lx run on YOUR side, so for anything complex write it as lx bash -c followed by the command in quotes."
+say "How do you practise Linux administration safely?" "I use a disposable Linux server running in a container, so I can create users, change permissions, kill processes and break services without any risk, then rebuild it in seconds. Practising on a throwaway machine builds real muscle memory for the commands I would use on a production server."
 step "Build the practice server image (about a minute the first time)" "A sha256 image id." ok 'sha256' <<'CMD'
 docker build -q -t devlab-linux 18-linux
 CMD
@@ -17,6 +18,7 @@ CMD
 
 part "PART B · Users, groups and permissions"
 learn "Who may do what to a file" "Every file has an owner, a group and three sets of permission bits: owner, group, others. Each set can have r (read=4), w (write=2) and x (execute=1). So 750 means: owner can do everything (7=4+2+1), group can read and enter (5=4+1), others get nothing (0). A directory needs x to be entered. Files are protected by these bits, not by hiding them."
+say "Explain Linux file permissions." "Each file has an owner, a group and others, with read, write and execute bits for each, shown as rwx. In octal, read is 4, write is 2 and execute is 1, so chmod 640 means the owner can read and write, the group can read, and others get nothing. I follow least privilege, for example private keys must be 600, and I use chown to set ownership."
 art "Reading permissions: -rwxr-x---" <<'ART'
    -   rwx    r-x    ---
    |    |      |      |
@@ -48,6 +50,7 @@ quiz "In your own words: what does chmod 640 on a file mean?" "owner.*(read|writ
 
 part "PART C · Processes and signals"
 learn "Processes and signals" "Every running program is a process with a number (PID). You talk to a process with signals. SIGTERM (15) politely asks it to finish and clean up, and is the default for kill. SIGKILL (9) removes it instantly with no cleanup, so use it only as a last resort. ps and pgrep find processes; pkill sends a signal by name."
+say "How do you stop a misbehaving process?" "I find it with ps or top, then send a signal with kill. SIGTERM asks it to shut down cleanly and is my first choice. SIGKILL cannot be ignored and is the last resort, because the program cannot clean up. For services I prefer systemctl stop or restart, and then I check the logs to see why it misbehaved."
 step "Start a long-running background process" "started" ok 'started' <<'CMD'
 lx bash -c 'nohup sleep 600 >/dev/null 2>&1 & echo started'
 CMD
@@ -61,6 +64,7 @@ quiz "Why try SIGTERM before SIGKILL?" "clean|graceful|polite|save|flush|finish|
 
 part "PART D · Disk, memory and CPU"
 learn "The USE method" "When a machine is slow, check three resources in order: Utilisation (how busy), Saturation (is work queueing), Errors. For disk use df (free space) and du (what uses it). For memory use free. For CPU use top or ps. Disks that fill up are one of the most common causes of outages, because logs and temp files grow quietly."
+say "A server is slow. How do you investigate?" "I use the USE method: for CPU, memory, disk and network I check Utilisation, Saturation and Errors in order. For example top or uptime for load, free for memory, and iostat and df for disk. That gives me a structured way to find the bottleneck instead of guessing, and then I look at the process responsible."
 step "How full are the disks, and how much memory is free?" "A table of file systems with Use% and a memory table." ok 'Mem:' <<'CMD'
 lx bash -c 'df -h / | tail -2; free -m'
 CMD
@@ -78,6 +82,7 @@ X
 
 part "PART E · Logs and scheduled jobs"
 learn "Logs and cron" "Programs write logs; you read them with tail, grep and less. Searching for the word ERROR is the first move in most investigations. cron runs commands on a schedule. A schedule has five fields: minute hour day-of-month month day-of-week. Five stars mean every minute. Files in /etc/cron.d also name the user to run as."
+say "How do you read logs and schedule jobs on Linux?" "I use tail -f to follow a log, grep to search it, and journalctl for systemd services. For scheduled jobs I use cron with the five-field schedule, and I make sure jobs log their output and use full paths, because cron has a minimal environment. Modern setups sometimes use systemd timers instead."
 step "Write two log lines and read them back" "Two lines, one containing ERROR." ok 'ERROR' <<'CMD'
 lx bash -c 'echo "$(date) app started" >> /var/log/lab.log; echo "$(date) ERROR disk almost full" >> /var/log/lab.log; tail -n 2 /var/log/lab.log'
 CMD
@@ -94,6 +99,7 @@ quiz "What does the schedule */5 * * * * mean?" "every 5|five minutes|each 5" "R
 
 part "PART F · systemd services"
 learn "systemd units" "On most Linux servers systemd starts and supervises services. A service is described in a unit file: ExecStart is the command, User the account it runs as, Restart=on-failure brings it back if it crashes, and WantedBy decides when it starts at boot. systemctl enable, start, status and journalctl are the commands you will use daily. Here we write and validate unit files (a container does not run systemd as its init)."
+say "What is systemd, and how do you manage a service?" "systemd starts and supervises services on most Linux servers. A unit file defines the command, the user, the restart policy and the dependencies. I use systemctl start, stop, status and enable for boot, and journalctl -u to read the logs. Restart=on-failure gives basic self-healing for a crashed process."
 step "Write a unit file" "A unit with ExecStart, Restart=on-failure and User=nobody." ok 'Restart=on-failure' <<'CMD'
 lx bash -c 'printf "[Unit]\nDescription=Lab hello\n\n[Service]\nExecStart=/usr/bin/sleep 300\nRestart=on-failure\nUser=nobody\n\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/hello.service && cat /etc/systemd/system/hello.service'
 CMD
@@ -104,6 +110,7 @@ quiz "What does Restart=on-failure do?" "restart|start again|crash|fail|come bac
 
 part "PART G · SSH keys and sudo"
 learn "SSH keys and sudo" "A key pair has a private key (secret, never shared) and a public key (given to servers). SSH refuses a private key that others can read, so the key must be 600 and the .ssh folder 700. sudo lets a normal user run chosen commands as root; the rules live in /etc/sudoers.d, and visudo -c checks them, because a broken sudoers file can lock everyone out."
+say "How do you secure SSH access?" "I use key pairs instead of passwords: the private key stays with me with strict permissions and the public key goes on the server. I disable password login and root login, use sudo for admin tasks so actions are attributable, and restrict access with firewalls or a bastion. Keys are rotated and removed when people leave."
 step "Create an SSH key pair for alice" "id_ed25519 (private) and id_ed25519.pub (public)." ok 'id_ed25519' <<'CMD'
 lx bash -c 'runuser -u alice -- ssh-keygen -t ed25519 -N "" -f /home/alice/.ssh/id_ed25519 -q; ls -l /home/alice/.ssh'
 CMD

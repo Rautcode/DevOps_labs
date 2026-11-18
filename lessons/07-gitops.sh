@@ -5,6 +5,7 @@ explain "GitOps: you never change the cluster by hand. You change files in git, 
 
 part "PART A · Environments are just folders"
 learn "Kustomize: base plus overlays" "A base holds what all environments share. An overlay for dev or prod patches only the differences (namespace, image tags, replicas). kubectl kustomize renders the final YAML so you can review it and validate it before anything is applied."
+say "How do you manage config for several environments in Kubernetes?" "With Kustomize I keep a base with the manifests all environments share, and an overlay per environment, such as dev and prod, that patches only the differences, like replicas, image tags or resources. It is plain YAML without templating and is built into kubectl, and it keeps environments consistent. Helm is the alternative when I want templated, packaged charts."
 step "Render the DEV environment and count what it contains" "A list of resource kinds (Deployment, StatefulSet, Service, NetworkPolicy...). Kustomize combines the base plus the dev changes." <<'CMD'
 kubectl kustomize 06-kubernetes/overlays/dev | grep "^kind:" | sort | uniq -c
 CMD
@@ -17,6 +18,7 @@ CMD
 
 part "PART B · The Argo CD application"
 learn "Argo CD" "Argo CD runs inside the cluster and watches a git repository. When git changes it applies the change (pull model, so CI needs no cluster password). With selfHeal on it undoes manual changes, and with prune on it removes things you deleted from git."
+say "What is GitOps, and how does Argo CD work?" "GitOps means Git is the single source of truth for what runs in the cluster. Argo CD runs in the cluster, watches a Git repository and keeps the cluster in sync with it. If someone changes the cluster by hand, it detects the drift and can revert it. Every change is reviewed in a pull request and recorded in the history."
 art "The GitOps loop" <<'ART'
    you change a file  ->  Git (source of truth)
                               ^        |
@@ -34,6 +36,7 @@ quiz "With selfHeal on, what does Argo CD do if someone runs 'kubectl scale' by 
 
 part "PART C · Hands-on: make a change the GitOps way"
 learn "Changes go through git" "In GitOps nobody edits the live cluster. You change files, open a pull request, a colleague reviews, the merge happens, and the cluster follows. Rolling back is git revert. Your git history becomes the audit log."
+say "How do you roll back a bad release with GitOps?" "I revert the commit in Git and let the controller apply it. Nobody edits the live cluster by hand, so the history shows exactly what changed and who approved it, and a rollback is just another reviewed commit. It is auditable and repeatable, which is the whole point of GitOps."
 task "Create an overlay that runs 5 web replicas" "Create playground/overlay-test/kustomization.yaml that uses the base (resources: ../../06-kubernetes/base) and sets the devlab-web replicas to 5 using a 'replicas:' list (name: devlab-web, count: 5). Check it with: kubectl kustomize playground/overlay-test | grep replicas" "Format:  replicas:  then  - name: devlab-web  then  count: 5" <<'X'
 kubectl kustomize playground/overlay-test | grep -q "replicas: 5"
 ---

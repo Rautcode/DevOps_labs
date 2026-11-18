@@ -5,6 +5,7 @@ explain "Most 'mysterious' outages are network problems: a name that does not re
 
 part "PART A · DNS: how a name becomes an address"
 learn "DNS: names to addresses" "Computers connect by IP address, but people and programs use names. DNS translates one into the other. Inside Docker, a built-in DNS server (127.0.0.11) knows every container by name, which is why the web server can find the API simply as api even though its IP changes."
+say "What happens when you type a URL into a browser?" "The browser checks its cache, then asks a DNS resolver to turn the name into an IP address. It opens a TCP connection to that address and port, does a TLS handshake for HTTPS, sends the HTTP request, and the server responds. Each step can fail differently, so I troubleshoot in that order: DNS, connection, TLS, then HTTP."
 art "DNS lookup" <<'ART'
    browser: "where is example.com?"
         |
@@ -35,6 +36,7 @@ quiz "Why do containers use names like 'api' instead of IP addresses?" "change|d
 
 part "PART B · Ports and TCP: how a connection is made"
 learn "IP addresses and subnets (CIDR)" "An IPv4 address has four numbers (0-255), such as 10.0.1.25. A network is written in CIDR form, 10.0.1.0/24: the number after the slash says how many of the 32 bits are fixed for the network, and the rest are free for hosts. A /24 leaves 8 free bits, so 2 to the power 8 = 256 addresses (254 usable). A /16 has 65,536. Bigger slash number means a SMALLER network. Cloud networks (VPCs) and Kubernetes pods are carved out of private ranges: 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16."
+say "What does 10.0.1.0/24 mean?" "It is CIDR notation. The first 24 bits identify the network and the remaining 8 bits are for hosts, so there are 256 addresses, 254 of them usable. A bigger slash number means a smaller network. Cloud networks are carved from private ranges like 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16, and I plan subnets so they do not overlap."
 art "Reading 10.0.1.0/24" <<'ART'
    10 . 0 . 1 . 25      /24  = first 24 bits are the NETWORK
    |______________|   |____|
@@ -44,6 +46,7 @@ ART
 mcq "How many addresses are in 10.0.0.0/24?" "24|256|255|65536" 2 "32 - 24 = 8 free bits, and 2 to the power 8 = 256 (two are reserved, so 254 are usable)."
 mcq "Which of these is a PRIVATE address (not reachable from the internet)?" "8.8.8.8|172.15.0.1|172.20.4.9|93.184.216.34" 3 "The private 172 range is 172.16.0.0 to 172.31.255.255, so 172.20.4.9 is private and 172.15.0.1 is not."
 learn "Ports and TCP" "An IP address finds a machine and a port finds a program on it. A server LISTENS on a port; a client CONNECTS to it. Only one program can own a port, so two servers on one machine need different ports or a reverse proxy in front."
+say "What is the difference between an IP address and a port?" "An IP address finds the machine and a port finds the program on it. A server listens on a port and a client opens a TCP connection to it. Two programs cannot listen on the same port, which causes the classic port already allocated error. I use tools like ss or curl to see what is listening and whether a connection succeeds."
 step "What is the web server listening on?" "0.0.0.0:8080 in LISTEN state. A port is like a door number on one machine." ok '8080' <<'CMD'
 docker exec devlab-web-1 netstat -tln
 CMD
@@ -61,6 +64,7 @@ quiz "Two servers must both be reachable from outside. How can they share one ma
 part "PART C · TLS: encrypted connections (HTTPS)"
 explain "HTTPS = HTTP inside TLS. The server proves who it is with a certificate. Real sites get certificates from a trusted authority. Here you make your own, so browsers do not trust it, and you will see exactly why."
 learn "TLS and certificates" "TLS encrypts a connection and a certificate proves who the server is. A trusted authority signs real certificates; a self-signed one is signed by nobody, so clients warn about it. Certificates expire, and an expired certificate is one of the most common outages."
+say "How does TLS work?" "TLS encrypts the connection and authenticates the server. The server presents a certificate signed by a trusted certificate authority, the client checks that it is valid, not expired and issued for that name, and then they agree on keys for encryption. Expired or mismatched certificates are a common cause of outages, so I monitor expiry and automate renewal."
 art "TLS handshake (short)" <<'ART'
    client                                  server
      | -- hello, here are my ciphers --->    |
@@ -95,6 +99,7 @@ quiz "Why does a browser show a warning for a self-signed certificate?" "trust|a
 part "PART D · Load balancing and failover"
 explain "A load balancer spreads requests over several copies of a service and stops sending to a dead one. You will build a tiny one with two backends."
 learn "Load balancing and failover" "A load balancer spreads requests over several copies of a service (round-robin means taking turns) and stops sending traffic to a dead copy. That gives you both scale and availability. A gotcha you will meet: without a shared memory zone, each nginx worker keeps its own turn counter."
+say "What does a load balancer do?" "It spreads requests across several copies of a service and stops sending traffic to unhealthy ones, using health checks. That gives scalability and availability. Algorithms include round robin, least connections and IP hash, and it can work at layer 4 on connections or layer 7 on HTTP. I built one with nginx and showed requests still succeed when I stop one backend."
 art "Load balancer" <<'ART'
                    +--> [ server A ]
    users --> [ LB ] -+
@@ -121,6 +126,7 @@ quiz "What two things does a load balancer give you?" "scale|spread|distribut|fa
 
 part "PART E · Firewalls and security groups"
 learn "Firewalls" "A firewall decides which network traffic may pass, by rules on source, destination and port. The safest default is DENY everything, then allow only what is needed (for example port 443 from anywhere, port 22 only from the office). A host firewall such as iptables runs on one machine; in the cloud a SECURITY GROUP does the same job in front of a server, and a network ACL does it for a whole subnet. Security groups are stateful: if a request is allowed in, the reply is allowed out automatically. A rule that DROPs traffic gives the sender no answer at all, so the client just waits and times out (REJECT sends back a refusal instead)."
+say "How do firewalls and security groups work?" "They allow or deny traffic by source, destination and port. The safe default is to deny everything and allow only what is needed, for example 443 from anywhere and SSH only from a trusted address. Security groups in the cloud are stateful, so replies are allowed automatically. A dropped packet gets no answer, so the client just times out, which is a useful clue when debugging."
 art "Rules decide what gets through" <<'ART'
    internet --> [ firewall / security group ] --> server
                   allow tcp 443 from anywhere      443: yes
@@ -150,6 +156,7 @@ mcq "A cloud security group allows inbound only port 443. A client tries port 22
 
 part "PART F · Private networks, bastions and VPNs"
 learn "Reaching things that are not on the internet" "Databases and internal services should have NO public address. People still need to reach them, so you build a controlled doorway. A BASTION (jump host) is one hardened machine that is reachable from outside and also sits inside the private network; you connect through it. A TUNNEL (ssh -L port forwarding, or a service such as AWS Systems Manager) carries one port through that doorway. A VPN does the same for whole networks: it wraps all your traffic in an encrypted connection to a private network, so your laptop behaves as if it were inside it (site-to-site VPNs join an office to a cloud network). The rule of thumb: nothing private is exposed, and every doorway is logged."
+say "How do you give access to a private service securely?" "Private services get no public address. I provide a controlled doorway: a bastion or jump host, a port-forwarding tunnel such as SSH or SSM, or a VPN for whole networks. Then only one hardened, logged entry point needs protecting instead of many exposed services. In my lab I built a bastion that forwarded one port into a private network."
 art "A bastion in front of a private network" <<'ART'
    your laptop --> [ bastion ]  (public side)
                        |        (private side)
@@ -172,6 +179,7 @@ mcq "What is the main benefit of a bastion or VPN over giving the database a pub
 
 part "PART G · CDN: caching at the edge"
 learn "What a CDN does" "A CDN (content delivery network) is many cache servers around the world. A user's request goes to the nearest EDGE server. On a HIT the edge answers from its copy (fast, and your origin does no work). On a MISS the edge fetches from the ORIGIN, keeps a copy for the TTL, and answers. The TTL comes from the origin's Cache-Control header. It also absorbs traffic spikes and attacks, and shows an X-Cache style header so you can see what happened. You will build a one-edge CDN with nginx."
+say "What is a CDN, and when do you use it?" "A content delivery network is a set of cache servers close to users. A request is answered from the nearest edge on a hit, and only a miss goes to the origin, so it is faster and takes load off the origin. It is ideal for static public content. Personalised or private pages must not be cached for everyone, and the TTL controls how long a copy is kept."
 art "Edge cache and origin" <<'ART'
    user --> [ edge cache ] --HIT--> answer (origin not touched)
                   | MISS (first time, or expired)

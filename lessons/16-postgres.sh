@@ -5,6 +5,7 @@ explain "Until now the API kept its data in a SQLite file, so you could run only
 
 part "PART A · Switch the API to Postgres"
 learn "Stateless apps and a shared database" "SQLite keeps data in a file next to one process. A database server such as Postgres holds the data separately and many programs can use it at once. When the data lives in one shared place, the API itself keeps no state, so you can run, replace and scale copies freely."
+say "What is a stateless application, and why does it matter?" "A stateless service keeps no important data in its own memory or disk; state lives in a shared database or cache. Then any copy can serve any request, so I can run many copies, replace them freely and scale horizontally. My API originally used a local SQLite file, which limited it to one copy, so I moved the data into Postgres."
 step "Start the stack with Postgres added (the API gets a DATABASE_URL)" "postgres Started and Healthy, then the api and web restart." <<'CMD'
 dcp up -d --build 2>&1 | tail -6
 CMD
@@ -21,6 +22,7 @@ quiz "What is the difference between /healthz and /readyz?" "database|dependen|r
 
 part "PART B · Scale the API: many copies, one database"
 learn "Scaling out" "Horizontal scaling means more copies instead of a bigger machine. It only works when every copy sees the same data, which is why the shared database matters. The proxy spreads requests between the copies."
+say "What is horizontal scaling, and what does it need?" "Horizontal scaling means adding more copies instead of a bigger machine. It needs stateless instances, a load balancer in front and shared state in a database. It improves capacity and availability, but the database can become the bottleneck, so then I look at caching, read replicas and eventually sharding."
 art "Scaling with a shared database" <<'ART'
    SQLite file:   [ api ] --file-->   only ONE copy can own it
    Postgres:      [ api 1 ] \
@@ -46,6 +48,7 @@ quiz "Why could the API be scaled to 3 copies now but not when it used SQLite?" 
 
 part "PART C · Back up and restore Postgres"
 learn "Logical backups" "pg_dump writes the database as SQL commands you can replay. It is simple and portable. For production you also want continuous archiving so you can restore to any moment, and you must test restores regularly."
+say "How do you back up a PostgreSQL database?" "pg_dump produces a logical backup, the database as SQL that I can replay with psql, which is simple and portable. For large systems I add continuous archiving or managed snapshots for point-in-time recovery. Either way I store backups off the server and test restores regularly, because an untested backup is not a backup."
 step "BACKUP with pg_dump" "A backup file of a few KB in backups/." ok 'pg-lab.sql' <<'CMD'
 mkdir -p backups; dcp exec -T postgres pg_dump -U devlab -d devlab --clean --if-exists > backups/pg-lab.sql; ls -l backups/pg-lab.sql
 CMD

@@ -5,6 +5,7 @@ explain "Terraform lets you describe cloud resources (storage, queues, permissio
 
 part "PART A · Test the module (no cloud needed)"
 learn "Infrastructure as code" "Instead of clicking in a cloud console, you describe the infrastructure in files. Terraform compares the files with reality and changes only what differs. Modules are reusable building blocks, and tests catch mistakes before anything is created."
+say "What is infrastructure as code, and why use it?" "It means describing infrastructure in files instead of clicking in a console. The files live in Git, so changes are reviewed, versioned and repeatable, and I can recreate an environment from scratch. It also reduces drift and human error. In my lab I used Terraform to create a bucket, queues and permissions, and tested the module before applying it."
 step "Run the module's built-in tests" "2 passed, 0 failed. The tests check the bucket is private and versioned." <<'CMD'
 docker run --rm --entrypoint sh -v "$PWD/05-terraform:/w" -w /w/modules/storage hashicorp/terraform:1.9 -c "terraform init -backend=false >/dev/null && terraform test" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tail -4
 CMD
@@ -14,6 +15,7 @@ CMD
 
 part "PART B · Plan, apply, inspect"
 learn "The Terraform workflow" "The loop is init (download plugins), plan (preview), apply (create), destroy (remove). ALWAYS read the plan before applying. Terraform remembers what it created in a state file, which maps your code to real resources and must be protected."
+say "Explain the Terraform workflow and the state file." "I run init to download providers, plan to preview exactly what will change, and apply to make it so. Terraform stores what it created in a state file that maps my code to real resources. State can contain secrets, so it is never committed, and in a team it lives in a remote backend with locking. I always read the plan before applying."
 art "init, plan, apply" <<'ART'
    terraform init     download the plugins
         |
@@ -50,6 +52,7 @@ X
 
 part "PART D · Workspaces: one code, several environments"
 learn "Workspaces" "A Terraform workspace is a separate STATE for the same code. The default workspace is called default. Create another one (for example staging) and Terraform starts with an empty state: the same code now wants to create everything again, without touching what the other workspace built. Teams use workspaces, or separate folders, to run dev, staging and production from one set of files. Inside the code, terraform.workspace holds the current name, so you can change names or sizes per environment. Production usually gets its own state and its own access rights, because a wrong workspace is an easy mistake."
+say "What are Terraform workspaces?" "A workspace is a separate state for the same code, so one configuration can manage several environments such as dev and staging. A new workspace starts empty, so Terraform wants to create everything again without touching the other one. Many teams prefer separate folders or state files per environment, because applying in the wrong workspace is an easy mistake, so I always check the current workspace first."
 art "One code, many states" <<'ART'
    same .tf files
       |-- workspace default  -> state A -> dev resources

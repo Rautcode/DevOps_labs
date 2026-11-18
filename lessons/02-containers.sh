@@ -5,6 +5,7 @@ docker rm -f my-nginx my-page lab-api >/dev/null 2>&1
 
 part "PART A · Your first container"
 learn "Image, container, registry" "An IMAGE is a read-only package: an app plus everything it needs. A CONTAINER is a running copy of an image, like a running process is to a program. A REGISTRY (Docker Hub) is a download site for images. docker run downloads the image if needed and starts a container from it."
+say "What are an image, a container and a registry?" "An image is a read-only package with an app and everything it needs. A container is a running instance of an image. A registry, like Docker Hub or ECR, is where images are stored and pulled from. So the flow is: build an image, push it to a registry, then pull and run it as containers wherever I need it."
 art "Image, container, registry" <<'ART'
    REGISTRY (Docker Hub)        YOUR COMPUTER
   +------------------+  pull  +-----------+   run   +-------------+
@@ -28,6 +29,7 @@ CMD
 
 part "PART B · Run a real web server"
 learn "Ports and background containers" "A web server keeps running, so we run it in the background with -d (detached). The server listens on port 80 INSIDE the container; -p 8088:80 publishes it as port 8088 on your computer (host:container). --name gives the container a name you can use later."
+say "What does docker run -d -p 8080:80 do?" "It starts a container in the background, detached, and publishes port 80 inside the container as port 8080 on my machine. The first number is the host port and the second is the container port. I usually add --name so I can refer to it, and I check it with docker ps and docker logs."
 art "-p 8088:80 : opening a door" <<'ART'
    your browser/curl                 your computer              container
    localhost:8088  ------------>  [ port 8088 ] ===> [ port 80 : nginx ]
@@ -52,6 +54,7 @@ CMD
 
 part "PART C · Build your own tiny image"
 learn "The Dockerfile" "A Dockerfile is a recipe, one instruction per line. FROM picks the starting image. COPY puts your files in. CMD is the command to run when a container starts. docker build -t name folder follows the recipe and makes an image. Each instruction becomes a LAYER, and Docker re-uses layers it already built (the cache)."
+say "What is a Dockerfile, and how do layers and caching work?" "A Dockerfile is the recipe for an image: FROM chooses the base, COPY adds files, RUN executes build commands and CMD sets what starts. Each instruction becomes a layer, and Docker caches layers it has already built. So I put rarely changing steps, like installing dependencies, before frequently changing ones, like copying the source code, to keep rebuilds fast."
 art "A Dockerfile becomes layers" <<'ART'
    Dockerfile                        The image (stacked layers)
    FROM alpine:3.20          --->    [ layer 1: alpine Linux     ]
@@ -76,6 +79,7 @@ CMD
 
 part "PART D · Package a web page"
 learn "Static site in nginx" "nginx serves every file in /usr/share/nginx/html. Copy your page there and the base image's own start command (nginx) does the rest, so no CMD is needed. This is exactly how the lab's web image works."
+say "How would you containerise a static website?" "I use the official nginx image as the base and copy the site files into /usr/share/nginx/html with a two-line Dockerfile. nginx already knows how to start, so I do not need a CMD. Then I build the image, run it with a published port and check it with curl. For production I would pin the image version."
 step "Create a web page and a Dockerfile" "No output. A folder with index.html and a two-line Dockerfile." <<'CMD'
 mkdir -p playground/my-page && echo "<h1>My first container page</h1>" > playground/my-page/index.html && printf 'FROM nginx:alpine\nCOPY index.html /usr/share/nginx/html/index.html\n' > playground/my-page/Dockerfile
 CMD
@@ -91,6 +95,7 @@ CMD
 
 part "PART E · The real app images"
 learn "Production images" "The lab's API and web images follow the same recipe with extra care: a MULTI-STAGE build (one stage installs and builds, the final stage copies only what is needed, so build tools never ship), a non-root user, a HEALTHCHECK, and a .dockerignore. Putting rarely changing steps first, such as copying package.json before the code, keeps rebuilds fast thanks to the layer cache."
+say "What makes a Docker image production-ready?" "A small base image and a multi-stage build, so compilers and build tools are not shipped; a non-root user; pinned versions instead of latest; a HEALTHCHECK; and a .dockerignore so secrets and junk stay out. Then I scan the image for vulnerabilities in CI. Smaller, simpler images pull faster and have less attack surface."
 art "Multi-stage build" <<'ART'
    stage 1: BUILD (big)                 stage 2: FINAL (small)
   +------------------------+  copy    +------------------------+
@@ -118,6 +123,7 @@ quiz "Why is package.json copied BEFORE the rest of the source in the Dockerfile
 
 part "PART F · Run the API on its own"
 learn "Running a container" "docker run starts a container from an image. -d runs it in the background, -p 5001:5000 maps host port 5001 to container port 5000, and -e sets an environment variable. A HEALTHCHECK in the Dockerfile lets Docker tell the difference between started and really working."
+say "How do you run and verify a container properly?" "I run it detached with a name, a port mapping and environment variables for configuration, never secrets baked into the image. Then I verify it with the health check status, docker logs and a curl to its health endpoint. A HEALTHCHECK matters because it tells Docker the difference between started and actually working."
 step "Run the API alone on port 5001" "A long container id is printed." <<'CMD'
 docker rm -f lab-api >/dev/null 2>&1; docker run --rm -d --name lab-api -p 5001:5000 -e JWT_SECRET=lab-only-lab-only-lab-only-lab-only-123 -e ADMIN_PASSWORD=x devlab-api:lab
 CMD
@@ -136,6 +142,7 @@ CMD
 
 part "PART G · Break it on purpose"
 learn "Fail fast" "Good services check their configuration when they start and refuse to run if something unsafe or missing, such as a weak secret. A loud crash at startup is cheap to fix. A quietly misconfigured service in production is expensive."
+say "What does fail fast mean for a service?" "The service checks its required configuration at startup, for example a missing or weak secret, and refuses to run with a clear error. A loud crash at startup is cheap to fix, while a service that quietly runs misconfigured can cause a security hole or data problems in production. And the orchestrator sees the failure immediately."
 step "Start the API WITHOUT a secret" "FATAL: JWT_SECRET must be set. The app refuses to start insecurely. This is 'fail fast'." fail <<'CMD'
 docker run --rm devlab-api:lab
 CMD
@@ -143,6 +150,7 @@ quiz "Why is it better that the app crashes at start instead of running without 
 
 part "PART H · Your turn: write your own image"
 learn "Your own Dockerfile" "A tiny Dockerfile needs two things: FROM picks the base image and CMD says what to run. Write CMD in the exec form with square brackets so signals reach your program. Pin versions (alpine:3.20) instead of latest, so builds are repeatable."
+say "What are best practices when writing a Dockerfile?" "Use a specific, pinned base image, write CMD in exec form so signals reach the process, copy only what is needed, order layers for caching, run as a non-root user and keep the image small. I also use multi-stage builds when there is a build step, and I lint the file with hadolint."
 task "Build an image from your own Dockerfile" "Create the file playground/Dockerfile.hello with just two lines: FROM alpine:3.20  and  CMD [\"echo\", \"hello from my first image\"]  . Then build it with: docker build -f playground/Dockerfile.hello -t hello:lab playground   and run it with: docker run --rm hello:lab" "The file must be in the playground folder. The CMD must use square brackets and double quotes." <<'X'
 docker build -q -f playground/Dockerfile.hello -t hello:lab playground >/dev/null && docker run --rm hello:lab | grep -qi hello
 ---

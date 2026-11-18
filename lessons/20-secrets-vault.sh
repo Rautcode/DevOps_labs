@@ -5,6 +5,7 @@ explain "Passwords and keys in .env files and git history are one of the most co
 
 part "PART A · Start Vault"
 learn "Why a secret manager?" "A .env file is plain text on disk, easy to copy and easy to commit by mistake. A secret manager gives you central storage, access policies (who may read what), audit logs, easy rotation, and short-lived tokens that can be revoked. Dev mode keeps everything in memory with a known root token (lab-root), which is fine for learning and never acceptable in production."
+say "Why use a secrets manager instead of environment files?" "A .env file is plain text that is easy to copy and commit. A secret manager like HashiCorp Vault stores secrets centrally and encrypted, with access control, audit logs, rotation and short-lived credentials. Applications authenticate and fetch only what they need at runtime, so secrets are never in Git, images or CI logs."
 art "Secrets flow with Vault" <<'ART'
    app starts -> asks Vault: "token please, give me secret/devlab"
                  Vault checks the POLICY -> returns ONLY what that app may read
@@ -20,6 +21,7 @@ CMD
 
 part "PART B · Store and read secrets"
 learn "The key-value engine" "Vault's KV engine stores secrets at paths such as secret/devlab/api. Version 2 keeps every previous version, so you can look back or roll back. Writing is kv put, reading is kv get, and -field=name prints just one value, which is handy in scripts."
+say "How does Vault store secrets?" "The key-value secrets engine stores secrets at paths, such as secret/devlab/api, with versioning, so I can read an earlier version or see what changed. Access is controlled by path through policies. I write and read secrets with the CLI or the API, and the data is encrypted at rest."
 step "Store the API's secrets" "A new version created at secret/data/devlab/api." ok 'devlab/api' <<'CMD'
 vlt kv put secret/devlab/api jwt_secret=lab-from-vault-1234567890abcdef12345 admin_password=vault-admin-pass
 CMD
@@ -32,6 +34,7 @@ CMD
 
 part "PART C · Least privilege: policies and tokens"
 learn "Policies and tokens" "A policy lists paths and what may be done on them (read, create, update, delete, list). A token carries one or more policies and can expire. Give each application its own token with only the paths it needs. If one leaks, you revoke just that token and nothing else breaks."
+say "How do you control access in Vault?" "With policies that list paths and allowed capabilities, like read or create, attached to tokens or auth methods. I follow least privilege: each application gets a policy for only its own path and a short-lived token. Revoking the token cuts access immediately, and the audit log shows who read what."
 step "Write a policy that can only READ the devlab secrets" "Success! Uploaded policy: devlab-read" ok 'Success' <<'CMD'
 printf 'path "secret/data/devlab/*" {\n  capabilities = ["read"]\n}\n' | vlt policy write devlab-read -
 CMD
@@ -55,6 +58,7 @@ CMD
 
 part "PART D · Deploy the API with secrets from Vault"
 learn "Inject secrets at deploy time" "The secret never lives in git, in the image or in a file you maintain. The deploy script asks Vault for the values and hands them to the container as environment variables. Know the limit: anyone who can run docker inspect on the host can see environment variables, so high-security setups use mounted files or a Vault agent instead."
+say "How do secrets get from a secret manager into a running app?" "At deploy or start time the platform authenticates, fetches the secret and injects it as an environment variable or a file in memory, using an agent, an init step or the CSI driver. The secret never lives in Git, in the image or in a file in the repo, and rotating it does not need a rebuild."
 step "Make sure the API image exists" "devlab-api:lab listed." ok 'devlab-api' <<'CMD'
 docker image inspect devlab-api:lab >/dev/null 2>&1 || docker build -q -f 02-containers/Dockerfile.api -t devlab-api:lab app/api; docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab-api
 CMD
@@ -77,6 +81,7 @@ step "The revoked token is now useless" "permission denied or invalid token." fa
 VAULT_TOKEN_LAB=$(cat playground/app-token.txt) vlt kv get secret/devlab/api
 CMD
 learn "Secrets in Kubernetes" "A Kubernetes Secret is only base64-encoded (module 14 showed you can decode it in one command). For real protection use an external secret store: the External Secrets Operator or the Secrets Store CSI driver sync values from Vault or a cloud secret manager, or encrypt secrets before they enter git with Sealed Secrets or SOPS. RBAC decides who may read Secrets at all."
+say "Are Kubernetes Secrets secure?" "By default a Secret is only base64-encoded, not encrypted, so anyone who can read it, or read etcd, can decode it. I restrict access with RBAC, enable encryption at rest, and prefer an external secret manager synced into the cluster. And I never commit secret manifests to Git unencrypted."
 quiz "How is a secret manager better than an encrypted .env file in git?" "central|audit|rotat|revoke|policy|access|short|expire|dynamic|who" "It gives central control: per-app policies, audit logs of every read, rotation, short-lived revocable tokens. An encrypted file is one static key: if that key leaks, everything leaks, and you cannot see who used what."
 step "Stop everything from this module" "removed" ok 'vault' <<'CMD'
 docker rm -f vault-api lab-vault

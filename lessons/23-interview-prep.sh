@@ -5,7 +5,9 @@ explain "Doing the work is half of getting hired; explaining it clearly is the o
 
 part "PART A · How DevOps interviews work"
 learn "The usual stages" "1) A recruiter or HR screen: your background and motivation. 2) A technical screen: Linux, networking, containers, Git and a small hands-on or debugging task. 3) A deeper technical round: Kubernetes, CI/CD, Terraform, cloud, monitoring. 4) System design: for example design the deployment pipeline for a web app. 5) Behavioural: tell me about a time something broke. Companies differ, but these themes repeat."
+say "What happens in a typical DevOps interview process?" "Usually a recruiter or HR screen about my background and motivation, then a technical screen on fundamentals like Linux, networking, containers and CI/CD, a hands-on or troubleshooting round, a system design or architecture discussion, and a behavioural round with the hiring manager. I prepare for each with real examples from my projects."
 learn "How to answer" "Think aloud: say what you would check first and why. Use a simple structure: what it is, why it matters, a short example from your own lab work. It is fine to say I have not used that in production, but I practised it in a lab and this is what happened. Never bluff: interviewers can tell, and honesty plus curiosity scores well."
+say "How do you answer a technical question when you only partly know the answer?" "I think aloud: what I know, what I would check first and how I would confirm it. I give the answer first, then the reasoning and an example from my practice. If I truly do not know, I say so honestly and explain how I would find out, which is better than bluffing."
 
 part "PART B · Round 1: Linux and networking (you need 5 of 8)"
 qa "What happens when you type a URL into a browser and press Enter?" 'dns|resolv|look.?up|ip address|tcp|tls|handshake|http' "The browser resolves the name to an IP address with DNS, opens a TCP connection to the server, does a TLS handshake for HTTPS, sends an HTTP request, and renders the response it gets back."
@@ -51,6 +53,7 @@ qa_need 4
 
 part "PART F : System design on paper"
 learn "Design questions" "Interviewers want to see how you think, not a perfect diagram. A good structure: 1) ask about requirements (users, uptime, budget, team size); 2) sketch the flow from code to production; 3) say what runs where; 4) cover reliability (monitoring, alerts, backups, rollback); 5) cover security (secrets, least privilege, scanning); 6) mention trade-offs and what you would improve next."
+say "How do you approach a design question?" "I clarify the requirements and the scale first, then sketch the simplest design that works, identify the bottlenecks and add components like caching, queues or replicas, with a reason for each. I state the trade-offs and failure modes, and I think about cost and security. A clear structure matters more than a perfect diagram."
 task "Design a delivery pipeline and runtime" "Write playground/design.md answering: 'Design how a small team ships and runs a web app used by 10,000 people a day.' Cover as many of these as you can in your own words: source control and pull requests, CI (build, test, scan), an artifact or image registry, deployment with rollback, infrastructure as code, monitoring and alerts, secrets, and backups. Use  edit playground/design.md  ." "A strong answer mentions at least six of: repository/pull request, CI test, scan, registry, deploy, rollback, infrastructure as code, monitoring/alert, secrets, backup." <<'X'
 f=playground/design.md; [ -f $f ] || exit 1; n=0; for p in 'pull request|repository|git' 'test' 'scan|vulnerab' 'registry|image' 'deploy' 'rollback|roll back' 'terraform|infrastructure as code|iac' 'monitor|alert|slo' 'secret|vault' 'backup'; do grep -qiE "$p" $f && n=$((n+1)); done; [ $n -ge 6 ]
 ---
@@ -59,6 +62,7 @@ X
 
 part "PART G : Your story (behavioural)"
 learn "The STAR method" "Behavioural questions (tell me about a time...) are answered with a story in four parts: Situation (the context), Task (what you were responsible for), Action (what YOU did, step by step) and Result (what happened, with a number if you can). Use your lab: the game day, the crash loop, the bad release you rolled back. Say I, not we, for the actions."
+say "How do you answer behavioural questions?" "I use STAR: the Situation in one sentence, the Task I owned, the Action I took, which is the longest part, and the Result with a number or a lesson. I keep it under two minutes, say I rather than we for my own contribution, and choose real examples, including ones where something went wrong."
 art "STAR" <<'ART'
    S  Situation   one sentence of context
    T  Task        what you had to achieve

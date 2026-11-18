@@ -6,6 +6,7 @@ docker rm -f lab-redis >/dev/null 2>&1
 
 part "PART A · How to approach a design question"
 learn "Five steps, every time" "1) CLARIFY: ask what the system must do and how big it is (users, requests, data), before drawing anything. 2) ESTIMATE: a rough number is enough (requests per second, storage per year). 3) SKETCH the simplest design that works: clients, a service, a database. 4) SCALE the bottlenecks with the building blocks in this module, each with a reason. 5) DISCUSS trade-offs and failure: what if this part dies, what if traffic doubles? Saying why matters more than the exact answer."
+say "How do you approach a system design question?" "Five steps: clarify the requirements and the scale, estimate numbers like requests per second, sketch the simplest design, scale the bottlenecks with the right building blocks, then discuss trade-offs and failure. For example, a million users doing ten requests a day is about a hundred requests per second on average, so I plan for several times that at peak."
 art "The usual shape of a scalable system" <<'ART'
    users --> [ CDN ] --> [ load balancer ] --> [ app server ] x N
                                                   |      |      |
@@ -18,6 +19,7 @@ quiz "Why do interviewers want you to ask questions BEFORE you start drawing?" "
 
 part "PART B · Caching"
 learn "Keep answers close" "A cache stores the result of slow work (a database query, a computed page) in fast memory so the next request is instant. The common pattern is CACHE-ASIDE: look in the cache; on a miss, ask the database, then store the answer with a TTL (time to live). Caches exist at every layer: browser, CDN, your app, the database. The hard part is INVALIDATION: when the data changes, how do stale copies disappear? A short TTL is the simplest answer. A full cache evicts old entries, usually the least recently used (LRU)."
+say "How does caching work, and what are the pitfalls?" "A cache keeps the results of slow work in fast memory. With cache-aside I check the cache first, and on a miss I read the database and store the result with a TTL. The hard part is invalidation, since cached data can go stale, so I use sensible TTLs and invalidate on writes. I also handle eviction, usually least recently used, and cache stampedes."
 art "Caches in layers" <<'ART'
    browser cache -> CDN (edge) -> app cache (Redis) -> database
    fastest, closest ---------------------------------> slowest, truth
@@ -46,6 +48,7 @@ mcq "What is the hardest part of caching?" "Knowing when cached data is stale (i
 
 part "PART C · Queues"
 learn "Do slow work later" "A queue sits between a producer (the web request) and a consumer (a worker). The request says do this job later and returns at once; workers take jobs at their own speed. This smooths traffic spikes (the queue grows instead of the site falling over), lets slow work (email, image resizing, reports) happen in the background, and lets you retry failures. Real queues (SQS, RabbitMQ, Kafka) hand a job out with an acknowledgement: if the worker does not confirm in time, the job is delivered again, so jobs must be safe to repeat (idempotent)."
+say "Why use a message queue?" "A queue decouples producers from consumers. A web request adds a job and returns at once, and workers process it later at their own pace, which absorbs spikes, enables retries and lets me scale workers separately. Delivery is usually at least once, so jobs must be idempotent, and failed jobs go to a dead-letter queue."
 art "A queue decouples the two sides" <<'ART'
    web request --push--> [ job | job | job | job ] --pop--> worker 1
    (returns at once)          the queue (FIFO)       \--pop--> worker 2
@@ -70,6 +73,7 @@ quiz "Give two reasons to put a queue between a web request and slow work such a
 
 part "PART D · Rate limiting"
 learn "Say no before the system falls over" "A rate limiter caps how many requests one client may make in a time window, to stop abuse, accidents (a buggy client in a loop) and overload. Over the limit, answer HTTP 429 Too Many Requests, ideally with a Retry-After header. Algorithms: FIXED WINDOW (a counter per window: simple, but a burst at the edge of two windows can double the rate), SLIDING WINDOW (smoother), TOKEN BUCKET (tokens refill at a steady rate, allowing short bursts). The counter must be shared: if you run five app servers, keep it in Redis, not in each server's memory."
+say "How would you implement rate limiting?" "I count requests per client per time window in a shared store like Redis, using an atomic increment with an expiry, and return HTTP 429 with a Retry-After header when over the limit. The algorithms are fixed window, sliding window and token bucket, which allows bursts. The counter must be shared, because per-server counters multiply the real limit."
 art "Fixed window: 5 requests per 10 seconds" <<'ART'
    second:   0 1 2 3 4 5 6 7 8 9 | 10 ...
    request:  1 2 3 4 5 6 7 8        window resets at second 10
@@ -91,6 +95,7 @@ mcq "Which HTTP status code means: you sent too many requests?" "401|403|429|503
 
 part "PART E · Load balancing and CDN"
 learn "Spread the work, move the content closer" "A LOAD BALANCER spreads requests over many servers and stops sending to dead ones (health checks). Round robin takes turns; least connections picks the least busy server; IP hash keeps one client on one server. A layer 4 balancer works on connections (fast, simple); a layer 7 balancer reads HTTP and can route by path or header. A CDN is a cache with servers around the world: static files (images, scripts, videos) are served from the point closest to the user, and your origin is asked only on a miss. You built a load balancer and an edge cache by hand in module 12 (parts D and G)."
+say "How do load balancing and a CDN help scalability?" "A load balancer spreads requests over many stateless servers and removes unhealthy ones, which gives scale and availability. A CDN caches static content at edge locations near users, so most requests never reach my origin and latency drops. Together they handle traffic growth, and I keep personalised content out of the shared cache."
 art "Where each one sits" <<'ART'
    user (Mumbai) --> CDN edge (Mumbai) --HIT--> answer in a few ms
                          | MISS
@@ -102,6 +107,7 @@ mcq "What should you NOT cache on a shared CDN?" "A logo image|A JavaScript file
 
 part "PART F · Sharding"
 learn "Split the data" "One database server eventually runs out of disk, memory or write speed. SHARDING splits the data over several servers, each holding a part, chosen by a SHARD KEY (for example the user id). A good key spreads data and traffic evenly and keeps related rows together; a bad key creates a HOT SHARD that gets most of the traffic. The simple method is hash(key) mod N, but when N changes almost every key moves to a different shard. CONSISTENT HASHING places shards on a ring so adding one moves only about 1/N of the keys. Replicas (copies) are different: they add read capacity and safety, sharding adds write capacity and size."
+say "What is sharding, and how do you choose a shard key?" "Sharding splits data across several database servers by a shard key. A good key spreads data and load evenly and keeps related rows together, like user ID, while a bad key such as a timestamp creates a hot shard. Hash modulo N moves most keys when I add a shard, so I use consistent hashing, which moves only about one over N."
 art "Sharding by user id" <<'ART'
    user:7   --hash--> shard 1
    user:12  --hash--> shard 0       [ shard 0 ]  [ shard 1 ]  [ shard 2 ]
@@ -119,6 +125,7 @@ quiz "A chat app stores messages. Which shard key would you choose: the message 
 
 part "PART G · Circuit breaker"
 learn "Fail fast when a dependency is down" "When a service your code calls is slow or down, every call waits for a timeout, threads pile up, and the failure spreads to you (a cascading failure). A CIRCUIT BREAKER watches the calls. CLOSED: calls pass through. After a number of failures it goes OPEN: calls fail immediately, without trying, which saves resources and lets the dependency recover. After a cooldown it goes HALF-OPEN and lets one trial call through: success closes it, failure opens it again. Pair it with timeouts, retries with exponential backoff and jitter, and bulkheads (separate pools so one dependency cannot use all your threads)."
+say "What is a circuit breaker?" "A pattern that protects a service from a failing dependency. When failures pass a threshold the breaker opens, and calls fail immediately instead of waiting for timeouts, which prevents cascading failure. After a cooldown it goes half-open and allows a trial call; success closes it and failure opens it again. I combine it with timeouts and retries with backoff and jitter."
 art "The three states" <<'ART'
                  failures >= threshold
      [ CLOSED ] ----------------------> [ OPEN ]
@@ -141,6 +148,7 @@ X
 
 part "PART H · Put it together"
 learn "Design a URL shortener" "Requirements: turn a long URL into a short code and redirect from the code. Reads (redirects) are about 100 times more common than writes (creating links). Design: a load balancer in front of stateless app servers; a database table code to long URL (shard by code when it grows, replicas for reads); a cache (Redis) for hot codes so most redirects never touch the database; a CDN or edge for the most popular links; a rate limiter on link creation to stop abuse; a queue for slow work such as click analytics, so a redirect never waits for it; timeouts and a circuit breaker around any external service such as a safe-browsing check."
+say "Design a URL shortener." "Reads far outnumber writes, so I put a load balancer in front of stateless app servers, store the code-to-URL mappings in a database sharded by code with read replicas, and cache hot codes in Redis. A CDN serves popular links. I rate-limit link creation, send click analytics through a queue so redirects never wait, and add timeouts and a circuit breaker around external calls."
 art "A URL shortener" <<'ART'
    click short.ly/ab12 --> CDN/edge --miss--> load balancer --> app servers
                                                                   |   |    \

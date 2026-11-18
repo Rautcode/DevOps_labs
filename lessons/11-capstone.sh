@@ -5,6 +5,7 @@ explain "Backups that were never restored are not backups. In this capstone you 
 
 part "PART A · The disaster-recovery drill"
 learn "Backups and recovery" "A backup you never restored is only a hope. RPO is how much data you can afford to lose (time since the last backup). RTO is how long recovery may take. An online backup copies the database while the app keeps running, and a restore drill proves the backup really works."
+say "How do you approach backups and disaster recovery?" "A backup is only real once I have restored it. I define the RPO, how much data I can afford to lose, and the RTO, how long recovery may take, and choose backup frequency and method from that. I keep copies in another location, automate backups and run restore drills regularly. In my lab I deleted data on purpose and restored it to prove the process."
 art "RPO and RTO" <<'ART'
    last backup           disaster            back online
        |<------ RPO ------->|<------ RTO ------>|

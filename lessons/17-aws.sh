@@ -17,6 +17,7 @@ CMD
 
 part "PART B · Read and validate the real-AWS Terraform (no account needed)"
 learn "Same code, different target" "The storage module is exactly the one you tested on LocalStack. Only the provider changes. That is the value of practising locally first. On a real account every resource can cost money, so safety habits come first."
+say "How do you test cloud infrastructure code safely and cheaply?" "I run the same Terraform module against LocalStack, a local AWS emulator, to test the logic for free, and then point it at a real account by changing the endpoint and credentials. Before any real apply I read the plan, set a budget alarm and scan the code. It avoids surprise bills and mistakes in a real account."
 art "LocalStack vs real AWS" <<'ART'
    same Terraform code
       |-- endpoint = LocalStack (free, on your laptop)   <- you practised here
@@ -38,6 +39,7 @@ CMD
 part "PART C · Find and fix cloud security mistakes"
 explain "17-aws/exercises/risky.tf has three of the most common real-world cloud mistakes: a storage bucket that could be public, SSH open to the whole internet, and an admin policy that allows everything."
 learn "Policy as code" "Security scanners read your infrastructure code and flag dangerous settings before anything exists: a public bucket, SSH open to the whole internet, an admin policy that allows everything. A fix is a small code change, reviewed like any other."
+say "What is policy as code?" "Security and compliance rules written as automated checks on infrastructure code, for example with Checkov or OPA. They flag things like public buckets, missing encryption or open security groups before anything is deployed. Running them in CI makes security consistent and shifts it left, instead of relying on manual review."
 step "Scan the risky file" "4 failed checks: SSH open to 0.0.0.0/0, a policy with '*' actions, a policy with '*' resources, and a bucket with no public access block. This is exactly what a security reviewer looks for." fail 'Failed checks: 4' <<'CMD'
 docker run --rm -v "$PWD:/tf:ro" bridgecrew/checkov:latest -d /tf/17-aws/exercises --framework terraform --compact --quiet --check CKV_AWS_24,CKV2_AWS_6,CKV_AWS_355,CKV_AWS_63 2>&1 | grep -E "Failed checks|Check:"; exit 1
 CMD

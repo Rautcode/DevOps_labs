@@ -5,6 +5,7 @@ explain "Helm is the package manager for Kubernetes: one chart plus a few settin
 
 part "PART A · Get a cluster and look at the chart"
 learn "Helm: a package manager for Kubernetes" "A chart is a folder of templates. Values are the settings you pass in. A release is one installed copy of a chart, and every change creates a new revision you can roll back to. helm template shows the YAML a chart would create without installing anything."
+say "What is Helm?" "Helm is the package manager for Kubernetes. A chart is a set of templated manifests, and values let me configure each install, for example per environment. I can install, upgrade and roll back a release with single commands, and Helm keeps a history of releases. It is great for third-party software and for packaging my own apps consistently."
 art "Helm chart plus values" <<'ART'
    chart (templates)  +  values (your settings)
                 |
@@ -55,6 +56,7 @@ quiz "Why is 'helm rollback' safer than editing files by hand under pressure?" "
 part "PART C · RBAC: who may do what"
 explain "By default a new Kubernetes account can do nothing. You grant exact permissions with a Role (what is allowed) and a RoleBinding (who gets it). Least privilege again."
 learn "RBAC: who may do what" "By default a new account can do nothing. A Role lists allowed actions (verbs like get and list) on resources (like pods). A RoleBinding gives that Role to a user or ServiceAccount. Grant the smallest set that works (least privilege), and test it with kubectl auth can-i."
+say "How does Kubernetes RBAC work?" "By default an account can do nothing. A Role lists allowed verbs on resources in a namespace, and a RoleBinding gives that role to a user or service account. ClusterRoles work cluster-wide. I follow least privilege, give each workload its own service account, and test permissions with kubectl auth can-i."
 art "RBAC" <<'ART'
    WHO              CAN DO WHAT            WHERE
    [ServiceAccount] --RoleBinding--> [Role: get,list pods] in namespace dev

@@ -5,6 +5,7 @@ explain "Terraform creates infrastructure. Ansible CONFIGURES it: packages, file
 
 part "PART A · Build the practice servers"
 learn "Configuration management" "Terraform creates machines; Ansible configures what runs on them. The inventory lists your servers, modules do one job each (install a package, copy a file), and a playbook is a list of tasks describing the DESIRED STATE. Ansible logs in over SSH and needs nothing installed on the servers."
+say "What is configuration management, and where does Ansible fit?" "Terraform creates infrastructure, and a configuration management tool like Ansible configures what runs on it: packages, files, users and services. I describe the desired state in a playbook and Ansible makes each server match, over SSH with no agent. It makes servers consistent, repeatable and documented, instead of hand-configured."
 step "Build the Ansible control image (first time takes a minute or two)" "Successfully built, or the image devlab-ansible is listed." ok 'devlab-ansible' <<'CMD'
 docker build -q -f 13-ansible/Dockerfile.controller -t devlab-ansible 13-ansible >/dev/null && docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab-ansible
 CMD
@@ -18,6 +19,7 @@ quiz "Why does Ansible use SSH keys instead of passwords?" "secur|safe|password|
 
 part "PART B · Talk to the servers"
 learn "Ad-hoc commands and playbooks" "An ad-hoc command runs one module on many servers right now, good for quick checks. A playbook is saved, repeatable and reviewable, which is what you want for real changes."
+say "What is the difference between an ad-hoc command and a playbook?" "An ad-hoc command runs one module on many servers right now, which is good for quick checks like ping. A playbook is a saved, repeatable, reviewable list of tasks that describes the desired state. For anything that changes servers permanently I use a playbook kept in Git."
 step "Ad-hoc command: are the servers reachable? (ansible -m ping)" "web1 | SUCCESS and web2 | SUCCESS, each with \"ping\": \"pong\". Ansible reached both over SSH." ok 'pong' <<'CMD'
 lab-ansible ansible web -m ping
 CMD
@@ -33,6 +35,7 @@ step "Read the playbook" "Tasks: install packages, create a directory, render a 
 cat 13-ansible/site.yml
 CMD
 learn "Idempotence" "A task says what state you want (package present), not which command to run. Ansible checks first and changes only if needed. So running the playbook twice gives the same result, and the second run reports changed=0. That makes re-running always safe."
+say "What does idempotent mean?" "Running it once or many times gives the same result. Ansible tasks describe a state, like package present, and Ansible changes things only if the server differs. The second run reports no changes. That makes the automation safe to re-run, and I can use it to continuously enforce the desired state."
 predict "You run the same playbook twice. What does the second run report?" "ok, nothing changed|It repeats every change|It fails because the work exists|It deletes the work" 1 "Idempotent means safe to repeat: tasks describe a state, and Ansible changes only what does not match yet."
 step "Run the playbook (first run: apt downloads packages, about a minute)" "PLAY RECAP with changed=3 or 4 and failed=0 for web1 and web2. Yellow 'changed' tasks mean Ansible fixed something." ok 'failed=0' <<'CMD'
 lab-ansible ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^TASK|^PLAY RECAP|changed=|RUNNING HANDLER"
@@ -48,6 +51,7 @@ quiz "What does 'idempotent' mean for a configuration tool?" "same|again|twice|r
 part "PART D · Drift and variables"
 explain "Drift = someone changes a server by hand. Ansible notices on the next run and puts it back."
 learn "Drift" "Drift is when a server no longer matches its desired state, usually because someone changed it by hand. Re-running the playbook finds the difference and repairs it. The managed file says do not edit by hand for exactly this reason."
+say "What is configuration drift?" "Drift is when a server no longer matches its desired state, usually because someone changed it by hand. Re-running the playbook detects the difference and repairs it. To prevent drift I restrict manual changes, keep everything in code and run the automation regularly. In my lab I edited a config by hand and Ansible put it back."
 step "Someone edits the config by hand on web1 (drift)" "The file now has an extra 'hacked' line." ok 'hacked' <<'CMD'
 ac exec -T web1 sh -c 'echo "hacked by hand" >> /opt/devlab/app.conf'; ac exec -T web1 cat /opt/devlab/app.conf
 CMD
@@ -71,6 +75,7 @@ quiz "Ansible vs Terraform: what is each one mainly for?" "terraform.*(create|pr
 
 part "PART E · Roles: reusable building blocks"
 learn "Roles" "A playbook that grows becomes hard to read and reuse. A ROLE packages one job (install and configure nginx, set up users, create a banner) in a standard folder layout: tasks (what to do), defaults (variables anyone can override), templates (files with variables), handlers and more. A playbook then uses the role in one line, and the same role works for every project. Ansible Galaxy is a public library of ready-made roles."
+say "What are Ansible roles?" "A role packages one job in a standard folder structure with tasks, defaults, templates and handlers, so it can be reused across playbooks and projects. A playbook then just lists the roles to apply. Defaults can be overridden with variables, and Ansible Galaxy shares community roles. Roles keep large automation organised and testable."
 art "The layout of a role" <<'ART'
    roles/banner/
      defaults/main.yml      variables with default values (easy to override)
@@ -101,6 +106,7 @@ X
 
 part "PART F · Ansible Vault: secrets in the repository, safely"
 learn "Ansible Vault" "Playbooks often need secrets: database passwords, API keys. Ansible Vault encrypts a variables file with a password, so the encrypted file can be committed to Git while the password is kept elsewhere (a secret manager, a CI secret). Ansible decrypts it in memory when you run a playbook and give it the vault password. Add no_log: true to tasks that handle secrets so Ansible never prints them. In this lab the wrapper copies your playground/vault-pass.txt to /root/.vault-pass inside the Ansible container (and locks its permissions), so that is the password file you name on the command line. Vault protects secrets at rest; for rotation and access control use a secret manager (module 20)."
+say "How do you manage secrets in Ansible?" "I encrypt secret variable files with Ansible Vault, so the encrypted file can be committed to Git while the vault password is stored elsewhere, like a CI secret or a password manager. Playbooks decrypt it in memory, and I set no_log on tasks that handle secrets. For rotation and access control I would use a secrets manager such as HashiCorp Vault."
 art "Vault: what is stored where" <<'ART'
    secrets.yml (ENCRYPTED)  ---> committed to Git, safe to read for anyone
    vault password           ---> NEVER in Git (CI secret / password manager)

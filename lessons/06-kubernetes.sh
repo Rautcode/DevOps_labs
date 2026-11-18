@@ -5,6 +5,7 @@ explain "Kubernetes runs containers across machines and keeps them healthy: it r
 
 part "PART A · Create the cluster and deploy"
 learn "What Kubernetes does" "You declare the DESIRED state (for example: 2 copies of the web) and Kubernetes keeps reality matching it. A Pod runs your containers, a Deployment manages interchangeable pods, a StatefulSet manages pods that keep data, and a Service gives them a stable name. Kustomize overlays describe how dev and prod differ."
+say "What does Kubernetes do?" "Kubernetes runs containers across machines and keeps them in the state I declare. I describe what I want, for example two copies of the web service, and controllers keep making reality match. It restarts crashed containers, rolls out updates without downtime, balances traffic through Services and enforces resource and network rules. The main objects are pods, deployments, services and config."
 art "Kubernetes architecture (simplified)" <<'ART'
    you: kubectl apply -f ...            CLUSTER
           |                    +------------------------+
@@ -42,6 +43,7 @@ CMD
 
 part "PART B · Self-healing and zero downtime"
 learn "Self-healing" "Controllers constantly compare what you asked for with what exists and fix differences. Kill a pod and a new one appears. The new pod re-attaches the SAME disk (a PersistentVolumeClaim), so the data is still there. Probes tell Kubernetes when a pod is ready for traffic and when it must be restarted."
+say "How does Kubernetes self-heal?" "Controllers continuously compare the desired state with the actual state. If a pod dies, the Deployment creates a replacement. Liveness probes restart containers that hang, readiness probes keep traffic away from pods that are not ready, and the pods of a failed node are rescheduled elsewhere. I demonstrated it by deleting a pod and watching a new one appear within seconds."
 predict "You delete one pod of a Deployment that wants 2 copies. What happens in a few seconds?" "Nothing, it stays at 1|A new pod is created automatically|The Deployment is deleted too|Kubernetes asks you" 2 "The Deployment controller notices 1 pod is missing and creates a new one. That is self-healing."
 step "Create a lead, then count leads" "leads in database: 1" <<'CMD'
 curl -s -X POST localhost:30080/api/inquiries -H "content-type: application/json" -d "{\"name\":\"K8s Test\",\"email\":\"k@example.com\"}" >/dev/null; kleads
@@ -68,6 +70,7 @@ quiz "Why block pods from talking to each other by default?" "attack|spread|late
 
 part "PART D · Hands-on and a deliberate mistake"
 learn "Scaling" "Stateless programs (like the web server) can run as many copies as you like. A program that keeps its data in a local file (like the API with SQLite) cannot, because each copy would have its own file. To scale the API you move its data to a shared database (module 16)."
+say "How do you scale an application on Kubernetes?" "Stateless apps scale horizontally by changing the replica count, manually with kubectl scale or automatically with a Horizontal Pod Autoscaler based on CPU or other metrics. Requests and limits matter so the scheduler places pods sensibly. Stateful services like databases need more care, usually a StatefulSet with persistent volumes, or a managed database."
 task "Scale the web to 4 copies" "Run: kubectl -n devlab-dev scale deploy/devlab-web --replicas=4   then wait until 4 are ready (kubectl -n devlab-dev get pods)." "Make sure you include -n devlab-dev (the namespace)." <<'X'
 [ "$(kubectl -n devlab-dev get deploy devlab-web -o jsonpath='{.status.readyReplicas}')" = "4" ]
 ---

@@ -5,6 +5,7 @@ explain "Monitoring tells you the site is broken BEFORE your users do. Prometheu
 
 part "PART A · Start monitoring"
 learn "Monitoring basics" "Prometheus checks targets every 15 seconds and stores the results as time series. Grafana draws graphs from them, and alert rules are queries that raise an alert when they are true for long enough. Probing the site from outside measures what a real visitor experiences."
+say "How does Prometheus monitoring work?" "Prometheus pulls, or scrapes, metrics from targets every few seconds and stores them as time series. Grafana visualises them, and alert rules are queries that fire when a condition holds for long enough. I also used black-box probes, which measure what a visitor really experiences without changing the app. Alerts go through Alertmanager to notify a person."
 art "The monitoring flow" <<'ART'
    your app --(/metrics)--> [ Prometheus ] --stores--> numbers over time
                                   |                          |
@@ -31,6 +32,7 @@ CMD
 
 part "PART B · PromQL: ask questions of your metrics"
 learn "The Prometheus query language" "Every metric is a time series: a name, labels (key=value pairs that identify the series) and a value that changes over time. PromQL selects series and does maths on them. A SELECTOR picks series by name and labels: probe_success{instance=\"http://web:8080/healthz\"}; use =~ for a regex match and != to exclude. A GAUGE goes up and down (is the site up? how long did the probe take?). A COUNTER only ever goes up (total requests) and resets when a program restarts, so you never read it raw: rate(counter[5m]) gives the per-second average over the last 5 minutes. AGGREGATIONS combine series: sum, avg, max, count, with by (label) to keep a label. Comparison operators filter: probe_duration_seconds > 0.5 returns only the series that are over half a second. This is the language every alert and dashboard in this module is written in. The shortcut pq runs a query for you (it calls Prometheus' HTTP API)."
+say "What is PromQL, and how do you use rate?" "PromQL is Prometheus' query language. A selector picks series by name and labels, and functions and aggregations like sum by combine them. Counters only ever increase and reset on restart, so I never read them raw: rate over a window gives the per-second speed. Gauges, like current memory, can be read directly. Alerts and dashboards are all written in PromQL."
 art "Anatomy of a query" <<'ART'
    sum by (job) ( rate( http_requests_total{status=~"5.."}[5m] ) )
    |   |           |     |                  |              |
@@ -83,6 +85,7 @@ quiz "Why do you wrap a counter in rate() instead of looking at its raw value?" 
 part "PART C · Hands-on: trigger an alert"
 explain "Now break the site on purpose and watch the monitoring notice. Open http://localhost:9090/alerts in your browser first."
 learn "Alerts and burn rate" "A good alert fires when users are affected, not when a machine is merely busy. The for: 1m setting makes an alert wait a minute before firing, which avoids false alarms from short blips. Burn-rate alerts fire when the error budget is being used up too fast."
+say "How do you design good alerts?" "I alert on symptoms users feel, not on causes like high CPU, and I make alerts actionable. A for duration avoids flapping on short blips. Burn-rate alerts watch how fast the error budget is being used over a short and a long window, so I get paged quickly for a serious outage and only get a ticket for a slow leak. That reduces alert fatigue."
 task "Stop the API and wait for the EndpointDown alert" "Type:  docker stop devlab-api-1   Then open http://localhost:9090/alerts in your browser and refresh it every 15 seconds. EndpointDown goes to PENDING, then to FIRING after a minute. When you can see it, type  check  here." "It can take up to 2 minutes. Prometheus checks every 15 seconds and the alert waits 1 minute before firing, to avoid false alarms." <<'X'
 curl -s localhost:9090/api/v1/alerts | grep -q EndpointDown
 ---

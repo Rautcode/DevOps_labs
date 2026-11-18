@@ -331,6 +331,23 @@ deeper() {
   printf '  %s└%s%s\n' "$GRN" "$(rep ─ 40)" "$RST"
 }
 
+# say "what the interviewer asks" "a spoken-style answer": an interview-ready answer to say out loud (never blocks)
+say() {
+  local line
+  printf '
+  %s┌─ INTERVIEW-READY ANSWER (say it in your own words)%s
+' "$YEL" "$RST"
+  printf '  %s│%s %sIf asked:%s %s
+' "$YEL" "$RST" "$BOLD" "$RST" "$1"
+  printf '  %s│%s
+' "$YEL" "$RST"
+  while IFS= read -r line; do printf '  %s│%s %s
+' "$YEL" "$RST" "$line"; done < <(printf '%s
+' "$2" | fold -s -w $((W-8)))
+  printf '  %s└%s%s
+' "$YEL" "$(rep ─ 40)" "$RST"
+}
+
 # art "caption" <<'X' ... X : a framed diagram
 art() {
   local line; printf '\n  %s┌─ %s%s\n' "$CYN" "$1" "$RST"

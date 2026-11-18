@@ -5,6 +5,7 @@ explain "CI/CD means every change is automatically tested, scanned and built, so
 
 part "PART A · Read the pipeline"
 learn "What CI/CD means" "CI (continuous integration) means every change is automatically built and tested. CD (continuous delivery) means passing changes are automatically released. A GitHub Actions workflow lives in .github/workflows and has jobs; each job runs steps on a fresh machine, so results never depend on one person's laptop."
+say "What is CI/CD?" "Continuous integration means every change is automatically built, tested and scanned, so problems are caught within minutes. Continuous delivery or deployment extends that: a passing change is packaged and can be released automatically. The result is small, frequent, low-risk releases instead of big risky ones. In my project, every pull request runs tests, a dependency audit and an image build."
 art "The CI/CD flow" <<'ART'
    you push code
         |
@@ -25,6 +26,7 @@ CMD
 
 part "PART B · Run the CI steps locally"
 learn "Reproducible builds" "npm ci installs exactly the versions in the lock file, so CI and your laptop agree. The pipeline then runs the tests and a vulnerability audit on every change. If anything fails, the change is blocked before it reaches production."
+say "How do you make builds reproducible?" "I commit lock files and install with npm ci, so CI uses exactly the same dependency versions as my machine. I pin base images and actions, ideally to a digest or commit SHA, and I avoid latest tags. That way a build that passes today produces the same result tomorrow, and a supply-chain surprise cannot sneak in."
 step "Install the API's dependencies exactly as locked" "added N packages. 'npm ci' is the strict, reproducible install CI uses." <<'CMD'
 cd app/api && npm ci --silent && echo "dependencies installed"
 CMD
@@ -38,6 +40,7 @@ quiz "Why does the pipeline give the token only 'contents: read' permission?" "l
 
 part "PART C · Hands-on: write your own workflow"
 learn "Anatomy of a workflow" "name is a label, on says what triggers it, permissions limits what the pipeline token may do, jobs holds the work, runs-on picks the machine, and steps are the commands. A step either reuses a ready-made action (uses) or runs a shell command (run). The linter catches typos before you push."
+say "Walk me through a GitHub Actions workflow." "A workflow is a YAML file in .github/workflows. The on key says what triggers it, like a push or pull request. Jobs run on runners, and each job has steps that use actions or run commands. I give it the minimum permissions, pin actions to a commit SHA, and use secrets for credentials. A failing step fails the job and blocks the merge."
 task "Write a valid workflow" "Create playground/hello.yml. It needs: name: hello  /  on: [push]  /  permissions: contents: read  /  one job called hello that runs-on: ubuntu-latest and has one step: run: echo hello. Then lint it: docker run --rm -v \"\$PWD/playground:/w\" -w /w rhysd/actionlint:latest -color=false /w/hello.yml" "Indent with 2 spaces. Steps start with a dash:  - run: echo hello" <<'X'
 docker run --rm -v "$PWD/playground:/w" -w /w rhysd/actionlint:latest -color=false /w/hello.yml
 ---
@@ -52,6 +55,7 @@ quiz "Why sign release images (the release workflow uses cosign)?" "who|built|tr
 
 part "PART D · Jenkins, side by side"
 learn "Jenkins and GitHub Actions" "Jenkins is the long-established, self-hosted CI server: you run it yourself, pipelines are written in a Jenkinsfile (Groovy), and its power comes from thousands of plugins. GitHub Actions is hosted next to your code, with workflows in YAML and a marketplace of actions. Both do the same job: run stages on every change. Many companies still run Jenkins, so interviewers ask about both. The vocabulary maps closely: a Jenkins stage is like an Actions job, an agent is a runner, a plugin is an action, credentials are secrets."
+say "How does Jenkins compare with GitHub Actions?" "Both run pipeline stages on every change. Jenkins is self-hosted and very flexible, with a huge plugin ecosystem and a Jenkinsfile, but I have to maintain the server, plugins and security. GitHub Actions is hosted next to the code, written in YAML, and needs no server. I would choose Actions for simplicity, and Jenkins when a company already runs it or needs heavy customisation."
 art "The same pipeline in two tools" <<'ART'
    GitHub Actions (YAML)              Jenkins (Jenkinsfile)
    on: push                           triggers / webhook

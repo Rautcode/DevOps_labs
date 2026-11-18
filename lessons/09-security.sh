@@ -5,6 +5,7 @@ explain "Security checks should run automatically, early and often. Five scanner
 
 part "PART A · Run the security gate"
 learn "Shift left" "Shift left means finding security problems as early as possible, when they are cheap to fix. Five different scanners look at five different things: secrets in git, Dockerfile mistakes, vulnerabilities in images, misconfigured cloud code, and insecure Kubernetes manifests."
+say "What does shift left mean in DevSecOps?" "It means finding security problems as early as possible, when they are cheapest to fix. Instead of one audit before release, I scan on every commit and pull request: secrets with gitleaks, Dockerfiles with hadolint, images and dependencies with Trivy, and infrastructure code with Checkov. Developers get fast feedback, and the pipeline blocks risky changes automatically."
 art "Shift left" <<'ART'
    code -> commit -> build -> test -> deploy -> production
     ^                                              ^
@@ -22,6 +23,7 @@ step "Lint the Dockerfiles (hadolint)" "No output = no problems." <<'CMD'
 docker run --rm -i hadolint/hadolint < 02-containers/Dockerfile.api && docker run --rm -i hadolint/hadolint < 02-containers/Dockerfile.web && echo "Dockerfiles are clean"
 CMD
 learn "Test what the site REALLY sends" "Scanners read your files, but only a request shows what a visitor receives. A classic nginx trap: add_header at the server level is NOT inherited by a location that sets its own add_header, so a page can silently lose its security headers. X-Content-Type-Options stops browsers guessing file types, X-Frame-Options stops other sites framing yours (clickjacking), and Referrer-Policy limits what is leaked in links. This very lab had that bug on its home page until a review found it."
+say "How do you verify security headers?" "Scanners read files, but only a real request shows what the server actually sends. I use curl -i against the running site and check headers like Content-Security-Policy, X-Content-Type-Options and Strict-Transport-Security. In my lab I hit a subtle nginx issue where add_header in a location block replaced the inherited headers, which a live header check caught and a file scan did not."
 step "Ask the home page for its headers" "X-Content-Type-Options: nosniff, X-Frame-Options: DENY and Referrer-Policy on the HOME page (/), not only on /healthz." ok 'X-Frame-Options: DENY' <<'CMD'
 dc up -d >/dev/null 2>&1; sleep 10; curl -sI localhost:8080/ | grep -iE "^HTTP|x-content-type|x-frame|referrer"
 CMD
@@ -33,6 +35,7 @@ quiz "Why scan for secrets in git history, not only in the current files?" "hist
 part "PART B · Hands-on: break the gate and fix it"
 explain "Dependencies are a common way vulnerabilities get in. You will install an old, vulnerable library into a COPY of the API (your real code is untouched), watch the audit fail, then fix it."
 learn "Dependencies are risk" "Every library you add also adds its bugs. npm audit compares your dependencies with a database of known vulnerabilities. The usual fix is to upgrade to a patched version, and the best habit is to keep the dependency list short."
+say "How do you handle vulnerable dependencies?" "I run npm audit and an image scanner in CI, keep a lock file, and enable Dependabot so updates arrive as reviewed pull requests. I prioritise by severity and by whether the vulnerable code is actually reachable, and I fix or upgrade rather than ignore. Fewer dependencies and minimal base images also reduce the risk."
 task "Add a vulnerable library, see the audit fail, then fix it" "Type these commands one by one at the lab prompt: mkdir -p playground/api-copy && cp app/api/package*.json app/api/server.js playground/api-copy/ && cd playground/api-copy && npm install lodash@4.17.20 . Then run: npm audit --omit=dev --audit-level=high   (it FAILS, listing lodash). Then fix it with: npm audit fix   and run the audit again (it passes)." "The check passes when the audit is clean AND lodash is newer than 4.17.20." <<'X'
 cd playground/api-copy && npm audit --omit=dev --audit-level=high >/dev/null 2>&1 && ! node -p "require('./node_modules/lodash/package.json').version" | grep -qx '4.17.20'
 ---

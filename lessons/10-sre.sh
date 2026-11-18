@@ -5,6 +5,7 @@ explain "Site Reliability Engineering treats reliability as a number you can mea
 
 part "PART A · The SLO and the error budget"
 learn "SLI, SLO and error budget" "An SLI is a number you measure (the share of successful health checks). An SLO is the target for it (99.5% over 30 days). The error budget is the failure you are ALLOWED: 100% minus the SLO. While budget remains you can ship features; when it is gone you fix reliability first."
+say "Explain SLI, SLO and error budget." "An SLI is a measured number, like the percentage of successful requests. An SLO is the target I promise, like 99.9 percent over thirty days. The error budget is what is left over, the allowed failure, here about 43 minutes a month. If the budget is healthy we ship features; if it is burning, we slow down and fix reliability."
 art "SLO and error budget" <<'ART'
    SLI = what you measure         e.g. 99.95% of requests succeed
    SLO = the promise              e.g. 99.9% over 30 days
@@ -23,6 +24,7 @@ quiz "If the SLO were 99.9% instead, roughly how many minutes per 30 days? (hint
 
 part "PART B · Game day: cause an incident"
 learn "Game days" "A game day is a planned practice failure in a safe place. You measure how long detection takes, follow the runbook, and then fix whatever was unclear. Teams that practise fail less badly when the real incident comes."
+say "What is a game day?" "A planned failure exercise in a safe environment. I break something on purpose, like stopping a service, and measure how quickly we detect it, whether the alerts and the runbook work, and how long recovery takes. It finds gaps in monitoring and documentation before a real incident does, and the findings turn into improvements."
 step "Start the monitoring tools" "prometheus, grafana, blackbox running." <<'CMD'
 dco up -d 2>&1 | tail -3; sleep 30
 CMD
@@ -45,6 +47,7 @@ quiz "In the runbook, a 502 from the proxy means what?" "api|backend|down|behind
 
 part "PART C · Hands-on: write the postmortem"
 learn "Blameless postmortems" "After an incident you write what happened: summary, impact, timeline, root cause and action items with owners. Blameless means you look for the weakness in the system or process, not for a person to blame. People who fear blame hide problems."
+say "How do you run a postmortem?" "Blameless and written down: a summary, the impact, a timeline, the root cause and contributing factors, what went well, what went badly, and action items with owners and dates. The focus is on the system and the process, not on who made a mistake, so people report problems honestly. Follow-up actions are tracked until they are done."
 task "Write a blameless postmortem for your game day" "Create playground/postmortem.md with these five headings (use # for each): Summary, Impact, Timeline, Root cause, Action items. Under each, write a sentence or two about what you just did (for example: Root cause: the API container was stopped on purpose for a game day). Use the template in 10-sre/postmortem-template.md." "The check looks for all five headings in the file." <<'X'
 f=playground/postmortem.md; [ -f $f ] && for h in Summary Impact Timeline "Root cause" "Action items"; do grep -qi "^#.*$h" $f || exit 1; done
 ---

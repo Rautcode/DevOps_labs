@@ -5,6 +5,7 @@ rm -rf playground/collab
 
 part "PART A · What is Git?"
 learn "Git is a time machine for your files" "Imagine saving a document under new names: report-final, report-final2, report-REALLY-final. Git does that properly. Every time you say save, it takes a SNAPSHOT of your project (called a commit), with a message and a date. You can look at any old snapshot, compare versions, and go back. Teams use it so ten people can change one project safely."
+say "What is Git and why do teams use it?" "Git is a version control system. Every time I commit, it saves a snapshot of the project with a message and an author, so I can see what changed, compare versions and go back if something breaks. Teams use it because many people can work on the same code at once, on separate branches, without overwriting each other, and every change can be reviewed."
 art "Git has three places your files can be" <<'ART'
    YOUR FOLDER           STAGING AREA           THE HISTORY
    (files you edit)      (ready for the         (saved snapshots,
@@ -23,6 +24,7 @@ CMD
 
 part "PART B · Your first repository"
 learn "A repository is just a folder Git is watching" "A repository (repo) is an ordinary folder with a hidden .git folder inside, where Git keeps its memory. git init creates it. The shortcut g in this lab means git inside the practice folder playground/collab, so nothing you do here can touch the lab itself."
+say "What is a repository, and what does git init do?" "A repository is a normal project folder that Git is tracking. It has a hidden .git folder where Git keeps the whole history. git init creates it, and from then on I use git status, add and commit to record changes. The three places to remember are the working folder, the staging area and the commit history."
 step "Turn a new folder into a repository" "Initialized empty Git repository. The folder playground/collab now has a hidden .git folder." ok 'nitialized' <<'CMD'
 git init -b main playground/collab
 CMD
@@ -54,6 +56,7 @@ CMD
 
 part "PART C · Seeing what changed"
 learn "Change, look, commit" "The everyday loop is: edit files, look at what changed with git diff, then commit. git diff shows lines that were added (starting with +) and removed (starting with -). Small commits with clear messages make history easy to read and easy to undo."
+say "What does your everyday Git workflow look like?" "I edit files, check what changed with git status and git diff, stage only what belongs together with git add, and commit with a clear message that says what and why. I keep commits small, so the history is easy to read, easy to review and easy to undo if one of them turns out to be wrong."
 step "Add a line to the file and look at the difference" "A green-style line starting with + : +A second line. That is the change Git sees." ok '\+A second line' <<'CMD'
 echo "A second line" >> playground/collab/hello.txt; g diff
 CMD
@@ -67,6 +70,7 @@ CMD
 
 part "PART D · Undo a mistake"
 learn "Nobody is afraid of mistakes in Git" "Because every snapshot is saved, an unwanted edit can be thrown away. git restore file puts a file back to its last saved version. (Later you will also meet git revert, which undoes a saved commit safely, and git reflog, which finds commits you thought you lost.)"
+say "How do you undo a mistake in Git?" "It depends where the mistake is. For an unsaved edit I use git restore to bring a file back to the last commit. If a bad commit is already shared, I use git revert, which adds a new commit that undoes it, so history is not rewritten. And if I think I lost work, git reflog usually shows where it went."
 step "Make a mess on purpose" "The file now only says oops." ok 'oops' <<'CMD'
 echo "oops" > playground/collab/hello.txt; cat playground/collab/hello.txt
 CMD
@@ -80,6 +84,7 @@ CMD
 
 part "PART E · Branches: safe places to try ideas"
 learn "A branch is a parallel timeline" "A branch lets you try something without disturbing the main line of work. If the idea is good you merge it into main; if not you throw the branch away. Teams use one branch per feature or fix. main is the stable, shared line."
+say "What is a branch, and why use one?" "A branch is a separate line of work. I create one per feature or fix with git switch -c, commit there without disturbing main, and merge it back when it is reviewed and ready. If the idea does not work out, I just delete the branch. It keeps main stable and lets several people work in parallel."
 art "Branch and merge" <<'ART'
    main:   o-----o-----o-----------o      <- main now has the idea
                        \           /
@@ -101,6 +106,7 @@ CMD
 
 part "PART F · Keep secrets out of Git"
 learn "The .gitignore file" "Some files must never be committed: passwords, keys, .env files, huge downloads, build output. A file called .gitignore lists patterns Git should pretend not to see. Anything committed once stays in history forever, so set up .gitignore BEFORE you create secrets."
+say "How do you keep secrets and build files out of Git?" "I list them in a .gitignore file before I create them, for example .env files, keys, node_modules and build output. The important point is that anything committed once stays in the history, so ignoring it afterwards is too late. If a secret is ever committed, I treat it as leaked and rotate it, rather than just deleting the file."
 step "Create a fake secret and an ignore list, then check status" "Only .gitignore is listed. secret.env is invisible to Git: ignored." ok '\.gitignore' <<'CMD'
 echo "PASSWORD=hunter2" > playground/collab/secret.env; echo "secret.env" > playground/collab/.gitignore; g status --short
 CMD
@@ -110,6 +116,7 @@ CMD
 
 part "PART G · Sharing: GitHub"
 learn "Remotes, push and pull" "A remote is a copy of the repository on a server, usually GitHub. git clone downloads a repository the first time. git push sends your commits to it. git pull brings other people's commits to you. A pull request is a proposal on GitHub to merge your branch, with a place for review."
+say "What is the difference between clone, push and pull?" "A remote, usually on GitHub, is a shared copy of the repository. git clone downloads it the first time. git push sends my commits to it, and git pull brings other people's commits to me. For team work I push a branch and open a pull request, so the change is reviewed before it is merged into main."
 art "Sharing with a team" <<'ART'
    your laptop                GitHub                 teammate's laptop
   +-----------+   git push  +----------+   git pull  +-----------+

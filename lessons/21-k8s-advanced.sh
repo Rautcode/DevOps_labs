@@ -5,6 +5,7 @@ explain "Module 06 taught you to run an app on Kubernetes. Real clusters also ru
 
 part "PART A · A cluster with the extras"
 learn "Two add-ons" "metrics-server collects CPU and memory usage from every node and pod, and answers kubectl top. The autoscaler depends on it. Traefik is an ingress controller: a program that reads Ingress rules and routes outside HTTP traffic to the right Service. Both are normal pods in the kube-system namespace."
+say "What do metrics-server and an ingress controller do?" "metrics-server collects CPU and memory usage from nodes and pods, and it is what kubectl top and the Horizontal Pod Autoscaler use. An ingress controller, such as Traefik or nginx, is the program that reads Ingress rules and routes outside HTTP traffic to the right service. Without either of them, autoscaling and external routing do not work."
 step "Make sure the app images exist" "devlab-api and devlab-web listed." ok 'devlab-web' <<'CMD'
 docker image inspect devlab-api:lab devlab-web:lab >/dev/null 2>&1 || dc build 2>&1 | tail -2; docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab
 CMD
@@ -20,6 +21,7 @@ CMD
 
 part "PART B · Jobs and CronJobs"
 learn "Batch work" "A Deployment keeps something running forever. A Job runs a task until it succeeds, retries on failure (backoffLimit), and then stops. A CronJob creates a Job on a schedule written like cron. Use them for database backups, reports, cleanups and one-off migrations."
+say "How do you run batch or scheduled work in Kubernetes?" "A Job runs a pod until it completes successfully, with retries controlled by backoffLimit. A CronJob creates Jobs on a cron schedule. I use them for backups, reports and cleanups, and I make them idempotent because a job can run twice. A Deployment is for things that should run forever."
 step "Read the Job manifest" "kind: Job, restartPolicy: Never, backoffLimit: 2." ok 'kind: Job' <<'CMD'
 cat 21-k8s-advanced/job.yaml
 CMD
@@ -38,6 +40,7 @@ CMD
 
 part "PART C · Configuration outside the image"
 learn "ConfigMaps and Secrets" "A ConfigMap holds non-secret settings and a Secret holds sensitive ones. A pod can read them as environment variables (fixed when the pod starts) or as files in a mounted volume (updated in place a little later when the ConfigMap changes). The image stays the same in dev, test and production; only the configuration differs."
+say "How do you configure apps in Kubernetes?" "I keep configuration out of the image: a ConfigMap holds non-secret settings and a Secret holds sensitive values, injected as environment variables or mounted files. That way the same image runs in every environment with different config. Secrets still need protection with RBAC and ideally an external secret store."
 step "Create the ConfigMap and a pod that uses it" "configmap/app-config created and pod/config-demo created." ok 'config-demo' <<'CMD'
 kubectl apply -f 21-k8s-advanced/config-demo.yaml; kubectl wait --for=condition=ready pod/config-demo --timeout=120s
 CMD
@@ -51,6 +54,7 @@ quiz "Why keep configuration in a ConfigMap instead of baking it into the image?
 
 part "PART D · Requests, limits and OOMKilled"
 learn "Requests and limits" "A request is what the scheduler reserves for the container. A limit is the most it may use. Go over a CPU limit and the container is slowed down (throttled). Go over a MEMORY limit and the kernel kills it: that is OOMKilled (out of memory), and Kubernetes restarts it, so you see a crash loop. Always set both, and look at the real usage with kubectl top."
+say "What are resource requests and limits?" "A request is what the scheduler reserves for a container; a limit is the most it may use. If a container exceeds its memory limit it is killed with OOMKilled, exit code 137, while exceeding the CPU limit just throttles it. I set both from measured usage, so pods are placed sensibly and one greedy app cannot starve the others."
 art "Requests and limits" <<'ART'
    request = what the scheduler RESERVES for the pod   (a seat at the table)
    limit   = the most it may USE                       (over memory => killed)
@@ -69,6 +73,7 @@ quiz "A pod restarts again and again with Exit Code 137. What is the most likely
 
 part "PART E · Autoscaling"
 learn "Horizontal Pod Autoscaler" "The HPA watches usage from metrics-server and changes the replica count between a minimum and a maximum to keep the average near your target. The target is a percentage of the CPU REQUEST, so the request must be set. Scaling up is quick; scaling down is deliberately slow so a short dip does not remove capacity you still need."
+say "How does the Horizontal Pod Autoscaler work?" "It reads metrics from metrics-server, such as average CPU, compares them with a target and changes the replica count between a minimum and a maximum. It needs resource requests to be set, and a stabilisation window prevents flapping. It scales pods; to scale nodes I would also need a cluster autoscaler."
 step "Deploy a CPU burner and an autoscaler for it" "deployment.apps/burner and horizontalpodautoscaler.autoscaling/burner created." ok 'burner' <<'CMD'
 kubectl apply -f 21-k8s-advanced/hpa-demo.yaml
 CMD
@@ -81,6 +86,7 @@ CMD
 
 part "PART F · Ingress"
 learn "Ingress" "A Service gives pods a stable address INSIDE the cluster. An Ingress is a set of HTTP routing rules for traffic coming from OUTSIDE: send host a.example.com to service A and host b.example.com to service B, on one shared entry point (one load balancer, one certificate). The Ingress object holds the rules; the ingress controller (Traefik here) enforces them."
+say "What is the difference between a Service and an Ingress?" "A Service gives pods a stable address inside the cluster and load balances between them. An Ingress is a set of HTTP routing rules at the edge, by host name and path, that an ingress controller implements, typically with TLS. So one entry point can route to many services."
 art "Ingress" <<'ART'
    internet -> [ Ingress ] -- /api --> [ Service api ] -> pods
                         \-- /    --> [ Service web ] -> pods
@@ -102,6 +108,7 @@ quiz "What is the difference between a Service and an Ingress?" "outside|externa
 
 part "PART G · Troubleshoot like an SRE"
 learn "Read the status, then the events" "When a pod is unhappy, its STATUS names the problem: ImagePullBackOff (the image cannot be downloaded: wrong name or tag, or a private registry without credentials), CrashLoopBackOff (the container starts and keeps crashing: read kubectl logs), Pending (no node can take it: not enough CPU or memory, or a nodeSelector, taint or affinity no node satisfies). The reason is always in kubectl describe, under Events at the bottom."
+say "A pod is not running. How do you troubleshoot?" "I read its status and then its events. ImagePullBackOff means the image cannot be fetched, so I check the name, tag and credentials. CrashLoopBackOff means it keeps crashing, so I read kubectl logs and the previous logs. Pending means it cannot be scheduled, so I describe the pod and look for FailedScheduling. OOMKilled means it exceeded its memory. kubectl describe is my first move."
 art "Which status means what?" <<'ART'
    Pending            -> not placed on a node     -> describe pod: FailedScheduling
    ImagePullBackOff   -> image cannot be fetched   -> describe pod: Failed to pull image
@@ -141,6 +148,7 @@ CMD
 
 part "PART H · Where pods run: taints, tolerations and affinity"
 learn "Steering the scheduler" "The scheduler decides which node runs each pod. You can steer it in two directions. A node can REPEL pods with a TAINT (for example dedicated=gpu:NoSchedule: no pod may land here); only pods that carry a matching TOLERATION are allowed. A pod can ATTRACT itself to nodes with AFFINITY: required (a must: if no node matches, the pod stays Pending) or preferred (a wish: used when possible, ignored otherwise). Typical uses: keep general pods off expensive GPU or database nodes, spread copies across zones, put a pod near its data. A taint says keep out; a toleration only says I may enter, it does not pull the pod there."
+say "How do taints, tolerations and affinity differ?" "A taint on a node repels pods; only pods with a matching toleration may run there, which keeps general workloads off special nodes like GPU nodes. Node affinity attracts a pod to nodes by label, either required, a must, or preferred, a wish. A toleration allows but does not attract, so I often combine a taint with affinity."
 art "Taint, toleration, affinity" <<'ART'
    node:  taint dedicated=gpu:NoSchedule     "keep out unless you tolerate this"
    pod A (no toleration)   -> Pending        pod B (toleration)  -> can run here

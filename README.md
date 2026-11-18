@@ -108,6 +108,7 @@ flowchart LR
 - **QUIZ**: a question in your own words, then the model answer.
 - **QUICK CHECK / PREDICT**: a one-key multiple-choice question. Guess what a command will do *before* you run it, then see if you were right (+5 XP).
 - **GO DEEPER**: at the end of most modules, optional links to public learning repos (Abhishek Veeramalla, Shubham Londhe, StackSimplify) for the same skill on a different project. See [STUDY-GUIDE.md](STUDY-GUIDE.md) for exactly what to read where, and [RESOURCES.md](RESOURCES.md).
+- **INTERVIEW-READY ANSWER**: after every explanation, a yellow box with a short spoken answer to the matching interview question, written in first person. Say it out loud in your own words. All 115 are also collected in [INTERVIEW-ANSWERS.md](INTERVIEW-ANSWERS.md).
 - **DIAGRAMS**: framed pictures (images and containers, the GitOps loop, TLS, RBAC, scaling...) so you see the idea before you type.
 - **INTERVIEW**: after the lessons the lab becomes an interviewer. It sets up a real situation (a broken site, a bad commit, a crash loop) and asks you to **show** the fix. No step-by-step help, hints only.
 - **MODULE FINAL**: an exam of 3 hands-on challenges for the whole module. You get the objective, not the commands. Every item is checked against the real result, and all must pass to unlock the next module.
@@ -164,7 +165,7 @@ app/web/   sample static site with a form that calls the API
 18-linux/ 19-git/ 20-secrets/ 21-k8s-advanced/ 22-ship/ 23-interview/ 24-system-design/   (job-ready extras)
 finals/NN.sh       the interview + module final of each module
 .github/           the LIVE CI pipeline, Dependabot, feedback template
-JOB-READY.md  STUDY-GUIDE.md
+JOB-READY.md  STUDY-GUIDE.md  INTERVIEW-ANSWERS.md
 doctor.sh  .env.example  RESOURCES.md
 ```
 Change the app freely (add endpoints, break it, swap SQLite for Postgres): it exists to be operated.

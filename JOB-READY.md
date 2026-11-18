@@ -45,6 +45,9 @@ Replace the numbers with your own. Do not claim anything you did not do.
 | 3 | Pick a second small project (module 21 or 22 ideas) and add it to the repo, so you have two stories to tell. |
 | 4 | Apply to 10 roles a week. For each, tailor three CV bullets to the job post and rehearse the module 23 answers. |
 
+## Practise answers out loud
+[INTERVIEW-ANSWERS.md](INTERVIEW-ANSWERS.md) has a spoken answer for every topic in the lab (115 in all). Read the lab explanation, say the answer aloud in your own words, and add one real detail from your own practice. Do not memorise it word for word.
+
 ## Interview-day checklist
 - Explain one project from start to finish in 3 minutes: the problem, what you built, one thing that broke, what you changed.
 - Be ready to **share your screen** and run a command: practise `docker`, `kubectl`, `git` and basic Linux until they are automatic.

@@ -5,6 +5,7 @@ explain "Real apps are several containers working together. Docker Compose descr
 
 part "PART A · The stack"
 learn "Why Docker Compose?" "Real apps are several containers. A compose file describes the services, networks and volumes in one place, so docker compose up creates the whole stack and down removes it. The same file works on every machine, which ends the 'works on my machine' problem."
+say "Why use Docker Compose?" "Real applications are several containers. Compose describes the whole stack in one file, with services, networks, volumes, environment and health checks, and I start everything with one command. It is reproducible and reviewable, so a new teammate gets the same environment. It is great for local development and tests; for production at scale I would use Kubernetes."
 art "One file, whole stack" <<'ART'
    docker-compose.yml
         |
@@ -28,6 +29,7 @@ quiz "The API container publishes no port to your computer. Why is that good?" "
 
 part "PART B · Data survives restarts (volumes)"
 learn "Volumes keep data" "A container's own filesystem is disposable. A volume is storage managed by Docker OUTSIDE the container, so it survives when the container is deleted. docker compose down removes the containers but keeps volumes; down -v also deletes the volumes, and the data is gone for good."
+say "How do containers persist data?" "A container's own filesystem is disposable: it disappears when the container is removed. A volume is storage managed outside the container, so the data survives restarts and replacement. Databases and uploads should always use volumes. I also back them up, because a volume protects against losing the container, not against deletion or corruption."
 art "Container filesystem vs volume" <<'ART'
    container deleted  ->  its own files are GONE
    volume             ->  lives outside the container, data SURVIVES
@@ -53,6 +55,7 @@ quiz "What is the difference between 'docker compose down' and 'docker compose d
 
 part "PART C · Hands-on: change the config without editing the original file"
 learn "Override files" "You can pass -f several times. Later files override earlier ones. Keep the shared base file clean and put environment-specific changes in small override files, so nobody edits the base by accident."
+say "How do you manage different environments with Compose?" "I keep a base compose file and add override files with -f. Later files override earlier ones, so a monitoring or production override contains only the differences. That avoids copying a big file per environment and keeps the shared parts in one place."
 task "Add an environment variable using an override file" "Create playground/override.yml that adds LOG_LEVEL=debug to the api service. Then start the stack with BOTH files: docker compose -f 03-compose/docker-compose.yml -f playground/override.yml --env-file .env up -d   (wait about 15 seconds). Check with: docker exec devlab-api-1 printenv LOG_LEVEL" "The file is YAML: services: -> api: -> environment: -> LOG_LEVEL: debug (indent with spaces)." <<'X'
 docker exec devlab-api-1 printenv LOG_LEVEL | grep -q debug
 ---
