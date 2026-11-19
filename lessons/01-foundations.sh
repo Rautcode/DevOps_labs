@@ -16,9 +16,11 @@ art "Container vs virtual machine" <<'ART'
    gigabytes, minutes           megabytes, seconds
 ART
 mcq "What does a container share with the computer it runs on?" "The kernel (the core of the operating system)|The whole disk|Nothing at all|The user's password" 1 "Containers share the host kernel, which is why they start in seconds and are small."
+why "dc::this lab shortcut for docker compose with the app file|up::create and start everything in the file|--build::build the images first|-d::detached, run in the background|tail -4::keep only the last 4 lines of the output" "The practice app is a small website made of containers. Compose reads one file and starts all of them for you. We build the images first so you always run the current code, and we cut the output to the last lines because the build prints a lot."
 step "Start the app (first time takes about a minute)" "Containers show Started / Healthy" <<'CMD'
 dc up --build -d 2>&1 | tail -4
 CMD
+why "sleep 10::wait 10 seconds so the app can start|curl::a command-line web browser|-s::silent, hide the progress bar|localhost:8080/healthz::the address of the health page on your own computer" "Almost every real service has a health page that answers the question: are you working? curl asks for it and prints the answer. This is the first thing you try when something seems broken."
 step "Check it is alive" '{"ok":true}' <<'CMD'
 sleep 10; curl -s localhost:8080/healthz
 CMD
@@ -27,21 +29,34 @@ part "PART B · Linux: look inside the container"
 explain "A container is a tiny, isolated Linux system. We use 'docker exec' to run one command inside it. WINDOWS TIP: in your own Git Bash terminal run   export MSYS_NO_PATHCONV=1   (once per terminal). Without it Git Bash rewrites paths like /data into C:/Program Files/Git/data and Docker commands fail."
 learn "Look inside a running container" "docker exec runs ONE command inside a running container, like opening a window into it. Every Linux process runs as some user. root can do anything; a normal user is limited. Well-built apps run as a normal user, so a hacked app cannot take over the machine."
 say "How do you debug a running container?" "I start with docker ps to see its state, then docker logs for what it printed, and docker exec to run a command inside it, like checking the user, the files or the environment variables. docker inspect shows the configuration and the health status. In a minimal image there may be no shell tools, so I rely on the logs and the /proc filesystem."
+art "Looking in from outside" <<'ART'
+   your terminal ---- docker exec ----> [ container ]
+        |                                  runs ONE command inside it
+        |   docker logs  <------------     what it printed
+        |   docker inspect <----------     its settings and health
+   same machine, different view: you see in, the app does not see you
+ART
+why "docker exec::run one command inside a running container|devlab-api-1::the name of the container|id::print the user the process runs as" "You are looking inside the container from outside. Running as a normal user (not root) is a security rule: if the app is hacked, it has few rights. You should see a number like 1000, not 0."
 step "1. Who is the app running as?" "uid=1000(node). A normal user, NOT root. If hacked, the attacker has less power." <<'CMD'
 docker exec devlab-api-1 id
 CMD
+why "cat /proc/1/cmdline::read the command that started process number 1|tr::replace the invisible separators with spaces" "Every container runs one main program, and Linux numbers it 1. Seeing it tells you exactly what the container does. The small image has no ps command, so we read this information straight from the /proc folder."
 step "2. What is the very first process?" "docker-init ... node server.js. A tiny helper starts first, then the app." <<'CMD'
 docker exec devlab-api-1 cat /proc/1/cmdline | tr '\0' ' '; echo
 CMD
+why "env::list the environment variables|grep -E::keep only lines that match the words DATA_DIR or NODE_ENV" "Configuration is passed to apps through environment variables, not baked into the code. That way the same image can run in dev and production with different settings."
 step "3. Where do the settings come from?" "DATA_DIR=/data and NODE_ENV=production. Apps read settings from environment variables." <<'CMD'
 docker exec devlab-api-1 sh -c 'env | grep -E "DATA_DIR|NODE_ENV"'
 CMD
+why "ls -la::list files with details|/data::the folder where the app keeps its database" "The app writes its database into a folder that is a volume, so the data survives when the container is replaced. Looking at the file confirms who owns it and how big it is."
 step "4. Where is the data stored?" "database.sqlite owned by node. It lives on a separate volume, so it survives restarts." <<'CMD'
 docker exec devlab-api-1 ls -la /data
 CMD
+why "df -h::show free disk space in human-readable sizes|/data::check the disk that holds this folder" "A full disk is one of the most common causes of outages. df is the quick check, and you will use it again in module 18."
 step "5. How much disk space is there?" "Size and usage of the data volume." <<'CMD'
 docker exec devlab-api-1 df -h /data
 CMD
+why "apt-get install -y curl::try to install a program (this should FAIL)" "We try to do something a locked-down container must not allow. The failure is the good result: the app runs as a normal user and the image has no package tools. Attackers cannot easily install their tools there."
 step "6. Can the app install software?" "An error about 'are you root?'. It fails ON PURPOSE: a normal user cannot install tools, and neither can an attacker." fail <<'CMD'
 docker exec devlab-api-1 apt-get install -y curl
 CMD
@@ -60,21 +75,27 @@ art "One HTTP request" <<'ART'
    method + path                       status code + body
 ART
 mcq "Which HTTP status code means: the thing you asked for does not exist?" "200|301|404|500" 3 "2xx = success, 3xx = redirect, 4xx = your request was wrong (404 not found), 5xx = the server failed."
+why "curl -i::show the response headers as well as the body|-s::silent" "A web answer has a status line, headers and a body. -i shows all three, which is how you debug redirects, content types and security headers."
 step "7. Read a full HTTP response" "First line 'HTTP/1.1 200 OK', then headers, then the body." <<'CMD'
 curl -i -s localhost:8080/healthz
 CMD
+why "-w::print a custom summary after the request|%{http_code}::the status number (200 means OK)|%{time_total}::how long the request took|tail -1::keep only the last line" "Status code and speed are the two numbers you look at first. 200 means success, and the time tells you if the site is slow."
 step "8. Just the status code and speed" "status=200 and a time in seconds" <<'CMD'
 curl -s -w '\nstatus=%{http_code} time=%{time_total}s\n' localhost:8080/ | tail -1
 CMD
+why "/api/auth/me::a page that needs you to be logged in|status::the number the server answers with" "We expect 401, which means you are not logged in. A protected page that answers 200 to strangers would be a security bug, so testing the refusal is as important as testing the success."
 step "9. Ask for a protected page without logging in" "401. 'Unauthorized' means: not logged in." <<'CMD'
 curl -s -w '\nstatus=%{http_code}\n' localhost:8080/api/auth/me | tail -1
 CMD
+why "-X POST::use the POST method, which sends data|-H::add a header saying the data is JSON|-d::the data to send (a name, an email, a message)" "GET reads, POST creates. This is how a contact form talks to the server behind the scenes. A new record (a lead) is saved in the database and the server answers with its id."
 step "10. Send data: create a lead" 'A reply like {"id":1}. You just wrote to the database.' <<'CMD'
 curl -s -X POST localhost:8080/api/inquiries -H "content-type: application/json" -d "{\"name\":\"Asha\",\"email\":\"asha@example.com\",\"message\":\"hello\"}"; echo
 CMD
+why "name empty and email nope::deliberately invalid input|head -1::show only the first line (the status)" "Servers must reject bad input, never trust it. A 400-type answer proves the app validates what it receives. Testing the failure path is part of a real check."
 step "11. Send bad data" "400 and an error message. Good APIs reject bad input." <<'CMD'
 curl -s -i -X POST localhost:8080/api/inquiries -H "content-type: application/json" -d "{\"name\":\"\",\"email\":\"nope\"}" | head -1
 CMD
+why "for i in ...; do ...; done::repeat the request 12 times|login::the sign-in address|<%{http_code}>::print each status number" "Without a limit, someone can try thousands of passwords. After a few quick attempts you should see 429 (too many requests). Rate limiting protects logins and APIs from abuse."
 step "12. Rate limiting: send 12 login attempts fast" "A row of 401 then 429. After 10 tries in a minute the server says 'too many requests'. This stops password guessing." <<'CMD'
 for i in $(seq 1 12); do curl -s -w ' <%{http_code}>' -X POST localhost:8080/api/auth/login -H "content-type: application/json" -d "{}" | grep -o '<[0-9]*>' | tr -d '\n'; done; echo
 CMD
@@ -89,12 +110,15 @@ task "Make a branch, commit, and undo it safely" "Type these 5 commands one by o
 ---
 git switch -c lab/practice && echo hello > practice.txt && git add practice.txt && git commit -q -m 'feat: practice' && git revert --no-edit HEAD
 X
+why "git log --oneline -3::show the last 3 snapshots, one line each" "A revert does not delete anything: it adds a new commit that undoes an old one. The history keeps the full story, which is what you want on a shared branch."
 step "See your history (revert keeps history, it does not erase it)" "A 'Revert' commit on top of 'feat: practice'. The file is gone again, but the history remembers." <<'CMD'
 git log --oneline -3
 CMD
+why "git reflog -5::show the last 5 places HEAD has been" "The reflog is Git private diary of every move you made. Even after a mistake like a bad reset, the old commit is listed here and you can go back to it. It is why Git rarely loses work."
 step "git reflog: the safety net" "Every move you made is listed. Almost nothing in Git is truly lost." <<'CMD'
 git reflog -5
 CMD
+why "git switch main::go back to the main branch|git branch -D lab/practice::delete the practice branch" "Always leave the repository tidy. We switch away first, because Git will not delete the branch you are standing on."
 step "Clean up the practice branch" "You are back on main." <<'CMD'
 git switch main && git branch -D lab/practice
 CMD
@@ -103,6 +127,11 @@ part "PART E · Shell scripting"
 explain "A script is a saved list of commands. Good scripts stop on errors and tell you what happened."
 learn "Scripts and exit codes" "Every command ends with an exit code: 0 means success and anything else means failure. The shell uses it: A && B runs B only if A worked, A || B runs B only if A failed, and a script's own exit code is the code of its last command. Loops plus exit codes are how scripts wait for something to become healthy."
 say "What is an exit code, and why does it matter in automation?" "Every command ends with an exit code: zero means success and anything else means failure. Scripts and CI pipelines rely on it to decide whether to continue. In shell scripts I use set -e and check the codes, so a failed step stops the pipeline instead of silently carrying on with bad data."
+art "Exit codes decide what happens next" <<'ART'
+   command runs --> exit code 0 ---> success: the pipeline continues
+                \-> exit code 1+ --> failure: the pipeline stops (set -e)
+   $? holds the last exit code;  cmd1 && cmd2  runs cmd2 only if cmd1 succeeded
+ART
 task "Write a health-wait script" "Create the file playground/healthwait.sh. It must: poll http://localhost:8080/healthz every 2 seconds, exit 0 as soon as it answers, and exit 1 after 60 seconds. Hints: 'set -euo pipefail', a for loop, 'curl -fsS', 'sleep 2'." "Use: for i in \$(seq 1 30); do curl -fsS URL >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1" <<'X'
 [ -f playground/healthwait.sh ] && bash playground/healthwait.sh
 ---
@@ -120,12 +149,15 @@ art "Debug from the bottom up" <<'ART'
    1. the machine is running?        (docker ps, ping)
    Start at the layer that is broken, do not guess.
 ART
+why "docker stop::politely stop a container|devlab-api-1::the API container" "We break the service on purpose to practise debugging it. Stopping the API leaves the web server running, so you can see how one failed layer shows up to a visitor."
 step "Stop the API" "The container stops." <<'CMD'
 docker stop devlab-api-1
 CMD
+why "curl -s -i::show the response including the status line|head -1::only the first line" "The website answers, but its back end is down, so you should see a 502 (bad gateway). This tells you the web server is fine and the layer behind it is broken: debug by layers."
 step "Ask the site for its health" "502 Bad Gateway: the proxy (web) is alive but the thing behind it (api) is down. You can now tell WHICH layer failed." <<'CMD'
 curl -s -i localhost:8080/healthz | head -1
 CMD
+why "docker start::start the stopped container|sleep 12::wait for it to be ready|curl /healthz::check the health page" "Fixing the fault and then checking the health page proves the repair worked. Never assume a fix worked: always verify."
 step "Start the API again and wait until it is healthy" '{"ok":true}' <<'CMD'
 docker start devlab-api-1 >/dev/null; sleep 12; curl -s localhost:8080/healthz
 CMD

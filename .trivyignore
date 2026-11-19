@@ -1,0 +1,20 @@
+# Time-boxed risk acceptance for the image scan (Trivy reads this file automatically).
+#
+# Why: on 2026-11-18 five HIGH nginx vulnerabilities were disclosed and fixed in nginx 1.30.7-r0, but the base image
+# nginxinc/nginx-unprivileged:stable-alpine still ships 1.30.6-r1 and `apk upgrade` finds nothing newer yet.
+# There is nothing to upgrade to, so a strict gate would block every build until the base image is rebuilt.
+#
+# Why it is safe for this lab (checked against 02-containers/nginx.conf.template, which listens on plain HTTP only):
+#   CVE-2026-113425  needs nginx configured as a MAIL proxy            -> not configured
+#   CVE-2026-121810  needs HTTP/3 (QUIC)                               -> not configured
+#   CVE-2026-123007  needs HTTP/2                                      -> not configured
+#   CVE-2026-123633  needs HTTP/2 for client connections               -> not configured
+#   CVE-2026-123634  needs a proxy variable AND an ssi or mirror directive -> no ssi or mirror directive is used
+#
+# Every line EXPIRES. After the date below the exception stops applying and the gate fails again, which forces a review.
+# When nginx 1.30.7 reaches the base image, rebuild (docker build --pull --no-cache) and DELETE this whole file.
+CVE-2026-113425 exp:2026-12-02
+CVE-2026-121810 exp:2026-12-02
+CVE-2026-123007 exp:2026-12-02
+CVE-2026-123633 exp:2026-12-02
+CVE-2026-123634 exp:2026-12-02

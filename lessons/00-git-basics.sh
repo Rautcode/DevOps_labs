@@ -26,6 +26,15 @@ CMD
 part "PART B · Your first repository"
 learn "A repository is just a folder Git is watching" "A repository (repo) is an ordinary folder with a hidden .git folder inside, where Git keeps its memory. git init creates it. The shortcut g in this lab means git inside the practice folder playground/collab, so nothing you do here can touch the lab itself."
 say "What is a repository, and what does git init do?" "A repository is a normal project folder that Git is tracking. It has a hidden .git folder where Git keeps the whole history. git init creates it, and from then on I use git status, add and commit to record changes. The three places to remember are the working folder, the staging area and the commit history."
+art "What is inside a repository" <<'ART'
+   my-project/                    <- the repository (a normal folder)
+     |-- hello.txt                <- your files, as you see them
+     |-- notes.txt
+     `-- .git/                    <- hidden: Git's memory (all snapshots)
+          |-- objects/            every saved version of every file
+          `-- config              settings (name, email, remotes)
+   delete .git and the folder is just files again, with no history
+ART
 why "git init::start tracking a folder|-b main::name the first branch main|playground/collab::the folder to turn into a repository" "A normal folder is just files. git init adds a hidden .git folder inside it, which is where Git keeps its memory. After this, Git can remember every change you make in that folder. You do it once per project. (If you see Reinitialized, the folder already was a repository. That is harmless.)"
 step "Turn a new folder into a repository" "Initialized empty Git repository. The folder playground/collab now has a hidden .git folder." ok 'nitialized' <<'CMD'
 git init -b main playground/collab
@@ -69,6 +78,12 @@ CMD
 part "PART C · Seeing what changed"
 learn "Change, look, commit" "The everyday loop is: edit files, look at what changed with git diff, then commit. git diff shows lines that were added (starting with +) and removed (starting with -). Small commits with clear messages make history easy to read and easy to undo."
 say "What does your everyday Git workflow look like?" "I edit files, check what changed with git status and git diff, stage only what belongs together with git add, and commit with a clear message that says what and why. I keep commits small, so the history is easy to read, easy to review and easy to undo if one of them turns out to be wrong."
+art "The everyday loop" <<'ART'
+   edit files --> git status --> git diff --> git add --> git commit
+        ^          what changed?  which lines?  pick them   save it
+        |                                                     |
+        +----------------------- repeat <---------------------+
+ART
 why "echo \"A second line\" >> ...::add text to the END of the file (>> adds, > would replace)|g diff::show exactly what changed since the last snapshot" "Before you save a change, look at it. A line starting with + was added and a line starting with - was removed. Reading the diff catches mistakes while they are still small, and it is the habit reviewers expect before a commit."
 step "Add a line to the file and look at the difference" "A green-style line starting with + : +A second line. That is the change Git sees." ok '\+A second line' <<'CMD'
 echo "A second line" >> playground/collab/hello.txt; g diff
@@ -86,6 +101,12 @@ CMD
 part "PART D · Undo a mistake"
 learn "Nobody is afraid of mistakes in Git" "Because every snapshot is saved, an unwanted edit can be thrown away. git restore file puts a file back to its last saved version. (Later you will also meet git revert, which undoes a saved commit safely, and git reflog, which finds commits you thought you lost.)"
 say "How do you undo a mistake in Git?" "It depends where the mistake is. For an unsaved edit I use git restore to bring a file back to the last commit. If a bad commit is already shared, I use git revert, which adds a new commit that undoes it, so history is not rewritten. And if I think I lost work, git reflog usually shows where it went."
+art "Which undo do I need?" <<'ART'
+   unsaved edit I regret        ->  git restore FILE       (back to last commit)
+   saved commit, not shared     ->  git reset              (rewrite my own history)
+   saved commit, already shared ->  git revert             (adds a new undoing commit)
+   "I lost something!"          ->  git reflog             (find it, then go back)
+ART
 why "echo \"oops\" > ...::REPLACE the whole file with the word oops|cat::print the file" "We damage the file on purpose so you can practise the fix. The single > replaces everything in the file, which is how real accidents happen. Do not worry: the good version is safe in your last snapshot."
 step "Make a mess on purpose" "The file now only says oops." ok 'oops' <<'CMD'
 echo "oops" > playground/collab/hello.txt; cat playground/collab/hello.txt
@@ -129,6 +150,14 @@ CMD
 part "PART F · Keep secrets out of Git"
 learn "The .gitignore file" "Some files must never be committed: passwords, keys, .env files, huge downloads, build output. A file called .gitignore lists patterns Git should pretend not to see. Anything committed once stays in history forever, so set up .gitignore BEFORE you create secrets."
 say "How do you keep secrets and build files out of Git?" "I list them in a .gitignore file before I create them, for example .env files, keys, node_modules and build output. The important point is that anything committed once stays in the history, so ignoring it afterwards is too late. If a secret is ever committed, I treat it as leaked and rotate it, rather than just deleting the file."
+art "What .gitignore does" <<'ART'
+   files in the folder:      .gitignore says:        Git sees:
+     app.js                    secret.env              app.js
+     secret.env      +         *.log            =      .gitignore
+     debug.log                 node_modules/
+     node_modules/
+   ignored files never enter the history (set this up BEFORE the secret exists)
+ART
 why "secret.env::a pretend password file|.gitignore::a list of file names Git should pretend not to see|g status --short::check what Git sees" "Passwords and keys must never be committed, because anything saved in Git stays in its history forever. Listing a file in .gitignore tells Git to leave it alone. Do this before you create real secrets. Notice that secret.env does not show up in the status."
 step "Create a fake secret and an ignore list, then check status" "Only .gitignore is listed. secret.env is invisible to Git: ignored." ok '\.gitignore' <<'CMD'
 echo "PASSWORD=hunter2" > playground/collab/secret.env; echo "secret.env" > playground/collab/.gitignore; g status --short

@@ -156,7 +156,7 @@ task_watch() {
   fi
   while true; do
     printf '  %sDo it in ANOTHER terminal, then press Enter to check  (s = skip, h = show answer) ▸ %s' "$YEL" "$RST"
-    read -r a <&3
+    read -r a <&3; a=$(printf '%s' "$a" | tr -d '[:space:]')
     case "$a" in
       s) [ -z "${OPT:-}" ] && SKIP=$((SKIP+1)); printf '  %s○ skipped%s\n' "$YEL" "$RST"; return ;;
       h) printf '  %sAnswer:%s\n%s\n' "$YEL" "$RST" "$(printf '%s' "$sol" | sed "s/^/    ${DIM}❯${RST} /")"; continue ;;
@@ -389,7 +389,7 @@ _choose() {
   if [ "$kind" = PREDICT ]; then printf '\n %s PREDICT %s %s%s%s\n' "$BG_Y" "$RST" "$BOLD" "$q" "$RST"
   else printf '\n %s QUICK CHECK %s %s%s%s\n' "$BG_C" "$RST" "$BOLD" "$q" "$RST"; fi
   for o in "${arr[@]}"; do n=$((n+1)); printf '    %s%d)%s %s\n' "$BOLD" "$n" "$RST" "$o"; done
-  printf '  %sPress a number ▸ %s' "$YEL" "$RST"; read -r a <&3 || exit 0
+  printf '  %sPress a number ▸ %s' "$YEL" "$RST"; read -r a <&3 || exit 0; a=$(printf '%s' "$a" | tr -dc '0-9')
   if [ "$a" = "$ans" ]; then printf '  %s✔ Correct!%s' "$GRN" "$RST"; xp_add 5; printf '  %s\n' "$why"
   else printf '  %s✘ Not quite.%s The answer is %s) %s. %s\n' "$YEL" "$RST" "$ans" "${arr[$((ans-1))]}" "$why"; fi
   return 0
@@ -557,13 +557,13 @@ flow() {
       fi
       [ -n "$AUTO" ] && return
       printf '\n%s➜ Lesson %s done!%s Press Enter to start lesson %s (type q to quit) ▸ ' "$BOLD$GRN" "$id" "$RST" "$nxt"
-      read -r a <&3; [ "$a" = q ] && return
+      read -r a <&3; a=$(printf '%s' "$a" | tr -d '[:space:]'); [ "$a" = q ] && return
       id="$nxt"
     else
       [ -n "$AUTO" ] && return
       gate_ok "$id" || return
       printf '\n%sModule %s is not passed yet.%s Press Enter to try it again (type q to quit) ▸ ' "$YEL" "$id" "$RST"
-      read -r a <&3; [ "$a" = q ] && return
+      read -r a <&3; a=$(printf '%s' "$a" | tr -d '[:space:]'); [ "$a" = q ] && return
     fi
   done
 }
@@ -572,7 +572,7 @@ case "${1:-menu}" in
   menu|list) menu
     if [ -z "$AUTO" ]; then
       nxt=$(first_incomplete); [ -z "$nxt" ] && nxt=00
-      printf '\n  Type a lesson number, or press Enter to continue with lesson %s (q to quit) ▸ ' "$nxt"; read -r n <&3
+      printf '\n  Type a lesson number, or press Enter to continue with lesson %s (q to quit) ▸ ' "$nxt"; read -r n <&3; n=$(printf '%s' "$n" | tr -d '[:space:]')
       if [ "$n" = q ]; then :
       elif [ -z "$n" ]; then flow "$nxt"
       elif [[ "$n" =~ ^[0-9]+$ ]]; then flow "$(printf '%02d' "$((10#$n))")"

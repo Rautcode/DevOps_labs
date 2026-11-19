@@ -25,22 +25,28 @@ art "Caches in layers" <<'ART'
    fastest, closest ---------------------------------> slowest, truth
    a HIT stops the request early; a MISS goes one layer deeper
 ART
+why "docker run -d --name lab-redis::start Redis in the background|redis:7-alpine::the image|rc PING::the lab shortcut for the Redis command line, asking it is alive" "Redis keeps data in memory, which is why it is very fast. It is the most common cache, queue helper and counter store in real systems."
 step "Start Redis, a fast in-memory store used as a cache" "PONG. Redis is running in a container named lab-redis." ok 'PONG' <<'CMD'
 docker rm -f lab-redis >/dev/null 2>&1; docker run -d --name lab-redis redis:7-alpine >/dev/null; sleep 2; rc PING
 CMD
+why "rc SET greeting::store the value hello cache under the key greeting|rc GET greeting::read it back" "A cache is just a key and a value in memory. SET stores it and GET fetches it."
 step "Store a value and read it back" "hello cache. A cache is just a key and a value in memory." ok 'hello cache' <<'CMD'
 rc SET greeting "hello cache" >/dev/null; rc GET greeting
 CMD
+why "EX 5::expire after 5 seconds|rc TTL::how many seconds are left|sleep 6::wait" "A TTL (time to live) makes old data disappear by itself, so the cache cannot stay wrong forever. After 6 seconds the value is gone."
 step "Store a value that expires after 5 seconds (a TTL)" "5 (or 4) seconds left, then after waiting the value is gone: after 6 seconds: []" ok 'after 6 seconds: \[\]' <<'CMD'
 rc SET session:1 alice EX 5 >/dev/null; echo "ttl: $(rc TTL session:1) s"; sleep 6; echo "after 6 seconds: [$(rc GET session:1)]"
 CMD
 predict "A value is cached with a 30 second TTL. The database row changes after 10 seconds. What does a reader see at second 20?" "The new value, instantly|The OLD value, until the TTL ends|An error|Nothing" 2 "A cache does not know the database changed. Readers see the stale copy until the TTL expires or you delete the key. That is the invalidation problem."
+why "rc DEL user:42::clear the cache entry|cache-aside.sh::look in the cache, and if missing ask the slow database" "On a miss the program does the slow work and then saves the answer. This is the cache-aside pattern, the most common caching pattern."
 step "Cache-aside, first run: a MISS that asks the slow database (2 seconds)" "CACHE MISS, about 2 seconds, then the value is stored for 30 seconds." ok 'CACHE MISS' <<'CMD'
 rc DEL user:42 >/dev/null; bash 24-system-design/cache-aside.sh
 CMD
+why "cache-aside.sh::the same script again" "Now the answer is in the cache, so it returns at once. Under heavy traffic, this protects the database from overload."
 step "Run it again: a HIT, instant, and the database is not touched" "CACHE HIT in 0 seconds. This is why caches protect your database from load." ok 'CACHE HIT' <<'CMD'
 bash 24-system-design/cache-aside.sh
 CMD
+why "maxmemory 2mb::a small memory limit|maxmemory-policy allkeys-lru::when full, remove the least recently used keys" "A cache cannot grow forever. LRU keeps what is used often and drops what nobody asked for lately."
 step "Set the eviction policy to least recently used" "allkeys-lru. When memory is full, Redis drops the entries nobody asked for lately." ok 'allkeys-lru' <<'CMD'
 rc CONFIG SET maxmemory 2mb >/dev/null; rc CONFIG SET maxmemory-policy allkeys-lru >/dev/null; rc CONFIG GET maxmemory-policy
 CMD
@@ -54,12 +60,15 @@ art "A queue decouples the two sides" <<'ART'
    (returns at once)          the queue (FIFO)       \--pop--> worker 2
    a spike only makes the queue longer, the site stays up
 ART
+why "rc RPUSH jobs ...::add jobs to the end of a list|rc LLEN jobs::count the jobs waiting" "A queue is a list: producers add at one end, workers take from the other. The jobs wait safely even when no worker is running."
 step "Producers add three jobs while no worker is running" "3. The jobs wait safely in the queue." ok '^3$' <<'CMD'
 rc DEL jobs >/dev/null; rc RPUSH jobs "email:welcome" "resize:photo1" "report:daily" >/dev/null; rc LLEN jobs
 CMD
+why "rc LPOP jobs::take the job at the front|for i in 1 2 3::three times" "The jobs come out in the same order they went in. A worker can be added or removed any time without losing jobs."
 step "A worker takes the jobs, oldest first (FIFO: first in, first out)" "worker got: email:welcome, then resize:photo1, then report:daily." ok 'worker got: email:welcome' <<'CMD'
 for i in 1 2 3; do echo "worker got: $(rc LPOP jobs)"; done
 CMD
+why "rc LLEN jobs::how many jobs remain" "Zero: the queue is empty. Watching the queue length is a standard health signal for background work."
 step "Is anything left?" "left in the queue: 0." ok 'queue: 0' <<'CMD'
 echo "left in the queue: $(rc LLEN jobs)"
 CMD
@@ -79,10 +88,12 @@ art "Fixed window: 5 requests per 10 seconds" <<'ART'
    request:  1 2 3 4 5 6 7 8        window resets at second 10
    result:   allowed x5, then 429 429 429
 ART
+why "ratelimit.sh 5 10 8::limit 5, window 10 seconds, send 8 requests|INCR::an atomic counter|EXPIRE::reset the counter after the window" "The first 5 requests pass, the rest get 429 Too Many Requests. Counting in Redis means all your servers share one limit."
 step "Run the Redis rate limiter: 8 requests, 5 allowed per 10 seconds" "The first 5 requests are allowed, the rest get 429 Too Many Requests." ok '429' <<'CMD'
 bash 24-system-design/ratelimit.sh 5 10 8
 CMD
 predict "Five app servers each keep their OWN in-memory counter with a limit of 5. How many requests can one client really make?" "5|Up to 25, one limit per server|0|Unlimited" 2 "Each server counts separately, so the real limit is 5 times 5. That is why the counter must live in a shared store such as Redis."
+why "grep -n -i limit app/api/server.js::find the limit code in the API|head -6::the first six matches" "The same idea lives in the real API. Seeing it in real code connects the concept to practice."
 step "See the rate limiter in this lab's own API" "Lines that mention the limit in app/api/server.js. The same idea, written in the app." ok 'imit' <<'CMD'
 grep -n -i "limit" app/api/server.js | head -6
 CMD
@@ -114,10 +125,12 @@ art "Sharding by user id" <<'ART'
    user:31  --hash--> shard 2        each shard = its own database server
    the router (app or proxy) picks the shard from the key
 ART
+why "node shard.js mod 3::place 1000 keys on 3 shards using hash modulo 3" "The hash spreads keys evenly, so each shard holds about a third. The hash mod N rule is simple, but it has a weakness you will see next."
 step "Spread 1000 keys over 3 shards with hash-mod" "Three shards with roughly equal numbers of keys (about 333 each). The hash spreads them evenly." ok 'shard 2' <<'CMD'
 node 24-system-design/shard.js mod 3
 CMD
 predict "You add a 4th shard and keep using hash(key) mod N. Roughly what share of the keys moves to a different shard?" "About 25%|About 50%|About 75%|None" 3 "Going from mod 3 to mod 4 changes the answer for about three quarters of the keys. That means copying most of your data while the system is live."
+why "node shard.js compare::compare hash-mod with consistent hashing" "Adding a shard moves about 75 percent of the keys with hash-mod, but only about 25 percent with consistent hashing. Moving less data means less risk while the system is live."
 step "Compare the two strategies when a 4th shard is added" "hash-mod moves about 75% of the keys, consistent hashing about 25%." ok 'consistent hashing' <<'CMD'
 node 24-system-design/shard.js compare
 CMD
@@ -136,6 +149,7 @@ art "The three states" <<'ART'
                        +----------------- [ HALF-OPEN ]
                       (trial fails: back to OPEN)    one trial call allowed
 ART
+why "node breaker.js 3::simulate calls with a failure threshold of 3" "Watch the breaker go CLOSED, OPEN, HALF-OPEN and back. Compare the waiting time with and without the breaker: failing fast saves a lot."
 step "Run the simulation: a dependency is down for 6 seconds" "The breaker OPENS after 3 failures, fast-fails, tries a HALF-OPEN trial, and closes again once the dependency recovers. Compare the waiting time with and without it." ok 'WITHOUT the breaker' <<'CMD'
 node 24-system-design/breaker.js 3
 CMD
@@ -161,6 +175,7 @@ mcq "Reads are 100 times more common than writes. Which block helps MOST?" "Cach
 quiz "In your own words: where would you use a cache, a queue and a rate limiter in a URL shortener, and why?" "cache|redis|queue|rate|limit|abuse|analytic|redirect|hot|popular|read|write|slow" "Cache the hot code to URL lookups so redirects are instant. Queue the click analytics so redirects never wait for them. Rate-limit link creation so one client cannot flood the system."
 
 part "PART I · Clean up"
+why "docker rm -f lab-redis::remove the container" "Clean up."
 step "Stop the practice Redis" "lab-redis removed." ok 'lab-redis' <<'CMD'
 docker rm -f lab-redis
 CMD

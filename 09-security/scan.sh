@@ -17,7 +17,7 @@ for f in api web; do run docker run --rm -i hadolint/hadolint < "02-containers/D
 step "3/5 Image CVEs (trivy, fixable HIGH/CRITICAL)"
 for i in api web; do
   docker image inspect "devlab-$i:lab" >/dev/null 2>&1 || { echo "build devlab-$i:lab first (module 02)"; fail=1; continue; }
-  run docker run --rm -v //var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.58.0 image \
+  run docker run --rm -v //var/run/docker.sock:/var/run/docker.sock -v "$PWD/.trivyignore:/.trivyignore:ro" aquasec/trivy:0.58.0 image \
     --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --quiet "devlab-$i:lab"
 done
 

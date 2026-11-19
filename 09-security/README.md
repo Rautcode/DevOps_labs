@@ -35,6 +35,7 @@ bash 09-security/scan.sh        # needs only Docker; build images first (module 
 - **Shift left:** catch issues at commit/PR time, where they are cheapest.
 - **Defense in depth:** non-root + read-only fs + dropped capabilities + NetworkPolicy + admission policy. No single control is enough.
 - **Supply chain:** SBOM (what is inside), provenance (how it was built), signatures (who built it): module 04's release workflow.
+- **Time-boxed exceptions:** [`.trivyignore`](../.trivyignore) (repo root) lists CVEs accepted for now, each with a reason and an `exp:` date. When the date passes, the exception stops applying and the gate fails again, which forces a review. It exists because five nginx CVEs were disclosed on 2026-11-18 before the base image had a fix. Delete the file once the base image is rebuilt.
 - **Suppressions must be explicit and justified** (see `# checkov:skip=... <reason>` in the Terraform module).
 
 ## Exercises

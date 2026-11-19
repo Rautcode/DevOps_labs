@@ -12,24 +12,31 @@ art "RPO and RTO" <<'ART'
        data you can lose        time you are down
 ART
 mcq "Why is an untested backup only a hope?" "You do not know it restores until you try|Backups are always corrupt|It uses too much disk|It cannot be read" 1 "Restore drills are the only proof."
+why "dc up -d::start the stack|curl /healthz::check it" "Before a drill you need a healthy system, so you know any later damage is the drill and not an old problem."
 step "Make sure the app is running" '{"ok":true}' <<'CMD'
 dc up -d 2>&1 | tail -1; sleep 12; curl -s localhost:8080/healthz
 CMD
+why "for n in Asha Ravi; do ...; done::repeat the request for each name|curl -X POST::save a record" "A backup drill needs real data to protect. We create something we can count and compare later."
 step "Create 2 leads (the data we must not lose)" 'Two replies like {"id":N}' <<'CMD'
 for n in Asha Ravi; do curl -s -X POST localhost:8080/api/inquiries -H "content-type: application/json" -d "{\"name\":\"$n\",\"email\":\"$n@example.com\"}"; echo; done
 CMD
+why "leads::the lab shortcut that counts the leads in the database" "Write the number down. After the disaster and the restore, it must be the same."
 step "Count them" "leads in database: 2 (or more if you added some earlier)" <<'CMD'
 leads
 CMD
+why "backup.sh::copies the database safely while the app keeps running" "A backup of a live database must be consistent, not a half-written file. The script uses the database own method, so no downtime is needed."
 step "BACKUP (online and consistent, the app keeps running)" "backup written: backups/devlab-<time>.sqlite" <<'CMD'
 bash 11-capstone/backup.sh | tail -1
 CMD
+why "DELETE FROM leads::remove every row|leads::count again" "We cause the worst case on purpose. Disaster recovery is only believable if you have actually lost data and brought it back."
 step "DISASTER: delete all the data" "The count is now 0." <<'CMD'
 dc exec -T api node -e "const {DatabaseSync}=require('node:sqlite');new DatabaseSync('/data/database.sqlite').exec('DELETE FROM leads')"; leads
 CMD
+why "restore.sh::put the backup back|ls -t and head -1::pick the newest backup file|date +%s::start a stopwatch" "We time the recovery, because the RTO (how long you can be down) is a number you must be able to meet. An untested backup is only a hope."
 step "RESTORE from the newest backup" "restored from backups/devlab-...sqlite" <<'CMD'
 START=$(date +%s); bash 11-capstone/restore.sh "$(ls -t backups/*.sqlite | head -1)" | tail -1; sleep 12; echo "recovery took about $(( $(date +%s) - START )) seconds"
 CMD
+why "leads::count the leads again" "The same number as before proves the restore worked. This is the evidence that your backup is real."
 step "Count again" "The original number is back. You recovered from a disaster." <<'CMD'
 leads
 CMD

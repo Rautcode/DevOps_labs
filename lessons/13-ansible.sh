@@ -6,12 +6,21 @@ explain "Terraform creates infrastructure. Ansible CONFIGURES it: packages, file
 part "PART A · Build the practice servers"
 learn "Configuration management" "Terraform creates machines; Ansible configures what runs on them. The inventory lists your servers, modules do one job each (install a package, copy a file), and a playbook is a list of tasks describing the DESIRED STATE. Ansible logs in over SSH and needs nothing installed on the servers."
 say "What is configuration management, and where does Ansible fit?" "Terraform creates infrastructure, and a configuration management tool like Ansible configures what runs on it: packages, files, users and services. I describe the desired state in a playbook and Ansible makes each server match, over SSH with no agent. It makes servers consistent, repeatable and documented, instead of hand-configured."
+art "Terraform creates, Ansible configures" <<'ART'
+   Terraform:  creates the machines, networks, buckets     (infrastructure)
+        |
+        v
+   Ansible:    installs packages, writes files, starts services   (configuration)
+ART
+why "docker build -q::build quietly|Dockerfile.controller::the recipe that installs Ansible" "Ansible runs from a control machine. We build that machine as a container, so you install nothing on your computer."
 step "Build the Ansible control image (first time takes a minute or two)" "Successfully built, or the image devlab-ansible is listed." ok 'devlab-ansible' <<'CMD'
 docker build -q -f 13-ansible/Dockerfile.controller -t devlab-ansible 13-ansible >/dev/null && docker images --format '{{.Repository}}:{{.Tag}}' | grep devlab-ansible
 CMD
+why "ssh-keygen -t ed25519::make a modern key pair|-N empty::no passphrase for the lab|id_lab / id_lab.pub::the private and the public half" "Ansible uses SSH. A key pair means the private half stays secret with the control machine, while the public half is placed on each server. No password is typed or stored."
 step "Create an SSH key pair (Ansible logs in with a key, not a password)" "id_lab (private, secret) and id_lab.pub (public, shared with the servers)." ok 'id_lab.pub' <<'CMD'
 mkdir -p playground/ssh; rm -f playground/ssh/id_lab playground/ssh/id_lab.pub; docker run --rm -v "$PWD/playground/ssh:/k" devlab-ansible ssh-keygen -t ed25519 -N "" -f /k/id_lab -q; ls playground/ssh
 CMD
+why "ac up -d --build::start the two target servers|SSH_PUBKEY::hand them the public key" "Two throwaway Linux servers to practise on. Managing more than one machine is where automation pays off."
 step "Start two practice servers (web1 and web2) that accept that key" "Containers ansible-web1-1 and ansible-web2-1 Started." ok 'web2' <<'CMD'
 SSH_PUBKEY="$(cat playground/ssh/id_lab.pub)" ac up -d --build 2>&1 | tail -4; sleep 4
 CMD
@@ -20,29 +29,44 @@ quiz "Why does Ansible use SSH keys instead of passwords?" "secur|safe|password|
 part "PART B · Talk to the servers"
 learn "Ad-hoc commands and playbooks" "An ad-hoc command runs one module on many servers right now, good for quick checks. A playbook is saved, repeatable and reviewable, which is what you want for real changes."
 say "What is the difference between an ad-hoc command and a playbook?" "An ad-hoc command runs one module on many servers right now, which is good for quick checks like ping. A playbook is a saved, repeatable, reviewable list of tasks that describes the desired state. For anything that changes servers permanently I use a playbook kept in Git."
+art "Ad-hoc vs playbook" <<'ART'
+   ad-hoc:    ansible web -m ping           one job, right now, not saved
+   playbook:  site.yml  (in Git)            many tasks, desired state, repeatable, reviewed
+ART
+why "ansible web::all servers in the group web|-m ping::use the ping module" "Ansible ping is not network ping: it logs in over SSH and checks that Python works. A SUCCESS with pong means Ansible can manage the machine."
 step "Ad-hoc command: are the servers reachable? (ansible -m ping)" "web1 | SUCCESS and web2 | SUCCESS, each with \"ping\": \"pong\". Ansible reached both over SSH." ok 'pong' <<'CMD'
 lab-ansible ansible web -m ping
 CMD
+why "ansible web -m command::run a command on the group|-a::the command and its arguments" "One command, many machines at once. Ad-hoc commands are good for quick checks, not for permanent changes."
 step "Run a one-off command on every server" "Both servers report Debian 12. One command, many machines." ok 'Debian' <<'CMD'
 lab-ansible ansible web -m command -a "grep PRETTY_NAME /etc/os-release"
 CMD
+why "curl --version::ask the servers whether curl exists" "This should fail now. We want to see the before state, so that after the playbook you can see it change."
 step "Is curl installed yet?" "command not found / non-zero exit on both servers. Nothing is configured yet." fail 'FAILED|non-zero|rc=1|not found|No such' <<'CMD'
 lab-ansible ansible web -m command -a "curl --version"
 CMD
 
 part "PART C · A playbook: desired state"
+why "cat site.yml::print the playbook" "A playbook lists the desired state: packages, a folder, a config file from a template. You describe what you want, not the commands to get there."
 step "Read the playbook" "Tasks: install packages, create a directory, render a template, add a motd line, plus a handler that runs only on change." ok 'Install packages' <<'CMD'
 cat 13-ansible/site.yml
 CMD
 learn "Idempotence" "A task says what state you want (package present), not which command to run. Ansible checks first and changes only if needed. So running the playbook twice gives the same result, and the second run reports changed=0. That makes re-running always safe."
 say "What does idempotent mean?" "Running it once or many times gives the same result. Ansible tasks describe a state, like package present, and Ansible changes things only if the server differs. The second run reports no changes. That makes the automation safe to re-run, and I can use it to continuously enforce the desired state."
+art "Run it twice" <<'ART'
+   run 1:  package missing  -> install it     changed=3
+   run 2:  package present  -> do nothing     changed=0     (same result, safe to repeat)
+ART
 predict "You run the same playbook twice. What does the second run report?" "ok, nothing changed|It repeats every change|It fails because the work exists|It deletes the work" 1 "Idempotent means safe to repeat: tasks describe a state, and Ansible changes only what does not match yet."
+why "ansible-playbook site.yml::apply the playbook to the servers|grep -E::show the summary lines" "Ansible changes whatever differs from the desired state. The PLAY RECAP counts how many things changed. Yellow changed means it fixed something."
 step "Run the playbook (first run: apt downloads packages, about a minute)" "PLAY RECAP with changed=3 or 4 and failed=0 for web1 and web2. Yellow 'changed' tasks mean Ansible fixed something." ok 'failed=0' <<'CMD'
 lab-ansible ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^TASK|^PLAY RECAP|changed=|RUNNING HANDLER"
 CMD
+why "ansible-playbook site.yml::the same run again" "changed=0 everywhere: the servers already match. Idempotent means it is safe to run any number of times."
 step "Run it AGAIN: this is idempotence" "changed=0 everywhere. The servers already match the desired state, so Ansible does nothing. This makes running it again always safe." ok 'changed=0.*failed=0' <<'CMD'
 lab-ansible ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^PLAY RECAP|changed="
 CMD
+why "ac exec -T web1 cat::read the file inside web1" "Ansible filled the template with real values. The server now has exactly what the playbook says."
 step "Look at the file Ansible created on a server" "A config rendered from the template: app=devlab, host=web1, greeting=Hello from Ansible." ok 'managed by ansible' <<'CMD'
 ac exec -T web1 cat /opt/devlab/app.conf
 CMD
@@ -52,12 +76,20 @@ part "PART D · Drift and variables"
 explain "Drift = someone changes a server by hand. Ansible notices on the next run and puts it back."
 learn "Drift" "Drift is when a server no longer matches its desired state, usually because someone changed it by hand. Re-running the playbook finds the difference and repairs it. The managed file says do not edit by hand for exactly this reason."
 say "What is configuration drift?" "Drift is when a server no longer matches its desired state, usually because someone changed it by hand. Re-running the playbook detects the difference and repairs it. To prevent drift I restrict manual changes, keep everything in code and run the automation regularly. In my lab I edited a config by hand and Ansible put it back."
+art "Detect and repair drift" <<'ART'
+   desired state (playbook) ----+
+                                +--> differ? --> Ansible repairs --> servers match again
+   real server (edited by hand)-+
+ART
+why "echo ... >> app.conf::add an unwanted line to the file" "This is configuration drift: the server no longer matches the desired state. It happens whenever people change servers by hand."
 step "Someone edits the config by hand on web1 (drift)" "The file now has an extra 'hacked' line." ok 'hacked' <<'CMD'
 ac exec -T web1 sh -c 'echo "hacked by hand" >> /opt/devlab/app.conf'; ac exec -T web1 cat /opt/devlab/app.conf
 CMD
+why "ansible-playbook site.yml::run again|changed=1::the one fix on web1" "Ansible notices the difference and puts the file back. web2 is unchanged. Running it regularly keeps servers from drifting."
 step "Run the playbook: Ansible repairs it" "web1 shows changed=1 (the template task), web2 changed=0. Config handler announces the change." ok 'changed=1' <<'CMD'
 lab-ansible ansible-playbook site.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^PLAY RECAP|changed=|app.conf changed"
 CMD
+why "grep -c hacked::count the lines that contain the word" "Zero lines remain. Always verify that a repair worked."
 step "Confirm the hack is gone" "hacked lines remaining: 0" ok 'remaining: 0' <<'CMD'
 echo "hacked lines remaining: $(ac exec -T web1 grep -c hacked /opt/devlab/app.conf || true)"
 CMD
@@ -83,18 +115,23 @@ art "The layout of a role" <<'ART'
      templates/banner.txt.j2   a file with {{ variables }}
    playbook:  roles: [ banner ]     <- one line uses all of it
 ART
+why "find roles -type f::list every file in the role|sort::in order" "A role is a standard set of folders: tasks, defaults and templates. Everyone knows where to look."
 step "Look at the files that make up the role" "defaults/main.yml, tasks/main.yml and templates/banner.txt.j2 under 13-ansible/roles/banner." ok 'tasks/main.yml' <<'CMD'
 find 13-ansible/roles -type f | sort
 CMD
+why "defaults/main.yml::variables with default values|tasks/main.yml::the work the role does" "Defaults are the easiest thing to override. Tasks are the same syntax as in a playbook, just packaged for reuse."
 step "Read the role's defaults and tasks" "A default banner_text, and two tasks: create the directory and render the template." ok 'banner_text' <<'CMD'
 cat 13-ansible/roles/banner/defaults/main.yml 13-ansible/roles/banner/tasks/main.yml
 CMD
+why "roles: - banner::the one line that applies the whole role" "Using a role takes three lines. The detail lives inside the role, so many playbooks can share it."
 step "Read the playbook that uses the role" "Only the list of roles: banner. Everything else lives in the role." ok 'banner' <<'CMD'
 cat 13-ansible/roles-demo.yml
 CMD
+why "ansible-playbook roles-demo.yml::apply the playbook that uses the role" "The role creates the folder and the banner file on both servers. Expect changed=2 per server the first time."
 step "Apply the role to both servers" "PLAY RECAP with failed=0 and changed=2 for each server (the first time)." ok 'failed=0' <<'CMD'
 lab-ansible ansible-playbook roles-demo.yml 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^PLAY RECAP|changed="
 CMD
+why "cat banner.txt::read the file the role created" "The template put in the default text and the host name of each server. One role, personalised per machine."
 step "Read the result on web1" "The default banner and host: web1. The template filled in the variable inventory_hostname." ok 'host: web1' <<'CMD'
 ac exec -T web1 cat /opt/devlab/banner.txt
 CMD
@@ -112,33 +149,42 @@ art "Vault: what is stored where" <<'ART'
    vault password           ---> NEVER in Git (CI secret / password manager)
    playbook run + password  ---> secret decrypted in memory, copied to the server (mode 0600)
 ART
+why "secrets.yml::a variables file with a pretend password|vault-pass.txt::the password that will lock it" "First we make a normal readable secret, so you can see it become unreadable in the next steps. The password file is the key and must never go into Git."
 step "Create a plain secrets file and a vault password file" "The file shows the secret in plain text, for now." ok 's3cr3t' <<'CMD'
 printf 'lab-vault-password\n' > playground/vault-pass.txt; printf 'db_password: s3cr3t-value\n' > playground/secrets.yml; cat playground/secrets.yml
 CMD
+why "ansible-vault encrypt::lock the file with the password|--vault-password-file::where to read that password" "The file is now encrypted in place. It prints nothing when it works, so the lab adds a message. The next step shows the result."
 step "Encrypt it with ansible-vault" "encrypted OK. ansible-vault prints nothing when it works, so the lab adds the message; the next step shows the result." ok 'encrypted OK' <<'CMD'
 lab-ansible ansible-vault encrypt ../playground/secrets.yml --vault-password-file /root/.vault-pass 2>&1 && echo "encrypted OK"
 CMD
+why "head -3::the first three lines" "It starts with ANSIBLE_VAULT and then looks like random hex. This file is safe to commit."
 step "Look at the file now" "Unreadable: it starts with \$ANSIBLE_VAULT;1.1;AES256 followed by hex. This file is safe to commit." ok 'ANSIBLE_VAULT' <<'CMD'
 head -3 playground/secrets.yml
 CMD
+why "grep -c s3cr3t::count lines containing the secret" "Zero: the secret is not readable any more. Encryption worked."
 step "Count the plain-text copies of the secret in that file" "secret copies in the file: 0." ok 'file: 0' <<'CMD'
 echo "secret copies in the file: $(grep -c s3cr3t playground/secrets.yml || true)"
 CMD
+why "ansible-vault view::decrypt and show it, without changing the file" "Whoever has the password can still use the secret. That is the point: you protect the key, not every copy of the file."
 step "With the password, Ansible can still read it" "db_password: s3cr3t-value." ok 's3cr3t-value' <<'CMD'
 lab-ansible ansible-vault view ../playground/secrets.yml --vault-password-file /root/.vault-pass
 CMD
+why "vars_files::load variables from the encrypted file|no_log: true::never print the secret" "Ansible decrypts the file in memory when it runs. no_log stops the secret from appearing in the output or the logs."
 step "Read the playbook that uses the encrypted file" "vars_files points at the encrypted file, and the copy task has no_log: true." ok 'no_log' <<'CMD'
 cat 13-ansible/vault-demo.yml
 CMD
+why "--vault-password-file::give Ansible the key|ansible-playbook vault-demo.yml::deploy the secret" "The secret is decrypted in memory and copied to both servers. Nobody saw it on screen."
 step "Run it with the vault password" "PLAY RECAP with failed=0: the secret was decrypted and copied to both servers." ok 'failed=0' <<'CMD'
 lab-ansible ansible-playbook vault-demo.yml --vault-password-file /root/.vault-pass 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^PLAY RECAP|changed="
 CMD
+why "stat -c::print file details|%a %U %n::permissions, owner and name" "600 root means only root can read it. A secret on a server must be readable only by the program that needs it."
 step "Check the secret file on the server: permissions and owner" "600 root: only root can read it." ok '600 root' <<'CMD'
 ac exec -T web1 stat -c '%a %U %n' /opt/devlab/db_password
 CMD
 quiz "Why is it safe to commit an Ansible Vault file to Git, but never the vault password?" "password|key|encrypt|decrypt|unreadable|without|separate|secret|anyone|access" "The file is encrypted, so without the password it is just noise. The password is the key: anyone who has both can read the secrets, so the two must live in different places."
 
 part "PART G · Clean up"
+why "ac down::stop and remove web1 and web2" "Free the memory. The playbooks stay in Git, so you can rebuild the servers any time. That is the point of automation."
 step "Remove the practice servers" "web1 and web2 removed." ok 'Removed|removed' <<'CMD'
 ac down 2>&1 | tail -4
 CMD

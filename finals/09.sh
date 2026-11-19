@@ -19,12 +19,12 @@ X
 
 part "PART · MODULE FINAL"
 
-final "Scan the image" "Exam 1 of 3. Scan the web image devlab-web:lab for HIGH and CRITICAL vulnerabilities that already have a fix (trivy) and save the result into playground/trivy.txt. It must show Total: 0." "docker run --rm -v //var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.58.0 image --severity HIGH,CRITICAL --ignore-unfixed --quiet devlab-web:lab > playground/trivy.txt" <<'X'
+final "Scan the image" "Exam 1 of 3. Scan the web image devlab-web:lab for HIGH and CRITICAL vulnerabilities that already have a fix (trivy) and save the result into playground/trivy.txt. It must show Total: 0." "docker run --rm -v //var/run/docker.sock:/var/run/docker.sock -v \"\$PWD/.trivyignore:/.trivyignore:ro\" aquasec/trivy:0.58.0 image --severity HIGH,CRITICAL --ignore-unfixed --quiet devlab-web:lab > playground/trivy.txt   (the extra -v line hands Trivy the lab time-boxed exception file, see .trivyignore)" <<'X'
 docker image inspect devlab-web:lab >/dev/null 2>&1 || dc build >/dev/null 2>&1; rm -f playground/trivy.txt
 ---
 grep -q 'Total: 0' playground/trivy.txt
 ---
-docker run --rm -v //var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.58.0 image --severity HIGH,CRITICAL --ignore-unfixed --quiet devlab-web:lab 2>&1 | sed 's/\x1b\[[0-9;]*m//g' > playground/trivy.txt
+docker run --rm -v //var/run/docker.sock:/var/run/docker.sock -v "$PWD/.trivyignore:/.trivyignore:ro" aquasec/trivy:0.58.0 image --severity HIGH,CRITICAL --ignore-unfixed --quiet devlab-web:lab 2>&1 | sed 's/\x1b\[[0-9;]*m//g' > playground/trivy.txt
 X
 
 final "Fix a risky cloud config" "Exam 2 of 3. The Terraform file playground/risky-s3/main.tf creates a storage bucket without a public access block. Make the Checkov check CKV2_AWS_6 pass by adding an aws_s3_bucket_public_access_block that turns all four protections on." "Resource aws_s3_bucket_public_access_block with bucket = aws_s3_bucket.data.id and block_public_acls, block_public_policy, ignore_public_acls, restrict_public_buckets all true." <<'X'

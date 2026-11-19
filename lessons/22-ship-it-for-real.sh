@@ -11,17 +11,26 @@ art "From a push to a release" <<'ART'
    open a pull request -> review -> merge to main
    tag v1.0.0 -> release + published images
 ART
+why "grep -nE::search with line numbers|ci.yml::the live pipeline file" "This is the real pipeline that runs on GitHub for this repository. Read it like documentation: each job is one check."
 step "Which jobs does the pipeline have?" "app, docker, security and infra." ok 'docker' <<'CMD'
 grep -nE '^  [a-z]+:$' .github/workflows/ci.yml
 CMD
+why "ghget::the lab shortcut that reads the GitHub API|status=completed&per_page=1::only the newest finished run|grep conclusion::print the result" "success means every job passed. You are reading the public GitHub API, like any tool would. No login is needed for a public repository."
 step "What did the latest finished run conclude?" "\"conclusion\": \"success\"" ok 'success' <<'CMD'
 ghget '/actions/workflows/ci.yml/runs?status=completed&per_page=1' | grep -m1 '"conclusion"'
 CMD
+why "ghjobs::the lab shortcut that lists every job and its result" "A run passes only if every job passes. Reading the per-job result shows exactly which check failed when one does."
 step "Look at the result of every job in that run" "Four jobs (app, security, infra, docker), each with conclusion: success. The conclusion line comes just before the job name." ok 'success' <<'CMD'
 ghjobs
 CMD
 learn "A real failure, and what it teaches" "The first run of this pipeline failed in the docker job: GitHub reported Unable to resolve action aquasecurity/trivy-action@0.28.0, because that tag no longer existed. Nothing was wrong with the code. Lessons: third-party actions are code you run with your credentials, tags can move or vanish, so pin important actions to a full commit SHA, prefer few dependencies, and read failures at the very first red line (here: Set up job)."
 say "Tell me about a time a pipeline broke." "In my project the pipeline failed because the tag of a third-party scanning action I used no longer existed. I found it in the job logs, replaced it by running the scanner from a pinned container image, and pinned the rest of the actions too. The lesson was that external dependencies in a pipeline are a risk and should be pinned and monitored."
+art "The failure and the fix" <<'ART'
+   third-party action tag disappeared --> job failed --> read the log --> pin the scanner
+   from a container image (fixed version) --> pin every action to a SHA
+   lesson: external pieces in a pipeline are a risk: pin and monitor them
+ART
+why "git log --oneline --grep=Trivy -3::search commit messages for the word Trivy" "Git history is also a diary of problems and fixes. Searching it is how you answer what changed and why."
 step "Find the commit that fixed it" "CI: run Trivy from its container (the trivy-action tag no longer exists)." ok 'Trivy' <<'CMD'
 git log --oneline --grep='Trivy' -3
 CMD
@@ -30,14 +39,20 @@ quiz "Why pin a GitHub Action to a full commit SHA instead of a tag like @v4?" "
 part "PART B · Keep the pipeline healthy"
 learn "Dependabot and a status badge" "Dependabot opens pull requests when your npm packages, Docker base images or Actions have newer versions, so security fixes arrive as small reviewed changes instead of a once-a-year panic. A status badge in the README shows the pipeline state to everyone who visits the repo, which is a quiet signal of engineering discipline."
 say "How do you keep dependencies up to date?" "I use Dependabot, which opens pull requests for new versions of npm packages, GitHub Actions and Docker images. The pipeline tests each one, so I can review and merge small updates regularly instead of facing a big risky upgrade later. A status badge on the README shows the current health of the pipeline."
+why "cat dependabot.yml::print the file" "Dependabot opens pull requests for outdated packages, actions and images. Small regular updates beat a big risky upgrade."
 step "See the Dependabot configuration" "Three ecosystems: npm, github-actions, docker, each checked weekly." ok 'npm' <<'CMD'
 cat .github/dependabot.yml
 CMD
+why "grep -c badge.svg README.md::count matches in the README" "The badge is a public sign that the pipeline is green. Recruiters click it, so it is part of your evidence."
 step "Is the CI badge in the README?" "1 (the badge image line is present)." ok '^[1-9]' <<'CMD'
 grep -c 'actions/workflows/ci.yml/badge.svg' README.md
 CMD
 learn "Protect main" "On GitHub: Settings, Branches, Add rule for main. Turn on: require a pull request before merging, require status checks to pass (choose the four CI jobs), require at least one approval, and block force pushes. After that nobody, including you, can push broken code straight to main. (A free private repo may need a paid plan for this; public repos have it.)"
 say "How do you protect the main branch?" "With branch protection rules: require a pull request, require status checks to pass, require at least one review, and block force pushes. That means nothing reaches main without tests and review, and mistakes are caught before release."
+art "What branch protection enforces" <<'ART'
+   push straight to main  -->  BLOCKED
+   pull request --> CI green? --> review approved? --> up to date? --> merge allowed
+ART
 quiz "Name two settings of a good branch protection rule on main." "pull request|review|approv|status check|ci|force|direct|required" "Require a pull request with at least one approval, require the CI status checks to pass, and block force pushes and direct pushes."
 
 part "PART C · The pull-request flow on your real repo (OPTIONAL, needs push access)"
@@ -56,12 +71,20 @@ X
 part "PART D · A real cloud deployment (code checked here, apply is OPTIONAL)"
 learn "From a pipeline to a server" "The pipeline produced signed images. A deployment puts them on a machine people can reach. The Terraform in 22-ship/aws-deploy creates one small server with Docker that pulls your images and serves the website on port 80. Good habits are built in: no SSH port at all (use Session Manager), a role instead of keys, IMDSv2 only, an encrypted disk, and secrets generated ON the server so they never appear in git or Terraform state."
 say "How does a change get from a pipeline to production?" "The pipeline builds a versioned image and pushes it to a registry on a release tag. A deployment step, ideally GitOps, updates the environment to that version after approval, with health checks and an easy rollback to the previous version. I keep the infrastructure in Terraform, and I always set budgets and least-privilege access for a cloud account."
+art "Release flow" <<'ART'
+   merge --> tag v1.0.0 --> pipeline builds image --> registry --> deploy (GitOps)
+                                                          |
+                              health check fails? --> roll back to the last version
+ART
+why "terraform fmt -check::tidy check|terraform validate::correctness check" "These checks need no cloud account. Deployment code should pass them before anyone applies it."
 step "Format and validate the deployment code (no AWS account needed)" "Success! The configuration is valid." ok 'valid' <<'CMD'
 docker run --rm --entrypoint sh -v "$PWD:/w" -w /w/22-ship/aws-deploy hashicorp/terraform:1.9 -c "terraform fmt -check -recursive /w/22-ship && terraform init -backend=false >/dev/null 2>&1 && terraform validate" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tail -2; rm -rf 22-ship/aws-deploy/.terraform 22-ship/aws-deploy/.terraform.lock.hcl
 CMD
+why "checkov::scan the infrastructure code for dangerous settings" "The scanner finds risks such as open ports or missing encryption before a single resource exists."
 step "Scan it for security problems" "Passed checks: 32, Failed checks: 0. One documented skip: the website port is public on purpose." ok 'Failed checks: 0' <<'CMD'
 docker run --rm -v "$PWD:/tf:ro" bridgecrew/checkov:latest -d /tf/22-ship/aws-deploy --framework terraform --compact --quiet 2>&1 | grep -E "Passed checks"
 CMD
+why "grep -nE::search for the words docker, urandom and ghcr|head -12::the first twelve matches" "The server sets itself up when it first starts. Look for how secrets are generated on the machine instead of being stored in code."
 step "Read the first-boot script the server will run" "It installs Docker, generates random secrets ON the server, and starts the api and web containers." ok 'urandom' <<'CMD'
 grep -nE "docker|urandom|ghcr" 22-ship/aws-deploy/main.tf | head -12
 CMD
