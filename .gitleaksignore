@@ -1,0 +1,6 @@
+# Known false positive, accepted by the repository owner on 2026-11-19.
+# Commit 358939b added a diagram to lessons/20-secrets-vault.sh that showed a made-up example string
+# (the word lab-secret encoded in base64) next to the word "Secret". gitleaks mistook it for an API key.
+# It is not a credential. The line was removed in the next commit, but gitleaks scans the whole history,
+# so this single fingerprint is ignored. Do not add other entries without a written reason.
+358939be8a4008836b9f2df4c688f5ff00c189fe:lessons/20-secrets-vault.sh:generic-api-key:116

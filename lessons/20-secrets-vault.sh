@@ -113,8 +113,8 @@ CMD
 learn "Secrets in Kubernetes" "A Kubernetes Secret is only base64-encoded (module 14 showed you can decode it in one command). For real protection use an external secret store: the External Secrets Operator or the Secrets Store CSI driver sync values from Vault or a cloud secret manager, or encrypt secrets before they enter git with Sealed Secrets or SOPS. RBAC decides who may read Secrets at all."
 say "Are Kubernetes Secrets secure?" "By default a Secret is only base64-encoded, not encrypted, so anyone who can read it, or read etcd, can decode it. I restrict access with RBAC, enable encryption at rest, and prefer an external secret manager synced into the cluster. And I never commit secret manifests to Git unencrypted."
 art "base64 is not encryption" <<'ART'
-   Secret value:  bGFiLXNlY3JldA==   --- base64 -d --->   lab-secret
-   anyone who can read the Secret object can decode it
+   stored text:  (letters and digits)  --- base64 -d --->  the real value, readable
+   anyone who can read the Secret object can decode it in one command
    protect with: RBAC, encryption at rest, an external secret manager
 ART
 quiz "How is a secret manager better than an encrypted .env file in git?" "central|audit|rotat|revoke|policy|access|short|expire|dynamic|who" "It gives central control: per-app policies, audit logs of every read, rotation, short-lived revocable tokens. An encrypted file is one static key: if that key leaks, everything leaks, and you cannot see who used what."
