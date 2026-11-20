@@ -178,6 +178,16 @@ Change the app freely (add endpoints, break it, swap SQLite for Postgres): it ex
 4. **Read every plan / diff** before applying.
 5. Clean up: `docker compose ... down -v`, `bash 06-kubernetes/cluster.sh down`, `docker system prune`.
 
+## How changes land in this repo
+`main` is protected by a ruleset: no direct pushes, no force pushes, no deletion. Every change goes through a short-lived branch and a pull request, and the four CI jobs (`app`, `infra`, `security`, `docker`) must be green before it can merge. Required approvals are 0 because this is a one-person repo.
+
+```bash
+git switch -c fix/my-change
+# edit, then
+git add -A && git commit -m "fix: describe the change"
+git push -u origin fix/my-change     # then open the pull request on GitHub
+```
+
 ## Troubleshooting
 | Symptom | Fix |
 |---|---|
