@@ -46,7 +46,7 @@ Replace the numbers with your own. Do not claim anything you did not do.
 | 4 | Apply to 10 roles a week. For each, tailor three CV bullets to the job post and rehearse the module 23 answers. |
 
 ## Practise answers out loud
-[INTERVIEW-ANSWERS.md](INTERVIEW-ANSWERS.md) has a spoken answer for every topic in the lab (115 in all). Read the lab explanation, say the answer aloud in your own words, and add one real detail from your own practice. Do not memorise it word for word.
+[INTERVIEW-ANSWERS.md](INTERVIEW-ANSWERS.md) has a spoken answer for every topic in the lab (117 in all). Read the lab explanation, say the answer aloud in your own words, and add one real detail from your own practice. Do not memorise it word for word.
 
 ## Interview-day checklist
 - Explain one project from start to finish in 3 minutes: the problem, what you built, one thing that broke, what you changed.

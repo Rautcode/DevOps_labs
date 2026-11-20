@@ -9,3 +9,5 @@ backups/
 playground/
 node_modules/
 .xp
+.incidents
+.mockstats

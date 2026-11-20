@@ -1,0 +1,25 @@
+00|Used Git for version control every day: branches, commits, history, undoing mistakes and sharing work through GitHub.
+01|Worked in Linux and the shell, inspected HTTP traffic with curl and traced one request from the browser to the database.
+02|Built and hardened Docker images: multi-stage builds, non-root user, pinned versions and health checks.
+03|Ran a multi-container application with Docker Compose: networks, volumes, health checks and secrets kept in environment files.
+04|Built CI/CD pipelines with GitHub Actions: tests, linting, image builds and security gates on every pull request.
+05|Wrote Terraform modules with plans and tests, and practised workspaces against a local AWS emulator (LocalStack).
+06|Deployed an application to Kubernetes (Deployments, Services, probes, config, rollouts) and debugged failing pods.
+07|Applied GitOps with Argo CD: Git as the source of truth, automatic sync and drift correction.
+08|Set up monitoring with Prometheus and Grafana: dashboards, alert rules and PromQL queries.
+09|Added DevSecOps gates: image scanning (Trivy), infrastructure scanning (Checkov), Dockerfile linting and secret detection.
+10|Defined SLOs and error budgets, ran incident response from runbooks and wrote blameless postmortems.
+11|Planned disaster recovery and production readiness: backups, restore drills and readiness checks.
+12|Debugged DNS, ports and TLS, and configured nginx as a load balancer, a firewall rule set and a CDN cache.
+13|Configured servers with Ansible: playbooks, roles, idempotence and Vault-encrypted variables.
+14|Packaged an application with Helm and applied least-privilege access with Kubernetes RBAC.
+15|Centralised logs with Loki and followed a request across services with Jaeger traces.
+16|Ran the application on PostgreSQL so several API replicas share one database.
+17|Provisioned AWS resources safely: least-privilege IAM, budgets and automated security checks.
+18|Administered Linux: users, permissions, processes, disk, cron jobs and systemd services.
+19|Resolved merge conflicts, rebased, recovered lost commits and used git bisect and code review.
+20|Managed secrets with HashiCorp Vault: policies, short-lived access and keeping secrets out of Git.
+21|Operated advanced Kubernetes: Jobs, resource limits, autoscaling, ingress, taints, tolerations and affinity.
+22|Shipped through a protected-branch pipeline: required checks, pull requests, releases and version tags.
+23|Practised troubleshooting and system-design interviews with timed, hands-on scenarios.
+24|Designed scalable systems with caching, queues, rate limiting, load balancing, sharding and circuit breakers.

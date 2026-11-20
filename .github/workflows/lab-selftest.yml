@@ -1,0 +1,37 @@
+# Nightly self-test of the lab itself: the incident drills and the first modules are solved automatically,
+# so the lab cannot quietly rot when a base image, a package or a tool changes underneath it.
+# On a failure it opens (or comments on) a single issue labelled selftest. Run it by hand from the Actions tab too.
+name: lab-selftest
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: lab-selftest
+  cancel-in-progress: false
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Incident drills (break, fix, verify)
+        run: LAB_AUTO=solve bash lab.sh incident all
+      - name: Module 00, Git from zero (lessons and exam)
+        run: LAB_AUTO=solve bash lab.sh 00
+      - name: Module 03, Compose (lessons and exam)
+        run: LAB_AUTO=solve bash lab.sh 03
+      - name: Report the failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create selftest --color B60205 --description "Nightly lab self-test failed" 2>/dev/null || true
+          open=$(gh issue list --label selftest --state open --json number --jq '.[0].number')
+          body="The nightly lab self-test failed. Logs: $RUN_URL"
+          if [ -n "$open" ]; then gh issue comment "$open" --body "$body"; else gh issue create --label selftest --title "Nightly lab self-test failed" --body "$body"; fi

@@ -742,6 +742,18 @@ One spoken answer for every topic in the lab, grouped by module. Each is about 4
 
 > A pattern that protects a service from a failing dependency. When failures pass a threshold the breaker opens, and calls fail immediately instead of waiting for timeouts, which prevents cascading failure. After a cooldown it goes half-open and allows a trial call; success closes it and failure opens it again. I combine it with timeouts and retries with backoff and jitter.
 
+### Copies of data and the CAP trade-off
+
+**If asked:** What is the CAP theorem?
+
+> When data is copied across machines the network between them can fail, and CAP says that during such a split I have to choose between consistency, where nobody ever sees stale data but some requests are refused, and availability, where every request is answered but may be stale. With no split I can have both. So I choose per feature: a bank balance favours consistency, a like counter favours availability, and replication with a leader and followers is how I get the copies.
+
+### Queue or log? What Kafka adds
+
+**If asked:** What is the difference between a queue and Kafka?
+
+> A queue gives each message to one worker and then removes it, which suits background jobs. Kafka is a durable log: producers append events to partitioned topics, events are kept for a retention period, and each consumer group tracks its own offset so many consumers can read the same events and replay them. Order holds only within a partition, so I use a key to keep related events together, and I make consumers idempotent because delivery can repeat. I understand this at a design level rather than from running it in production.
+
 ### Design a URL shortener
 
 **If asked:** Design a URL shortener.

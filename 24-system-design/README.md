@@ -18,6 +18,8 @@
 | **Sharding** | split data by a shard key; hot shards; hash-mod vs consistent hashing | `shard.js`: 75% of keys move vs 25% |
 | **Circuit breaker** | CLOSED, OPEN, HALF-OPEN; fail fast; timeouts, backoff, bulkheads | `breaker.js`: a simulated outage |
 
+**Concepts only (no hands-on):** replication and the CAP trade-off (leader and followers, consistency or availability during a network split) and queue versus event log (what Kafka adds: partitions, offsets, replay, idempotent consumers). Each has a spoken answer in the lab and in [INTERVIEW-ANSWERS.md](../INTERVIEW-ANSWERS.md).
+
 ## Files
 `cache-aside.sh`, `ratelimit.sh`, `shard.js`, `breaker.js`. Read them: each is under 40 lines.
 

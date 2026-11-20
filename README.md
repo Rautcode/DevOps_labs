@@ -109,14 +109,20 @@ flowchart LR
 - **QUICK CHECK / PREDICT**: a one-key multiple-choice question. Guess what a command will do *before* you run it, then see if you were right (+5 XP).
 - **GO DEEPER**: at the end of most modules, optional links to public learning repos (Abhishek Veeramalla, Shubham Londhe, StackSimplify) for the same skill on a different project. See [STUDY-GUIDE.md](STUDY-GUIDE.md) for exactly what to read where, and [RESOURCES.md](RESOURCES.md).
 - **WHY THIS COMMAND**: before every step (all 397 of them), a green box that explains each part of the command in simple words and why you are typing it. Read it, then type the command.
-- **INTERVIEW-READY ANSWER**: after every explanation, a yellow box with a short spoken answer to the matching interview question, written in first person. Say it out loud in your own words. All 115 are also collected in [INTERVIEW-ANSWERS.md](INTERVIEW-ANSWERS.md).
+- **INTERVIEW-READY ANSWER**: after every explanation, a yellow box with a short spoken answer to the matching interview question, written in first person. Say it out loud in your own words. All 117 are also collected in [INTERVIEW-ANSWERS.md](INTERVIEW-ANSWERS.md).
 - **DIAGRAMS**: more than 100 framed pictures (images and containers, the GitOps loop, TLS, RBAC, scaling, cron fields, Git conflicts...) so you see the idea before you type.
 - **INTERVIEW**: after the lessons the lab becomes an interviewer. It sets up a real situation (a broken site, a bad commit, a crash loop) and asks you to **show** the fix. No step-by-step help, hints only.
 - **MODULE FINAL**: an exam of 3 hands-on challenges for the whole module. You get the objective, not the commands. Every item is checked against the real result, and all must pass to unlock the next module.
 
-**XP and levels:** every step, task and correct answer earns XP (150 XP per level), and a trophy appears when you finish a module. `bash lab.sh map` shows your whole roadmap at a glance.
+**XP and levels:** every step, task and correct answer earns XP (150 XP per level), and a trophy appears when you finish a module, together with the interview questions you can now answer. A one-line progress bar (level, XP to the next level, modules, rank) heads the menu and the roadmap. `bash lab.sh map` shows your whole roadmap at a glance: two columns, full names, and the next module marked `▶`.
 
-Menu symbols: `✔` module complete, `◐` lessons done but interview/final pending, `🔒` locked until the previous module is passed.
+Menu symbols: `✔` module complete, `◐` lessons done but interview/final pending, `▶` the one to do next, `✕` locked until the previous module is passed. Plain terminal or screen reader? `LAB_ASCII=1 NO_COLOR=1 bash lab.sh` swaps the symbols the runner draws for plain ASCII and turns colour off.
+
+**Drills for the real job** (use them any time, they are not gated):
+- `bash lab.sh incident` is an **on-call drill**. The lab quietly breaks the running stack (a stopped API, a frozen container, a bad secret, a cut network, a wrong image), sends you a pager message, and starts the clock. You find the cause with `dc ps`, `dc logs`, `curl` and `docker inspect`, fix it, and type `check`. Hints cost XP, fast fixes earn bonus XP, your best times are kept, and each drill ends with a short postmortem. `bash lab.sh incident list` shows the five faults.
+- `bash lab.sh mock` is a **mock interview**: five random questions from [INTERVIEW-ANSWERS.md](INTERVIEW-ANSWERS.md), 60 seconds each, then the model answer and an honest self-rating. Questions you miss come back more often. `bash lab.sh mock 12` limits it to one module.
+- `bash lab.sh report` writes `playground/report.html`: your level, module map, incident times, mock results and ready-to-edit résumé bullets for the modules you finished.
+- A nightly GitHub Action (`.github/workflows/lab-selftest.yml`) solves the incident drills and modules 00 and 03 automatically and opens an issue if the lab itself breaks.
 Failed an exam item? Retake only the exam with `bash lab.sh final 05` (change 05 to the module number).
 
 Prefer to just watch? `LAB_MODE=watch bash lab.sh 01` runs the commands for you (press Enter at each step).
@@ -141,7 +147,7 @@ What it looks like in your terminal:
 ```
 You earn a rank as you go: Newcomer, Junior Operator, DevOps Engineer, Platform Engineer, Senior Engineer, SRE Legend.
 
-Other commands: `bash lab.sh status` (your progress), `bash lab.sh final NN` (retake a module exam), `bash lab.sh next` (resume), `bash lab.sh down` (stop everything the labs started), `bash lab.sh reset`.
+Other commands: `bash lab.sh status` (your progress), `bash lab.sh incident`, `bash lab.sh mock`, `bash lab.sh report`, `bash lab.sh final NN` (retake a module exam), `bash lab.sh next` (resume), `bash lab.sh down` (stop everything the labs started), `bash lab.sh reset`.
 Your own files go in `playground/` (git-ignored). The written guides in each module folder have the same content plus background reading.
 
 Requires Docker Desktop (give it 6GB+ RAM), `kubectl`, Git, Node 24+. Terraform, kind and helm are **optional**: wrapper scripts run them in Docker.
